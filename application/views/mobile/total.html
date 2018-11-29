@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<style type="text/css">
+    table{
+        width: 100%;
+    }
+    table td,th{
+        text-align: left;
+        border: 1px solid #0a0a0a;
+    }
+</style>
+<body>
+<form action="?" method="get">
+    <input type="hidden" name="c" value="index">
+    <input type="hidden" name="a" value="total">
+    <input type="text" placeholder="平台" name="platform" value="<?=$_GET['platform']?>">
+    <input type="text" placeholder="交易号" name="trade_no" value="<?=$_GET['trade_no']?>">
+    <select name="type">
+        <option value="">交易类型</option>
+        <option value="1" <?php if($_GET['type']==1){ ?>selected="selected"<?php } ?>>充值</option>
+        <option value="2" <?php if($_GET['type']==2){ ?>selected="selected"<?php } ?>>消费</option>
+    </select>
+    <input type="text" placeholder="UID" name="uid" value="<?=$_GET['uid']?>">
+    <button type="submit">搜索</button>
+</form>
+<br>
+<table>
+    <tr>
+        <th>ID</th>
+        <th>平台</th>
+        <th>交易号</th>
+        <th>金额</th>
+        <th>交易类型</th>
+        <th>UID</th>
+        <th>时间</th>
+    </tr>
+    <?php foreach($list as $k=>$v){ ?>
+    <tr>
+        <td><?=$v['id']?></td>
+        <td><?=$v['platform']?></td>
+        <td><?=$v['trade_no']?></td>
+        <td><?=$v['money']/100?></td>
+        <td><?=$v['type']==1?'充值':'消费'?></td>
+        <td><?=$v['uid']?></td>
+        <td><?=$v['createtime']?></td>
+    </tr>
+    <?php } ?>
+</table>
+
+<div class="am-u-sm-12 am-cf">
+    共 <?=$pagesize['totalcount']?> 条记录
+    <div id="pagecontent" style="text-align: center; margin:1rem; font-size:1rem">
+        <?php if($pagesize['totalpage']){ ?>
+        <ul style="list-style: none;">
+            <?php foreach($pagesize['scrollpage'] as $k=>$v){ ?>
+            <li style="float: left; width: 30px; line-height: 30px; border: 1px solid #ccc; margin: 10px;" <?php if($pagesize['page']==$k){ ?>class="am-active"<?php } ?>><a href="?<?=burl('page='.$k)?>"><?=$v?></a></li>
+            <?php } ?>
+        </ul>
+        <?php } ?>
+    </div>
+</div>
+</body>
+</html>
