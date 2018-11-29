@@ -8,30 +8,12 @@ return [
         'db' => [
             'mysql' => [
                 'db' => 'mysql',
-                'server' => '120.25.65.27',
+                'server' => '127.0.0.1',
                 'port' => 3306,
                 'database' => 'chemi_api_v1',
                 'user' => 'root',
-                'pwd' => '5ff4854f40b8eb4c56',
+                'pwd' => '123456',
                 'tablepre' => 'pro_'
-            ],
-            'chemiv2' => [
-                'db' => 'mysql',
-                'server' => '120.25.65.27',
-                'port' => 3306,
-                'database' => 'chemiv2',
-                'user' => 'root',
-                'pwd' => '5ff4854f40b8eb4c56',
-                'tablepre' => ''
-            ],
-            'chemiaccount' => [
-                'db' => 'mysql',
-                'server' => '120.25.65.27',
-                'port' => 3306,
-                'database' => 'chemiaccount',
-                'user' => 'root',
-                'pwd' => '5ff4854f40b8eb4c56',
-                'tablepre' => ''
             ]
         ]
 ];
