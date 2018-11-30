@@ -2,10 +2,77 @@
 
 class Controller {
 
+    public function dispatch ()
+    {
+        // path_info
+        $path = $this->path();
+        if (empty($path)) {
+            return [];
+        }
+
+        // 加载路由配置
+        include APPLICATION_PATH . DIRECTORY_SEPARATOR . 'conf' . DIRECTORY_SEPARATOR . 'route.php';
+
+        // 路由检测
+        $result = library\Route::check($this->method(), $path);
+
+        return $result;
+    }
+
+    public function path()
+    {
+        $suffix   = 'html';
+        $pathinfo = $this->pathinfo();
+        if ($suffix) {
+            // 去除正常的URL后缀
+            $pathinfo = preg_replace('/\.(' . ltrim($suffix, '.') . ')$/i', '', $pathinfo);
+        } else {
+            // 允许任何后缀访问
+            $pathinfo = preg_replace('/\.' . $this->ext() . '$/i', '', $pathinfo);
+        }
+        return $pathinfo;
+    }
+
+    public function pathinfo()
+    {
+        // 分析PATHINFO信息
+        if (!isset($_SERVER['PATH_INFO'])) {
+            foreach (['ORIG_PATH_INFO', 'REDIRECT_PATH_INFO', 'REDIRECT_URL'] as $type) {
+                if (!empty($_SERVER[$type])) {
+                    $_SERVER['PATH_INFO'] = (0 === strpos($_SERVER[$type], $_SERVER['SCRIPT_NAME'])) ?
+                        substr($_SERVER[$type], strlen($_SERVER['SCRIPT_NAME'])) : $_SERVER[$type];
+                    break;
+                }
+            }
+        }
+        return empty($_SERVER['PATH_INFO']) ? '/' : ltrim($_SERVER['PATH_INFO'], '/');
+    }
+
+    public function method($method = false)
+    {
+        if (true === $method) {
+            // 获取原始请求类型
+            return $_SERVER['REQUEST_METHOD'] ?: 'GET';
+        } else {
+            if (isset($_POST['__method'])) {
+                return strtoupper($_POST['__method']);
+            } elseif (isset($_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE'])) {
+                return strtoupper($_SERVER['HTTP_X_HTTP_METHOD_OVERRIDE']);
+            } else {
+                return $_SERVER['REQUEST_METHOD'] ?: 'GET';
+            }
+        }
+    }
+
     public function run ()
     {
         $module = getgpc('c');
         $action = getgpc('a');
+
+        if (empty($module) && empty($action)) {
+            list($module, $action) = $this->dispatch();
+        }
+
         $module = empty($module) ? 'Index' : ucwords($module);
         $action = empty($action) ? 'index' : $action;
         
