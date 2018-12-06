@@ -33,6 +33,11 @@ class Controller {
         return $pathinfo;
     }
 
+    public function ext()
+    {
+        return pathinfo($this->pathinfo(), PATHINFO_EXTENSION);
+    }
+
     public function pathinfo()
     {
         // 分析PATHINFO信息
@@ -102,8 +107,6 @@ class Controller {
                 json(null, $result);
             }
         }
-        
-        json(null, $result);
     }
 
 }
@@ -136,6 +139,9 @@ abstract class ActionPDO {
         } else {
             $this->_G['header']['platform'] = 2;
         }
+
+        // 用户效验
+        $this->_G['user'] = $this->loginCheck();
         
         // 过滤数据
         safepost($_GET);
@@ -260,17 +266,27 @@ abstract class ActionPDO {
 
     public function success ($message = '', $url = '', $wait = 3, $ajax = null)
     {
-        $this->show_message('success', $message, $url, $wait, $ajax);
+        $this->_showMessage('success', $message, $url, $wait, $ajax);
     }
 
     public function error ($message = '', $url = '', $wait = 3, $ajax = null)
     {
-        $this->show_message('error', $message, $url, $wait, $ajax);
+        $this->_showMessage('error', $message, $url, $wait, $ajax);
     }
 
-    private function show_message ($type, $message = '', $url = '', $wait = 3, $ajax = null)
+    protected function isAjax()
     {
-        $ajax = isset($ajax) ? $ajax : isset($_GET['ajax']);
+        if(isset($_SERVER['HTTP_X_REQUESTED_WITH'])
+            && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+            return true;
+        } else {
+            return getgpc('ajax') ? true : false;
+        }
+    }
+
+    protected function _showMessage ($type, $message = '', $url = '', $wait = 3, $ajax = null)
+    {
+        $ajax = isset($ajax) ? $ajax : $this->isAjax();
         if ($ajax) {
             if ($type == 'success')
                 echo json_unicode_encode(success($message));
@@ -283,7 +299,9 @@ abstract class ActionPDO {
         if ($url) {
             $url = $url{0} == '/' ? (APPLICATION_URL . $url) : $url;
         } else {
-            $url = !empty($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : APPLICATION_URL;
+            if (isset($url)) {
+                $url = !empty($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : APPLICATION_URL;
+            }
         }
         if ($wait > 0) {
             $this->render('redirect.html', [
@@ -296,6 +314,24 @@ abstract class ActionPDO {
             header('Location: ' . $url);
         }
         exit();
+    }
+
+    protected function loginCheck ($token = '', $clienttype = '')
+    {
+        if (empty($token)) {
+            if (!empty($_POST['token'])) $token = $_POST['token'];
+            elseif (!empty($_GET['token'])) $token = $_GET['token'];
+            elseif (!empty($_COOKIE['token'])) $token = $_COOKIE['token'];
+        }
+        if (empty($token)) return false;
+        list ($uid, $scode, $client) = explode("\t", authcode(rawurldecode($token), 'DECODE'));
+        $clienttype = $clienttype ? $clienttype : ($client ? $client : (defined('CLIENT_TYPE') ? CLIENT_TYPE : ''));
+        if (!$uid || !$scode) return false;
+        return \library\DB::getInstance()->field('userid as uid, clienttype, clientapp, stoken, updated_at')
+            ->table('__tablepre__session')
+            ->where('userid = ? and scode = ? and clienttype = ?')
+            ->bindValue($uid, $scode, $clienttype)
+            ->find();
     }
 
 }

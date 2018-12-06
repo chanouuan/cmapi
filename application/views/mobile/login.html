@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0">
+    <title>登录</title>
+    <link rel="stylesheet" href="<?=APPLICATION_URL?>/static/weui/weui.min.css"/>
+    <style>
+        .page_title{
+            text-align: center;
+            font-size: 22px;
+            padding-top: 20px;
+            font-weight: normal;
+        }
+        .weui-msg__extra-area {
+            margin-bottom: 15px;
+            font-size: 14px;
+            color: #808080;
+        }
+        @media screen and (min-height: 438px) {
+            .weui-msg__extra-area {
+                position: fixed;
+                left: 0;
+                bottom: 0;
+                width: 100%;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body ontouchstart>
+
+<h1 class="page_title">车秘登录</h1>
+<div class="weui-cells weui-cells_form" id="form">
+    <div class="weui-cell">
+        <div class="weui-cell__hd"><label class="weui-label">手机号</label></div>
+        <div class="weui-cell__bd">
+            <input id="telephone" name="name" class="weui-input" type="tel" required pattern="[0-9]{11}" maxlength="11" placeholder="请输入手机号" emptyTips="手机号不能为空" notMatchTips="请输入正确的手机号">
+        </div>
+        <div class="weui-cell__ft">
+            <i class="weui-icon-warn"></i>
+        </div>
+    </div>
+    <div class="weui-cell" id="login_password">
+        <div class="weui-cell__hd"><label class="weui-label">密　码</label></div>
+        <div class="weui-cell__bd">
+            <input id="password" name="password" class="weui-input" type="password" maxlength="30" placeholder="请输入密码">
+        </div>
+        <div class="weui_cell_ft">
+            <i class="weui_icon_warn"></i>
+        </div>
+    </div>
+    <div class="weui-cell weui-cell_vcode" id="login_sms" style="display: none">
+        <div class="weui-cell__hd"><label class="weui-label">验证码</label></div>
+        <div class="weui-cell__bd">
+            <input id="code" name="code" class="weui-input" type="tel" maxlength="6" placeholder="请输入验证码"/>
+        </div>
+        <div class="weui_cell_ft">
+            <button id="user-send-sms" type="button" class="weui-vcode-btn">获取验证码</button>
+        </div>
+    </div>
+    <div class="weui-btn-area">
+        <a class="weui-btn weui-btn_primary" href="javascript:" id="formSubmitBtn">登录</a>
+    </div>
+    <div onclick="changeLogin()" class="weui-btn-area" style="color: #586C94; font-size: 14px;">
+        点击切换到『<span id="login_type">短信</span>』登录
+    </div>
+</div>
+<div class="weui-msg__extra-area">
+    <div class="weui-footer">
+        <p class="weui-footer__links">
+            <a href="javascript:void(0);" class="weui-footer__link">车秘科技</a>
+        </p>
+        <p class="weui-footer__text">Copyright © 2018 chemi.ren</p>
+    </div>
+</div>
+
+<script src="<?=APPLICATION_URL?>/static/js/zepto.min.js"></script>
+<script src="<?=APPLICATION_URL?>/static/weui/weui.min.js"></script>
+<script type="text/javascript">
+function changeLogin(){
+	var is_pass_login = document.getElementById('login_password').style.display != 'none';
+	if(is_pass_login){
+		$('#login_password').hide();
+		$('#password').val('');
+		$('#code').val('');
+		$('#imgVerify').hide();
+		$('#login_sms').show();
+		$('#login_type').html('密码');
+	}else{
+		$('#login_password').show();
+		$('#password').val('');
+		$('#code').val('');
+		$('#imgVerify').show();
+		$('#login_sms').hide();
+        $('#login_type').html('短信');
+	}
+}
+$(function(){
+
+    $("#formSubmitBtn").on("click", function () {
+        weui.form.validate('#form', function (error) {
+            if (!error) {
+                $.ajax({
+            	  type: 'POST',
+            	  url: '<?=gurl('xiche/login')?>',
+            	  data: {formhash:"<?=encode_formhash()?>",devcode:"<?=getgpc('devcode')?>",telephone:$("input[name=name]").val(),password:$("input[name=password]").val(),msgcode:$("input[name=code]").val()},
+            	  dataType: 'json',
+            	  timeout: 5000,
+            	  success: function(data){
+                      loading.hide();
+                	  if(data && data.errorcode === 0){
+                          weui.toast('登录成功',{duration:500,callback:function(){
+                              if(data.data.ispw == 1){
+                                  location.replace('<?=gurl('xiche/checkout',burl())?>');
+                              }else{
+                                  location.replace('<?=gurl('xiche/setpw',burl())?>');
+                              }
+                          }});
+                      }else{
+                    	  weui.alert(data ? data.message : '登录失败');
+                      }
+            	  },
+            	  beforeSend: function(xhr){
+                      loading = weui.loading('提交中...');
+            	  },
+            	  error: function(xhr, type){
+                      loading.hide();
+            		  weui.alert('网络错误，请重试!');
+            	  }
+            	});
+            }
+        });
+    });
+
+    var CountDown = {
+	    timeContain: [],
+	    push: function(target, fn){
+	        this.timeContain.push({'count':60,'target':target,'fn':fn});
+	        target.disabled = 'disabled';
+	        if(this.timeContain.length === 1) this.each();
+	    },
+	    each: function(){
+	        if(this.timeContain.length < 1) return false;
+	        this.timeContain.forEach(function(n, i){
+	            var count = --n.count;
+	            n.target.innerHTML = count + '秒';
+	            if(count < 1){
+	                CountDown.timeContain.splice(i, 1);
+	                n.target.innerHTML = '重新获取';
+	                n.target.disabled = '';
+	                n.fn && n.fn();
+	            }
+	        });
+	        if(this.timeContain.length) this.go();
+	    },
+	    go: function(){
+	        setTimeout(function(){
+	            CountDown.each();
+	        },1000);
+	    }
+	};
+	
+    $('#user-send-sms').on('click', function(e){
+        var _target = this;
+        if($(this).hasClass('weui-btn_disabled'))return false;
+        var _tel = $('#telephone');
+        if(!/^1[0-9]{10}$/.test(_tel.val())){
+            weui.alert('手机号不正确');
+            return false;
+        }
+        $.ajax({
+            type: 'post',
+            url: '<?=gurl('xiche/sendSms')?>',
+            data: {telephone:_tel.val()},
+            dataType: 'json',
+            timeout: 5000,
+            success: function(data){
+            	$(_target).removeClass('weui-btn_disabled');
+                if(data && data.errorcode === 0){
+                    CountDown.push(_target);
+                }else{
+                    weui.alert(data?data.message:'操作失败');
+                }
+            },
+            beforeSend: function(xhr){
+            	$(_target).addClass('weui-btn_disabled');
+            },
+            error: function(xhr, type){
+            	$(_target).removeClass('weui-btn_disabled');
+                weui.alert('网络超时，请重试!');
+            }
+        });
+        return false;
+    });
+    
+	if (/Android/gi.test(navigator.userAgent)) {
+        window.addEventListener('resize', function () {
+            if (document.activeElement.tagName == 'INPUT' || document.activeElement.tagName == 'TEXTAREA') {
+                window.setTimeout(function () {
+                    document.activeElement.scrollIntoViewIfNeeded();
+                }, 0);
+            }
+        })
+    }
+});
+</script>
+</body>
+</html>

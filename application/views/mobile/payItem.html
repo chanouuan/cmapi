@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0">
+    <title>支付结果</title>
+    <link rel="stylesheet" href="<?=APPLICATION_URL?>/static/weui/weui.min.css"/>
+    <style>
+        .page_title{
+            text-align: center;
+            font-size: 22px;
+            padding: 44px 0;
+            font-weight: normal;
+            color: #0BB20C;
+        }
+        .weui-msg__extra-area {
+            margin-bottom: 15px;
+            font-size: 14px;
+            color: #808080;
+        }
+        @media screen and (min-height: 438px) {
+            .weui-msg__extra-area {
+                position: fixed;
+                left: 0;
+                bottom: 0;
+                width: 100%;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body ontouchstart>
+
+<h1 class="page_title"><i class="weui-icon-success"></i>支付完成</h1>
+
+<div class="weui-form-preview">
+    <div class="weui-form-preview__hd">
+        <div class="weui-form-preview__item">
+            <label class="weui-form-preview__label">付款金额</label>
+            <em class="weui-form-preview__value">¥<?=round_dollar($info['money'])?></em>
+        </div>
+    </div>
+    <div class="weui-form-preview__bd">
+        <div class="weui-form-preview__item">
+            <label class="weui-form-preview__label">订单号</label>
+            <span class="weui-form-preview__value"><?=$info['ordercode']?></span>
+        </div>
+        <div class="weui-form-preview__item">
+            <label class="weui-form-preview__label">商品</label>
+            <span class="weui-form-preview__value"><?=$info['uses']?></span>
+        </div>
+        <div class="weui-form-preview__item">
+            <label class="weui-form-preview__label">支付结果</label>
+            <span class="weui-form-preview__value"><?=$info['result']?></span>
+        </div>
+        <div class="weui-form-preview__item">
+            <label class="weui-form-preview__label">支付时间</label>
+            <span class="weui-form-preview__value"><?=$info['paytime']?></span>
+        </div>
+    </div>
+    <div class="weui-form-preview__ft">
+        <a class="weui-form-preview__btn weui-form-preview__btn_default" href="javascript:window.location.reload()">刷新结果</a>
+        <a class="weui-form-preview__btn weui-form-preview__btn_primary" href="tel:4008883126">联系客服</a>
+    </div>
+</div>
+
+<div class="weui-msg__extra-area">
+    <div class="weui-footer">
+        <p class="weui-footer__links">
+            <a href="javascript:void(0);" class="weui-footer__link">车秘科技</a>
+        </p>
+        <p class="weui-footer__text">Copyright © 2018 chemi.ren</p>
+    </div>
+</div>
+
+</body>
+</html>

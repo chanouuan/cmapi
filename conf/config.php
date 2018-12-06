@@ -5,7 +5,6 @@ return [
         'hour_fc' => 2,
         'day_fc' => 10,
         'auth_expire_time' => 600,
-        'xiche_apikey' => '64BCD13B69924837B6DF728F685A05B8',
         'db' => [
             'mysql' => [
                 'db' => 'mysql',

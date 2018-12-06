@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0">
+    <title>设置密码</title>
+    <link rel="stylesheet" href="<?=APPLICATION_URL?>/static/weui/weui.min.css"/>
+    <style>
+        .page_title{
+            text-align: center;
+            font-size: 22px;
+            padding-top: 20px;
+            font-weight: normal;
+        }
+        .weui-msg__extra-area {
+            margin-bottom: 15px;
+            font-size: 14px;
+            color: #808080;
+        }
+        @media screen and (min-height: 438px) {
+            .weui-msg__extra-area {
+                position: fixed;
+                left: 0;
+                bottom: 0;
+                width: 100%;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body ontouchstart>
+
+<h1 class="page_title">设置密码</h1>
+
+<div class="weui-cells weui-cells_form" id="form">
+    <div class="weui-cell">
+        <div class="weui-cell__hd"><label class="weui-label">密码</label></div>
+        <div class="weui-cell__bd">
+            <input id="password" name="password" class="weui-input" type="text" required pattern="[\S]{6,32}" maxlength="32" placeholder="请输入6-32位密码" emptyTips="密码不能为空" notMatchTips="请输入6-32位密码">
+        </div>
+        <div class="weui-cell__ft">
+            <i class="weui-icon-warn"></i>
+        </div>
+    </div>
+</div>
+<div class="weui-btn-area">
+    <a class="weui-btn weui-btn_primary" href="javascript:" id="formSubmitBtn">确定</a>
+</div>
+<div class="weui-msg__extra-area">
+    <div class="weui-footer">
+        <p class="weui-footer__links">
+            <a href="javascript:void(0);" class="weui-footer__link">车秘科技</a>
+        </p>
+        <p class="weui-footer__text">Copyright © 2018 chemi.ren</p>
+    </div>
+</div>
+
+<script src="<?=APPLICATION_URL?>/static/js/zepto.min.js"></script>
+<script src="<?=APPLICATION_URL?>/static/weui/weui.min.js"></script>
+<script type="text/javascript">
+$(function(){
+
+    $("#formSubmitBtn").on("click", function () {
+        weui.form.validate("#form", function (error) {
+            if (!error) {
+                $.ajax({
+            	  type: 'POST',
+            	  url: '<?=gurl('xiche/setpw')?>',
+            	  data: {formhash:"<?=encode_formhash()?>",devcode:"<?=getgpc('devcode')?>",password:$("input[name=password]").val()},
+            	  dataType: 'json',
+            	  timeout: 5000,
+            	  success: function(data){
+                      loading.hide();
+                	  if(data && data.errorcode === 0){
+                          weui.toast(data.message,{duration:500,callback:function(){
+                              location.replace('<?=gurl('xiche/checkout',burl())?>');
+                          }});
+                      }else{
+                    	  weui.alert(data ? data.message : '操作失败');
+                      }
+            	  },
+            	  beforeSend: function(xhr){
+                      loading = weui.loading('提交中...');
+            	  },
+            	  error: function(xhr, type){
+                      loading.hide();
+            		  weui.alert('网络错误，请重试!');
+            	  }
+            	});
+            }
+        });
+    });
+    
+	if (/Android/gi.test(navigator.userAgent)) {
+        window.addEventListener('resize', function () {
+            if (document.activeElement.tagName == 'INPUT' || document.activeElement.tagName == 'TEXTAREA') {
+                window.setTimeout(function () {
+                    document.activeElement.scrollIntoViewIfNeeded();
+                }, 0);
+            }
+        })
+    }
+});
+</script>
+</body>
+</html>

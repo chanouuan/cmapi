@@ -48,6 +48,34 @@ class UserModel extends Crud {
     }
 
     /**
+     * 设置登录密码
+     */
+    public function setpw ($post) {
+        $post['password'] = trim($post['password']);
+
+        if (strlen($post['password']) < 6 || strlen($post['password']) > 32) {
+            return error('请输入6-32位密码');
+        }
+
+        $user_info = $this->getUserInfo($post['uid']);
+        if ($user_info['errorcode'] !== 0) {
+            return $user_info;
+        }
+        $user_info = $user_info['data'];
+
+        if ($user_info['ispw']) {
+            return error('你已设置过密码');
+        }
+
+        if (false === $this->getDb('chemiv2')->update('chemi_member', [
+            'member_passwd' => md5($post['password'])
+        ], 'member_id = ' . $post['uid'])) {
+            return error('密码设置失败');
+        }
+        return success('密码设置成功');
+    }
+
+    /**
      * 获取用户信息
      */
     public function getUserInfo ($uid) {
@@ -55,7 +83,7 @@ class UserModel extends Crud {
 
         $user_info = $this->getDb('chemiv2')
             ->table('chemi_member')
-            ->field('member_id, member_name, member_sex, member_avatar, nickname, available_predeposit')
+            ->field('member_id, member_name, member_passwd, member_sex, member_avatar, nickname, available_predeposit')
             ->where('member_state = 1 and member_id = ?')
             ->bindValue([$uid])
             ->find();
@@ -69,7 +97,8 @@ class UserModel extends Crud {
             'avatar' => $user_info['member_avatar'] ? ('/mobile/data/upload/shop/mobile/avatar/' . $user_info['member_avatar']) : '',
             'nickname' => strval($user_info['nickname']),
             'sex' => strval($user_info['member_sex']),
-            'money' => floatval($user_info['available_predeposit']) * 100
+            'money' => floatval($user_info['available_predeposit']) * 100,
+            'ispw' => $user_info['member_passwd'] ? 1 : 0
         ];
         unset($user_info);
 
@@ -85,7 +114,8 @@ class UserModel extends Crud {
         $post['authcode'] = msubstr(trim($post['authcode']), 0, 32);
         $post['nickname'] = msubstr(trim($post['nickname']), 0, 20);
         $post['telephone'] = trim($post['telephone']);
-        $post['msgcode'] = addslashes($post['msgcode']);
+        $post['msgcode'] = addslashes($post['msgcode']); // 短信验证码
+        $post['password'] = addslashes($post['password']); // 用户密码
 
         if (empty($post['authcode'])) {
             return error('参数错误：authcode不能为空！');
@@ -102,22 +132,37 @@ class UserModel extends Crud {
             return $this->getUserInfo($userid);
         }
 
-        // 验证短信验证码
-        // 公司平台不验证
-        if (!($post['platform'] == 2 && $post['msgcode'] == '111111')) {
-            if (!$this->checkSmsCode($post['telephone'], $post['msgcode'])) {
-                return error('验证码错误！');
-            }
-        }
-
         // 查询手机号是否存在
         $user_info = DB::getInstance('chemiv2')
             ->table('chemi_member')
-            ->field('member_id, member_name')
+            ->field('member_id, member_name, member_passwd')
             ->where('member_name = ?')
             ->bindValue([$post['telephone']])
             ->limit(1)
             ->find();
+
+        // 验证短信验证码
+        // 公司平台不验证
+        if (!($post['platform'] == 2 && $post['msgcode'] == '111111')) {
+            if (!$post['password'] && !$post['msgcode']) {
+                return error('验证码或密码不能为空！');
+            }
+            if ($post['password']) {
+                // 密码验证
+                if (!$user_info) {
+                    return error('用户名或密码错误！');
+                }
+                if ($user_info['member_passwd'] != md5($post['password'])) {
+                    return error('用户名或密码错误！');
+                }
+            }
+            if ($post['msgcode']) {
+                // 短信验证
+                if (!$this->checkSmsCode($post['telephone'], $post['msgcode'])) {
+                    return error('验证码错误！');
+                }
+            }
+        }
 
         if (!$user_info) {
             // 注册新用户
@@ -232,7 +277,7 @@ class UserModel extends Crud {
         $data['pay_amount'] = 0;
         $data['discount_amount'] = 0;
         $data['consume_state'] = 1; // 1申请中，2成功，3失败
-        $data['remark'] = '商城消费' . $post['platform'];
+        $data['remark'] = '平台消费' . $post['platform'];
         $data['attr_exd_c'] = $post['trade_no'];
         $data['consume_dt'] = date('Y-m-d H:i:s', TIMESTAMP);;
         $data['update_dt'] = date('Y-m-d H:i:s', TIMESTAMP);;
@@ -265,7 +310,7 @@ class UserModel extends Crud {
                 $param['flow_state'] = 2; // 1申请中，2成功，3失败
                 $param['member_balance'] = $user_info['money'] / 100 - $data['consume_amount']; // 变动后用户余额
                 $param['present_ordersn'] = '';
-                $param['attr_exd_a'] = '商城消费' . $post['platform'];
+                $param['attr_exd_a'] = '平台消费' . $post['platform'];
                 $param['attr_exd_c'] = $post['trade_no'];
                 $param['flow_dt'] = date('Y-m-d H:i:s', TIMESTAMP);;
                 $param['update_dt'] = date('Y-m-d H:i:s', TIMESTAMP);;
@@ -346,7 +391,7 @@ class UserModel extends Crud {
             $data['pdr_payment_code'] = 100 + $post['platform']; // 新定义111为商城充值
             $data['pdr_payment_state'] = '1'; // 充值成功
             $data['pdr_add_time'] = TIMESTAMP;
-            $data['pdr_admin'] = '商城充值' . $post['platform'];
+            $data['pdr_admin'] = '平台充值' . $post['platform'];
             if (!$db->insert('chemi_pd_recharge', $data)) {
                 return false;
             }
@@ -372,7 +417,7 @@ class UserModel extends Crud {
                 $param['update_dt'] = date('Y-m-d H:i:s', TIMESTAMP);
                 $param['insert_dt'] = date('Y-m-d H:i:s', TIMESTAMP);
                 $param['log_dt'] = date('Y-m-d H:i:s', TIMESTAMP);
-                $param['remark'] = '商城充值' . $post['platform'];
+                $param['remark'] = '平台充值' . $post['platform'];
                 $param['attr_exd_c'] = $post['trade_no'];
                 if (!$db_1->insert('t_chemi_account_pay_flow_log', $param)) {
                     return false;
@@ -388,7 +433,7 @@ class UserModel extends Crud {
                 $param['flow_state'] = 2; // 1申请中，2成功，3失败
                 $param['member_balance'] = $user_info['money'] / 100 + $data['pdr_amount']; // 变动后用户余额
                 $param['present_ordersn'] = '';
-                $param['attr_exd_a'] = '商城充值' . $post['platform'];
+                $param['attr_exd_a'] = '平台充值' . $post['platform'];
                 $param['attr_exd_c'] = $post['trade_no'];
                 $param['flow_dt'] = date('Y-m-d H:i:s', TIMESTAMP);;
                 $param['update_dt'] = date('Y-m-d H:i:s', TIMESTAMP);;
@@ -534,7 +579,7 @@ class UserModel extends Crud {
             'message' => $templete
         );
         try{
-            $result = https_request('http://hprpt2.eucp.b2m.cn:8080/sdkproxy/sendsms.action', $param, 10, 'xml');
+            $result = https_request('http://hprpt2.eucp.b2m.cn:8080/sdkproxy/sendsms.action', $param, null, 4, 'xml');
         } catch (\Exception $e) {
             return error($e->getMessage());
         }
@@ -542,6 +587,32 @@ class UserModel extends Crud {
             return error(json_encode($result->message));
         }
         return success('OK');
+    }
+
+    /**
+     * 登录状态设置
+     */
+    public function setloginstatus ($uid, $scode, $opt = [], $expire = 0)
+    {
+        if (!$uid) {
+            return error(0);
+        }
+        $update = [
+            'userid' => $uid,
+            'scode' => $scode,
+            'clienttype' => CLIENT_TYPE,
+            'clientinfo' => safe_subject(msubstr($_SERVER['HTTP_USER_AGENT'])),
+            'loginip' => get_ip(),
+            'online' => 1,
+            'updated_at' => date('Y-m-d H:i:s', TIMESTAMP)
+        ];
+        !empty($opt) && $update = array_merge($update, $opt);
+        if (!$this->getDb()->norepeat('__tablepre__session', $update)) {
+            return error('会话操作错误');
+        }
+        $token = rawurlencode(authcode("$uid\t$scode\t{$update['clienttype']}", 'ENCODE'));
+        set_cookie('token', $token, $expire);
+        return success($token);
     }
 
 }

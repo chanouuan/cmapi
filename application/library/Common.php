@@ -1,5 +1,33 @@
 <?php
 
+function import_vendor($path)
+{
+    $path = trim($path, DIRECTORY_SEPARATOR) . '.php';
+    include implode(DIRECTORY_SEPARATOR, [
+        APPLICATION_PATH,
+        'vendor',
+        $path
+    ]);
+}
+
+function write_log($message, $file_name = '')
+{
+    $error = [
+        date('Y-m-d H:i:s', TIMESTAMP)
+    ];
+    if (is_array($message)) {
+        $error = array_merge($error, $message);
+    } else {
+        $error[] = $message;
+    }
+    $des = [
+        APPLICATION_PATH,
+        'log',
+        $file_name . '_' . date('Ymd', TIMESTAMP) . '.log'
+    ];
+    error_log("\r\n" . implode("\r\n", $error) . "\r\n", 3, implode(DIRECTORY_SEPARATOR, $des));
+}
+
 function showWeekDate($datetime)
 {
     $datetime = strtotime($datetime);
@@ -63,20 +91,20 @@ function round_dollar ($fen)
 
 function getSysConfig ($key = null, $target = 'config')
 {
-    static $sys_config;
-    if (empty($sys_config)) {
-        $sys_config = include APPLICATION_PATH . DIRECTORY_SEPARATOR . 'conf' . DIRECTORY_SEPARATOR . $target . '.php';
+    static $sys_config = [];
+    if (!isset($sys_config[$target])) {
+        $sys_config[$target] = include APPLICATION_PATH . DIRECTORY_SEPARATOR . 'conf' . DIRECTORY_SEPARATOR . $target . '.php';
     }
     if (!isset($key)) {
-        return $sys_config;
+        return $sys_config[$target];
     }
-    return $sys_config[$key];
+    return $sys_config[$target][$key];
 }
 
 function getConfig ()
 {
     if (false === F('config')) {
-        $ret = DB::getInstance()->table('~config~')->field('name,value,type')->select();
+        $ret = \library\DB::getInstance()->table('__tablepre__config')->field('name,value,type')->select();
         $config = array();
         foreach ($ret as $k => $v) {
             if ($v['type'] == 'textarea') {
@@ -175,8 +203,8 @@ function submitcheck ($formhash = null, $disposable = true)
     if (empty($formhash) || false === strpos(APPLICATION_URL, $_SERVER['HTTP_HOST'])) return false;
     if (authcode(rawurldecode($formhash), 'DECODE') !== formhash()) return false;
     if (false === $disposable) return true;
-    DB::getInstance()->delete('~hashcheck~', 'dateline < ' . (TIMESTAMP - 3600));
-    return DB::getInstance()->insert('~hashcheck~', array(
+    \library\DB::getInstance()->delete('~hashcheck~', 'dateline < ' . (TIMESTAMP - 3600));
+    return \library\DB::getInstance()->insert('~hashcheck~', array(
             'hash' => md5_mini($formhash), 
             'dateline' => TIMESTAMP
     ));
@@ -200,6 +228,19 @@ function burl ($param = null)
         $_url = array_merge($_url, $output);
     }
     return http_build_query($_url);
+}
+
+function gurl($url, $param = [])
+{
+    if (0 !== strpos($url, 'http')) {
+        $url = APPLICATION_URL . '/' . $url;
+    }
+    $output = [];
+    is_string($param) && parse_str($param, $output);
+    if ($output) {
+        $param = $output;
+    }
+    return $url . '?' . ($param ? http_build_query($param) : '');
 }
 
 function weixin_version_number ()
@@ -363,41 +404,50 @@ function char_conver ($str, $in_charset = 'GBK//IGNORE', $out_charset = 'UTF-8')
     return iconv($in_charset, $out_charset, $str);
 }
 
-function https_request ($url, $post = null, $timeout = 30, $return = 'json')
+function https_request ($url, $post = null, $headers = null, $timeout = 4, $encode = 'json', $reload = 1, $st = 0)
 {
+    $st = $st ? $st : microtime_float();
     $curl = curl_init();
     curl_setopt($curl, CURLOPT_URL, $url);
     curl_setopt($curl, CURLOPT_TIMEOUT, $timeout);
     curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, FALSE);
     curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, FALSE);
     curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-    if (false !== strpos($url, $_SERVER['HTTP_HOST'])) {
-        curl_setopt($curl, CURLOPT_COOKIE, http_build_query($_COOKIE, '', '; '));
+    if ($headers) {
+        curl_setopt($curl, CURLOPT_HTTPHEADER, explode('&', str_replace('=', ':', urldecode(http_build_query($headers)))));
     }
     if ($post) {
-        if (is_array($post)) {
-            $post = http_build_query($post);
-        }
         curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'POST');
-        curl_setopt($curl, CURLOPT_POSTFIELDS, $post);
+        curl_setopt($curl, CURLOPT_POSTFIELDS, is_array($post) ? http_build_query($post) : $post);
     }
     $reponse = curl_exec($curl);
     if (curl_errno($curl)) {
-        throw new \Exception(curl_error($curl), 0);
+        if ($reload > 0) {
+            curl_close($curl);
+            return https_request($url, $post, $headers, $timeout, $encode, $reload - 1, $st);
+        }
+        $error = curl_error($curl);
+        write_log([
+            '[Args] ' . json_unicode_encode(func_get_args()),
+            '[Info] ' . json_unicode_encode(curl_getinfo($curl)),
+            '[Fail] ' . $error,
+            '[Time] ' . round(microtime_float() - $st, 3) . 's'
+        ], 'curlerror');
+        curl_close($curl);
+        throw new \Exception($error);
     }
     curl_close($curl);
-    if ($return == 'json') {
-        if (!$ret = json_decode($reponse, true)) {
-            throw new \Exception($reponse, 0);
+    if ($encode == 'json') {
+        if (!$reponse) {
+            return [];
         }
-        $reponse = $ret;
-    } else if ($return == 'xml') {
-        if (!$ret = simplexml_load_string($reponse)) {
-            throw new \Exception($reponse, 0);
+        return json_decode($reponse, true);
+    } else if ($encode == 'xml') {
+        if (!$reponse) {
+            return [];
         }
-        $reponse = $ret;
+        return simplexml_load_string($reponse);
     }
-    unset($ret);
     return $reponse;
 }
 

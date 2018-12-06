@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=0">
+    <title>支付确认</title>
+    <link rel="stylesheet" href="<?=APPLICATION_URL?>/static/weui/weui.min.css"/>
+    <style>
+        .page_title{
+            text-align: center;
+            font-size: 22px;
+            padding-top: 20px;
+            font-weight: normal;
+        }
+        .weui-icon-success-no-circle:before{
+            color: #fff;
+        }
+        .weui-msg__extra-area {
+            margin-bottom: 15px;
+            font-size: 14px;
+            color: #808080;
+        }
+        @media screen and (min-height: 438px) {
+            .weui-msg__extra-area {
+                position: fixed;
+                left: 0;
+                bottom: 0;
+                width: 100%;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body ontouchstart>
+
+<h1 class="page_title">设备：<?=$deviceInfo['areaname']?></h1>
+<div class="weui-cells weui-cells_form" id="form">
+    <div class="weui-cell">
+        <div class="weui-cell__hd"><label class="weui-label">账户</label></div>
+        <div class="weui-cell__bd"><?=$userInfo['telephone']?></div>
+    </div>
+    <div class="weui-cell">
+        <div class="weui-cell__hd"><label class="weui-label">余额</label></div>
+        <div class="weui-cell__bd"><?=round_dollar($userInfo['money'])?> 元</div>
+    </div>
+    <div class="weui-cell">
+        <div class="weui-cell__hd"><label class="weui-label">价格</label></div>
+        <div class="weui-cell__bd"><?=round_dollar($deviceInfo['price'])?> 元 / 次</div>
+    </div>
+    <?php if($deviceInfo['price'] > $userInfo['money']){ ?>
+    <div class="weui-cell">
+        <div class="weui-cell__hd"><label class="weui-label">在线支付</label></div>
+        <div class="weui-cell__bd">
+            <b style="color: red"><?=round_dollar($deviceInfo['price']>$userInfo['money']?$deviceInfo['price']-$userInfo['money']:0)?></b> 元
+        </div>
+    </div>
+    <?php } ?>
+    <?php if($userInfo['money'] > 0){ ?>
+    <div class="weui-cell">
+        <div class="weui-cell__hd"><label class="weui-label">余额支付</label></div>
+        <div class="weui-cell__bd">
+            <b style="color: red"><?=round_dollar($userInfo['money']>$deviceInfo['price']?$deviceInfo['price']:$userInfo['money'])?></b> 元
+        </div>
+    </div>
+    <?php } ?>
+</div>
+<div class="weui-btn-area">
+    <a class="weui-btn weui-btn_primary" href="javascript:" id="formSubmitBtn">
+        <i class="weui-icon-success-no-circle"></i> 确认支付
+    </a>
+</div>
+<div class="weui-msg__extra-area">
+    <div class="weui-footer">
+        <p class="weui-footer__links">
+            <a href="javascript:void(0);" class="weui-footer__link">车秘科技</a>
+        </p>
+        <p class="weui-footer__text">Copyright © 2018 chemi.ren</p>
+    </div>
+</div>
+
+<script src="<?=APPLICATION_URL?>/static/js/zepto.min.js"></script>
+<script src="<?=APPLICATION_URL?>/static/weui/weui.min.js"></script>
+<script src="http://res.wx.qq.com/open/js/jweixin-1.0.0.js"></script>
+<script type="text/javascript">
+$(function(){
+
+    $("#formSubmitBtn").on("click", function () {
+        var _self = $(this);
+        if(_self.hasClass('weui-btn_disabled')){
+            return false;
+        }
+
+        $.ajax({
+            type: 'POST',
+            url: '<?=gurl('xiche/createCard',burl())?>',
+            dataType: 'json',
+            timeout: 5000,
+            success: function(card){
+                //1
+                if(card.errorcode != 0){
+                    loading.hide();
+                    _self.removeClass('weui-btn_disabled');
+                    return weui.alert(card.message);
+                }
+                $.ajax({
+                    type: 'POST',
+                    url: '<?=gurl('xiche/payQuery')?>',
+                    data: {tradeid:card.data.tradeid},
+                    dataType: 'json',
+                    timeout: 5000,
+                    success: function(query){
+                        //2
+                        if(query.errorcode == 0){
+                            loading.hide();
+                            weui.toast(query.message,{duration:500,callback:function(){
+                                location.replace('<?=gurl('xiche/payItem',burl())?>&tradeid='+card.data.tradeid);
+                            }});
+                            return false;
+                        }
+                        $.ajax({
+                            type: 'POST',
+                            url: '<?=gurl('wxpayjs/api')?>',
+                            data: {tradeid:card.data.tradeid},
+                            dataType: 'json',
+                            timeout: 5000,
+                            success: function(wxsdk){
+                                //3
+                                if(wxsdk.errorcode != 0){
+                                    loading.hide();
+                                    _self.removeClass('weui-btn_disabled');
+                                    return weui.alert(wxsdk.message);
+                                }
+                                JSAPI.chooseWXPay(wxsdk.data,function(res){
+                                    //4
+                                    loading.hide();
+                                    weui.toast('支付完成',{duration:500,callback:function(){
+                                        location.replace('<?=gurl('xiche/payItem',burl())?>&tradeid='+card.data.tradeid);
+                                    }});
+                                },function(res){
+                                    loading.hide();
+                                    weui.alert('支付失败！');
+                                    _self.removeClass('weui-btn_disabled');
+                                });
+                                return false;
+                            },
+                            error: function(xhr, type){
+                                loading.hide();
+                                weui.alert('网络错误，请重试!');
+                                _self.removeClass('weui-btn_disabled');
+                            }
+                        });
+                    },
+                    error: function(xhr, type){
+                        loading.hide();
+                        weui.alert('网络错误，请重试!');
+                        _self.removeClass('weui-btn_disabled');
+                    }
+                });
+            },
+            beforeSend: function(xhr){
+                loading = weui.loading('提交中...');
+                _self.addClass('weui-btn_disabled');
+            },
+            error: function(xhr, type){
+                loading.hide();
+                weui.alert('网络错误，请重试!');
+                _self.removeClass('weui-btn_disabled');
+            }
+        });
+
+    });
+
+});
+
+var JSAPI = {
+    chooseWXPay: function(config, success, fail){
+        try{
+            config = JSON.parse(config);
+        }catch(e){
+            fail && fail(e);
+            return;
+        }
+        config.success = success;
+        config.cancel = fail;
+        wx.chooseWXPay(config);
+    }
+};
+
+<?php if(isset($jssdk) && $jssdk){ ?>
+    wx.config({
+        debug: false,
+        appId: '<?=$jssdk['appId']?>',
+        timestamp: <?=$jssdk['timestamp']?>,
+        nonceStr: '<?=$jssdk['nonceStr']?>',
+        signature: '<?=$jssdk['signature']?>',
+        jsApiList: [
+            'chooseWXPay'
+        ]
+    });
+<?php } ?>
+
+</script>
+</body>
+</html>
