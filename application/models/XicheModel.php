@@ -356,6 +356,9 @@ class XicheModel extends Crud {
         }
         $user_info['token'] = $loginret['data'];
 
+        // 绑定微信
+        $this->bindingLogin($post['authcode'], $user_info['uid']);
+
         return success($user_info);
     }
 
@@ -464,6 +467,51 @@ class XicheModel extends Crud {
         return success([
             'tradeid' => $cardId
         ]);
+    }
+
+    /**
+     * 检查绑定
+     */
+    public function checkLogin ($post) {
+        $ret = DB::getInstance()
+            ->table('__tablepre__xiche_login')
+            ->field('uid')
+            ->where('authcode = ?')
+            ->bindValue($post['authcode'])
+            ->find();
+
+        if (!$ret) {
+            // 创建空绑定
+            if (!$this->getDb()->insert('__tablepre__xiche_login', [
+                'type' => $post['type'],
+                'authcode' => $post['authcode'],
+                'nickname' => msubstr(trim($post['nickname']), 0, 20),
+                'created_at' => date('Y-m-d H:i:s', TIMESTAMP)
+            ])) {
+                return [];
+            }
+        } else {
+            // 登录
+            $userModel = new UserModel();
+            $loginret = $userModel->setloginstatus($ret['uid'], uniqid());
+            if ($loginret['errorcode'] !== 0) {
+                return [];
+            }
+        }
+
+        return $ret;
+    }
+
+    /**
+     * 绑定登录账号
+     */
+    public function bindingLogin ($authcode, $uid) {
+        if (!$authcode) {
+            return false;
+        }
+        return $this->getDb()->update('__tablepre__xiche_login', [
+            'uid' => $uid
+        ], 'authcode = :authcode', ['authcode' => $authcode]);
     }
 
     /**

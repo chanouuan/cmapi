@@ -104,7 +104,7 @@ $(function(){
                 $.ajax({
             	  type: 'POST',
             	  url: '<?=gurl('xiche/login')?>',
-            	  data: {formhash:"<?=encode_formhash()?>",devcode:"<?=getgpc('devcode')?>",telephone:$("input[name=name]").val(),password:$("input[name=password]").val(),msgcode:$("input[name=code]").val()},
+            	  data: {formhash:"<?=encode_formhash()?>",authcode:"<?=$authcode?>",devcode:"<?=getgpc('devcode')?>",telephone:$("input[name=name]").val(),password:$("input[name=password]").val(),msgcode:$("input[name=code]").val()},
             	  dataType: 'json',
             	  timeout: 5000,
             	  success: function(data){

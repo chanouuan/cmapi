@@ -54,14 +54,35 @@ class Xiche extends \ActionPDO {
      */
     public function login () {
         $model = new XicheModel();
+        if (CLIENT_TYPE == 'wx') {
+            // 微信登录
+            if (empty($this->_G['user'])) {
+                $wxConfig = getSysConfig('xiche', 'wx');
+                $jssdk = new \library\JSSDK($wxConfig['appid'], $wxConfig['appsecret']);
+                $userInfo = $jssdk->connectAuth(APPLICATION_URL . $_SERVER['REQUEST_URI']);
+                if ($userInfo['errorcode'] === 0) {
+                    $this->_G['user'] = $model->checkLogin($userInfo['data']);
+                }
+            }
+        }
+
         $ret = $model->checkDevcode(getgpc('devcode'));
         if ($ret['errorcode'] !== 0) {
             $this->error($ret['message'], null);
         }
-        if (submitcheck(null, false)) {
+
+        if ($this->_G['user']) {
+            // 已绑定账号，就跳过登录页
+            header('Location: ' . gurl('xiche/checkout', burl()));
+            exit(0);
+        }
+
+        if (submitcheck()) {
             return $model->login($_POST);
         }
-        return [];
+        return [
+            'authcode' => (isset($userInfo) && isset($userInfo['data']['authcode'])) ? $userInfo['data']['authcode'] : ''
+        ];
     }
 
     /**
@@ -72,7 +93,7 @@ class Xiche extends \ActionPDO {
             $this->error('用户校验失败', null);
         }
         $model = new XicheModel();
-        if (submitcheck(null, false)) {
+        if (submitcheck()) {
             return $model->setpw($this->_G['user'], $_POST);
         }
         return [];
@@ -87,6 +108,7 @@ class Xiche extends \ActionPDO {
         }
 
         if (CLIENT_TYPE == 'wx') {
+            // 加载微信JSSDK
             $wxConfig = getSysConfig('xiche', 'wx');
             $jssdk = new \library\JSSDK($wxConfig['appid'], $wxConfig['appsecret']);
             $jssdk = $jssdk->GetSignPackage();

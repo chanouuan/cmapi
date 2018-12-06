@@ -261,7 +261,7 @@ abstract class ActionPDO {
         $tpl_dir = APPLICATION_URL . '/application/views/' . $style;
         is_array($params) && extract($params);
         include APPLICATION_PATH . DIRECTORY_SEPARATOR . 'application' . DIRECTORY_SEPARATOR . 'views' . DIRECTORY_SEPARATOR . $style . DIRECTORY_SEPARATOR . $tplName;
-        exit();
+        exit(0);
     }
 
     public function success ($message = '', $url = '', $wait = 3, $ajax = null)
@@ -288,13 +288,12 @@ abstract class ActionPDO {
     {
         $ajax = isset($ajax) ? $ajax : $this->isAjax();
         if ($ajax) {
-            if ($type == 'success')
-                echo json_unicode_encode(success($message));
-            else if ($type == 'error')
-                echo json_unicode_encode(error($message));
-            else
-                echo $message;
-            exit();
+            if ($type == 'success') {
+                json(null, $message, 0);
+            } else if ($type == 'error') {
+                json(null, $message, -1);
+            }
+            exit(0);
         }
         if ($url) {
             $url = $url{0} == '/' ? (APPLICATION_URL . $url) : $url;
@@ -313,7 +312,7 @@ abstract class ActionPDO {
         } else {
             header('Location: ' . $url);
         }
-        exit();
+        exit(0);
     }
 
     protected function loginCheck ($token = '', $clienttype = '')

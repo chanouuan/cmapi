@@ -106,7 +106,7 @@ class UserModel extends Crud {
     }
 
     /**
-     * 第三方平台绑定
+     * 第三方平台绑定（手机号密码方式）
      */
     public function loginBinding ($post) {
         $post['platform'] = intval($post['platform']);

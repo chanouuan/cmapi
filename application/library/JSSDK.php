@@ -20,29 +20,36 @@ class JSSDK {
     public function connectAuth ($redirect_url, $scope = 'snsapi_userinfo')
     {
         session_start();
-        $state = $_GET['state'];
-        $code = $_GET['code'];
+        $state = isset($_GET['state']) ? $_GET['state'] : null;
+        $code = isset($_GET['code']) ? $_GET['code'] : null;
         if (!$code || !$state) {
             // 授权回调
             $_SESSION['state'] = md5(uniqid(rand(), TRUE));
-            $authorize_url = 'https://open.weixin.qq.com/connect/oauth2/authorize?appid=' . $this->appId . '&redirect_uri=' . rawurlencode($redirect_url) . '&response_type=code&scope=' . $scope . '&state=' . $_SESSION['state'] . '#wechat_redirect';
+            $authorize_url = 'https://open.weixin.qq.com/connect/oauth2/authorize?' . http_build_query([
+                'appid' => $this->appId,
+                'redirect_uri' => rawurlencode($redirect_url),
+                'response_type' => 'code',
+                'scope' => $scope,
+                'state' => $_SESSION['state']
+            ]) . '#wechat_redirect';
             header('Cache-Control: no-cache');
             header('Pragma: no-cache');
             header('Location: ' . $authorize_url, true, 301);
-            exit();
+            exit(0);
         }
         // 检查state
         if ($state != $_SESSION['state']) {
-            return success([]);
+            return error('微信授权效验失败');
         }
         $_SESSION['state'] = null;
-        unset($_SESSION['state']);
+        unset($_SESSION['state'], $_GET['state'], $_GET['code']);
         // 用Code获取Openid
         $userToken = $this->getSnsapiBase($code);
         if ($userToken['errorcode'] !== 0) {
             return $userToken;
         }
         // 获取微信用户信息
+        $userInfo = [];
         if ($scope == 'snsapi_base') {
             $userInfo = $this->getUserInfo(null, $userToken['data']['openid']);
             if ($userInfo['errorcode'] !== 0) {
@@ -54,7 +61,11 @@ class JSSDK {
                 return $userInfo;
             }
         }
-        return success(array_merge($userToken['data'], $userInfo ? $userInfo['data'] : []));
+        if ($userInfo) {
+            $userInfo['authcode'] = $userInfo['unionid'] ? $userInfo['unionid'] : $userInfo['openid'];
+        }
+        $userInfo['type'] = 'wx';
+        return success(array_merge($userToken['data'], $userInfo));
     }
 
     /**
@@ -63,7 +74,7 @@ class JSSDK {
     public function getSnsapiBase ($code)
     {
         try {
-            $reponse = $this->httpGet('https://api.weixin.qq.com/sns/oauth2/access_token?appid=' . $this->appId . '&secret=' . $this->appSecret . '&code=' . $code . '&grant_type=authorization_code');
+            $reponse = https_request('https://api.weixin.qq.com/sns/oauth2/access_token?appid=' . $this->appId . '&secret=' . $this->appSecret . '&code=' . $code . '&grant_type=authorization_code');
         } catch (\Exception $e) {
             return error($e->getMessage());
         }
@@ -79,7 +90,7 @@ class JSSDK {
     public function snsapi_userinfo ($accessToken, $openid)
     {
         try {
-            $reponse = $this->httpGet('https://api.weixin.qq.com/sns/userinfo?access_token=' . $accessToken . '&openid=' . $openid . '&lang=zh_CN');
+            $reponse = https_request('https://api.weixin.qq.com/sns/userinfo?access_token=' . $accessToken . '&openid=' . $openid . '&lang=zh_CN');
         } catch (\Exception $e) {
             return error($e->getMessage());
         }
@@ -101,7 +112,7 @@ class JSSDK {
         }
         $accessToken = $_access_token['data']['access_token'];
         try {
-            $reponse = $this->httpGet('https://api.weixin.qq.com/cgi-bin/user/info?access_token=' . $accessToken . '&openid=' . $openid . '&lang=zh_CN');
+            $reponse = https_request('https://api.weixin.qq.com/cgi-bin/user/info?access_token=' . $accessToken . '&openid=' . $openid . '&lang=zh_CN');
         } catch (\Exception $e) {
             return error($e->getMessage());
         }
@@ -153,7 +164,7 @@ class JSSDK {
             }
             $accessToken = $_access_token['data']['access_token'];
             try {
-                $reponse = $this->httpGet("https://api.weixin.qq.com/cgi-bin/ticket/getticket?type=jsapi&access_token=$accessToken");
+                $reponse = https_request("https://api.weixin.qq.com/cgi-bin/ticket/getticket?type=jsapi&access_token=$accessToken");
             } catch (\Exception $e) {
                 return error($e->getMessage());
             }
@@ -178,7 +189,7 @@ class JSSDK {
 
         if (!$data) {
             try {
-                $reponse = $this->httpGet("https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=$this->appId&secret=$this->appSecret");
+                $reponse = https_request("https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=$this->appId&secret=$this->appSecret");
             } catch (\Exception $e) {
                 return error($e->getMessage());
             }
@@ -205,27 +216,6 @@ class JSSDK {
             $str .= substr($chars, mt_rand(0, strlen($chars) - 1), 1);
         }
         return $str;
-    }
-
-    private function httpGet ($url)
-    {
-        $curl = curl_init();
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($curl, CURLOPT_TIMEOUT, 30);
-        // 为保证第三方服务器与微信服务器之间数据传输的安全性，所有微信接口采用https方式调用，必须使用下面2行代码打开ssl安全校验。
-        // 如果在部署过程中代码在此处验证失败，请到 http://curl.haxx.se/ca/cacert.pem 下载新的证书判别文件。
-        curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
-        curl_setopt($curl, CURLOPT_URL, $url);
-        $reponse = curl_exec($curl);
-        if (curl_errno($curl)) {
-            throw new \Exception(curl_error($curl), 0);
-        }
-        curl_close($curl);
-        if (!$_reponse = json_decode($reponse, true)) {
-            throw new \Exception($reponse, 0);
-        }
-        return $_reponse;
     }
 
 }

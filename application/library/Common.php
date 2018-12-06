@@ -197,14 +197,14 @@ function formhash ()
     return md5_mini(substr(TIMESTAMP, 0, -7) . $hashadd);
 }
 
-function submitcheck ($formhash = null, $disposable = true)
+function submitcheck ($formhash = null, $disposable = false)
 {
     empty($formhash) && ($formhash = (isset($_POST['formhash']) ? $_POST['formhash'] : (isset($_GET['formhash']) ? $_GET['formhash'] : '')));
     if (empty($formhash) || false === strpos(APPLICATION_URL, $_SERVER['HTTP_HOST'])) return false;
     if (authcode(rawurldecode($formhash), 'DECODE') !== formhash()) return false;
     if (false === $disposable) return true;
-    \library\DB::getInstance()->delete('~hashcheck~', 'dateline < ' . (TIMESTAMP - 3600));
-    return \library\DB::getInstance()->insert('~hashcheck~', array(
+    \library\DB::getInstance()->delete('__tablepre__hashcheck', 'dateline < ' . (TIMESTAMP - 3600));
+    return \library\DB::getInstance()->insert('__tablepre__hashcheck', array(
             'hash' => md5_mini($formhash), 
             'dateline' => TIMESTAMP
     ));
@@ -243,10 +243,10 @@ function gurl($url, $param = [])
     return $url . '?' . ($param ? http_build_query($param) : '');
 }
 
-function weixin_version_number ()
+function weixin_version_number ($version_number = false)
 {
     if (false === stripos($_SERVER['HTTP_USER_AGENT'], 'MicroMessenger/')) return false;
-    return true;
+    if (false === $version_number) return true;
     preg_match("/MicroMessenger\/([0-9\.]+)/i", $_SERVER['HTTP_USER_AGENT'], $matches);
     $version = sprintf("%01.1f", floatval($matches[1]));
     return intval($version) ? $version : false;
@@ -412,7 +412,7 @@ function https_request ($url, $post = null, $headers = null, $timeout = 4, $enco
     curl_setopt($curl, CURLOPT_TIMEOUT, $timeout);
     curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, FALSE);
     curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, FALSE);
-    curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($curl, CURLOPT_RETURNTRANSFER, TRUE);
     if ($headers) {
         curl_setopt($curl, CURLOPT_HTTPHEADER, explode('&', str_replace('=', ':', urldecode(http_build_query($headers)))));
     }
@@ -522,7 +522,7 @@ function json ($data, $message = '', $errorcode = 0, $httpcode = 200) {
     } else {
         echo json_unicode_encode(error($data, $message, $errorcode));
     }
-    exit();
+    exit(0);
 }
 
 function json_unicode_encode ($data)
