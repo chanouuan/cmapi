@@ -222,7 +222,7 @@ function gurl($url, $param = [])
     if ($output) {
         $param = $output;
     }
-    return $url . '?' . ($param ? http_build_query($param) : '');
+    return $url . ($param ? '?' . http_build_query($param) : '');
 }
 
 function weixin_version_number ($version_number = false)

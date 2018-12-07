@@ -84,12 +84,18 @@ class Xiche extends \ActionPDO {
      */
     public function login () {
         $model = new XicheModel();
+
+        if (submitcheck()) {
+            // 提交登录
+            return $model->login($_POST);
+        }
+
         if (CLIENT_TYPE == 'wx') {
             // 微信登录
             if (empty($this->_G['user'])) {
                 $wxConfig = getSysConfig('xiche', 'wx');
                 $jssdk = new \library\JSSDK($wxConfig['appid'], $wxConfig['appsecret']);
-                $userInfo = $jssdk->connectAuth(APPLICATION_URL . $_SERVER['REQUEST_URI']);
+                $userInfo = $jssdk->connectAuth(gurl('xiche/login', burl()));
                 if ($userInfo['errorcode'] === 0) {
                     $this->_G['user'] = $model->checkLogin($userInfo['data']);
                 }
@@ -107,9 +113,6 @@ class Xiche extends \ActionPDO {
             exit(0);
         }
 
-        if (submitcheck()) {
-            return $model->login($_POST);
-        }
         return [
             'authcode' => (isset($userInfo) && isset($userInfo['data']['authcode'])) ? $userInfo['data']['authcode'] : ''
         ];

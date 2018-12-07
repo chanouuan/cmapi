@@ -487,7 +487,11 @@ class XicheModel extends Crud {
      * 检查绑定
      */
     public function checkLogin ($post) {
-        $ret = DB::getInstance()
+        if (!$post['authcode']) {
+            return [];
+        }
+
+        $ret = $this->getDb()
             ->table('__tablepre__xiche_login')
             ->field('uid')
             ->where('authcode = ?')

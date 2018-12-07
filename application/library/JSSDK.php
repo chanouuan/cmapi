@@ -27,7 +27,7 @@ class JSSDK {
             $_SESSION['state'] = md5(uniqid(rand(), TRUE));
             $authorize_url = 'https://open.weixin.qq.com/connect/oauth2/authorize?' . http_build_query([
                 'appid' => $this->appId,
-                'redirect_uri' => rawurlencode($redirect_url),
+                'redirect_uri' => $redirect_url,
                 'response_type' => 'code',
                 'scope' => $scope,
                 'state' => $_SESSION['state']
@@ -37,35 +37,42 @@ class JSSDK {
             header('Location: ' . $authorize_url, true, 301);
             exit(0);
         }
+
         // 检查state
         if ($state != $_SESSION['state']) {
             return error('微信授权效验失败');
         }
+
         $_SESSION['state'] = null;
         unset($_SESSION['state'], $_GET['state'], $_GET['code']);
+
         // 用Code获取Openid
         $userToken = $this->getSnsapiBase($code);
         if ($userToken['errorcode'] !== 0) {
             return $userToken;
         }
+        $userToken = $userToken['data'];
+
         // 获取微信用户信息
         $userInfo = [];
         if ($scope == 'snsapi_base') {
-            $userInfo = $this->getUserInfo(null, $userToken['data']['openid']);
+            $userInfo = $this->getUserInfo(null, $userToken['openid']);
             if ($userInfo['errorcode'] !== 0) {
                 return $userInfo;
             }
         } else if ($scope == 'snsapi_userinfo') {
-            $userInfo = $this->snsapi_userinfo($userToken['data']['access_token'], $userToken['data']['openid']);
+            $userInfo = $this->snsapi_userinfo($userToken['access_token'], $userToken['openid']);
             if ($userInfo['errorcode'] !== 0) {
                 return $userInfo;
             }
         }
+
         if ($userInfo) {
-            $userInfo['authcode'] = $userInfo['unionid'] ? $userInfo['unionid'] : $userInfo['openid'];
+            $userInfo = $userInfo['data'];
+            $userInfo['authcode'] = (isset($userInfo['unionid']) && $userInfo['unionid']) ? $userInfo['unionid'] : $userInfo['openid'];
         }
         $userInfo['type'] = 'wx';
-        return success(array_merge($userToken['data'], $userInfo));
+        return success(array_merge($userToken, $userInfo));
     }
 
     /**
