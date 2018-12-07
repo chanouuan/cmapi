@@ -122,7 +122,7 @@ class Wxpayjs extends \ActionPDO {
         if ($success) {
             echo $returnXml;
         } else {
-            write_log($error, 'payerror');
+            \library\DebugLog::_log($error, 'payerror');
         }
         return null;
     }

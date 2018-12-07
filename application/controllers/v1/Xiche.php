@@ -13,6 +13,16 @@ class Xiche extends \ActionPDO {
         $model = new XicheModel();
         $ret = $model->ReportStatus();
         if ($ret['errorcode'] !== 0) {
+            // 日志
+            $model->log('api_error', [
+                'name' => '洗车机状态上报异常(ReportStatus)',
+                'devcode' => getgpc('DevCode'),
+                'content' => [
+                    'get' => $_GET,
+                    'post' => $_POST,
+                    'result' => $ret
+                ]
+            ]);
             $this->showMessage($ret['message']);
         }
         $this->showMessage($ret['message'], true, $ret['data']);
@@ -25,6 +35,16 @@ class Xiche extends \ActionPDO {
         $model = new XicheModel();
         $ret = $model->BeginService();
         if ($ret['errorcode'] !== 0) {
+            // 日志
+            $model->log('api_error', [
+                'name' => '机器启动通知异常(BeginService)',
+                'devcode' => getgpc('DevCode'),
+                'content' => [
+                    'get' => $_GET,
+                    'post' => $_POST,
+                    'result' => $ret
+                ]
+            ]);
             $this->showMessage($ret['message']);
         }
         $this->showMessage($ret['message'], true, $ret['data']);
@@ -37,6 +57,16 @@ class Xiche extends \ActionPDO {
         $model = new XicheModel();
         $ret = $model->FinishService();
         if ($ret['errorcode'] !== 0) {
+            // 日志
+            $model->log('api_error', [
+                'name' => '洗车结束通知异常(FinishService)',
+                'devcode' => getgpc('DevCode'),
+                'content' => [
+                    'get' => $_GET,
+                    'post' => $_POST,
+                    'result' => $ret
+                ]
+            ]);
             $this->showMessage($ret['message']);
         }
         $this->showMessage($ret['message'], true, $ret['data']);

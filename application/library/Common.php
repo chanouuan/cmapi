@@ -10,24 +10,6 @@ function import_vendor($path)
     ]);
 }
 
-function write_log($message, $file_name = '')
-{
-    $error = [
-        date('Y-m-d H:i:s', TIMESTAMP)
-    ];
-    if (is_array($message)) {
-        $error = array_merge($error, $message);
-    } else {
-        $error[] = $message;
-    }
-    $des = [
-        APPLICATION_PATH,
-        'log',
-        $file_name . '_' . date('Ymd', TIMESTAMP) . '.log'
-    ];
-    error_log("\r\n" . implode("\r\n", $error) . "\r\n", 3, implode(DIRECTORY_SEPARATOR, $des));
-}
-
 function showWeekDate($datetime)
 {
     $datetime = strtotime($datetime);
@@ -427,7 +409,7 @@ function https_request ($url, $post = null, $headers = null, $timeout = 4, $enco
             return https_request($url, $post, $headers, $timeout, $encode, $reload - 1, $st);
         }
         $error = curl_error($curl);
-        write_log([
+        \library\DebugLog::_log([
             '[Args] ' . json_unicode_encode(func_get_args()),
             '[Info] ' . json_unicode_encode(curl_getinfo($curl)),
             '[Fail] ' . $error,
@@ -529,6 +511,21 @@ function json_unicode_encode ($data)
 {
     // JSON_FORCE_OBJECT | JSON_UNESCAPED_UNICODE
     return empty($data) ? '' : json_encode($data, JSON_UNESCAPED_UNICODE);
+}
+
+function json_mysql_encode ($data)
+{
+    $data = json_unicode_encode($data);
+    $data = str_replace([
+        '\\\\\\\\\'',
+        '\\\\\\\\\\\\"',
+        '\\\\\\\\\\\\\\\\'
+    ], [
+        '\'',
+        '\\"',
+        '\\\\\\\\'
+    ], addslashes($data));
+    return $data;
 }
 
 function uploadfile ($upfile, $allow_type = 'jpg,jpeg,gif,png,bmp', $width = 80, $height = 0)

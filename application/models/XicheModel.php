@@ -12,27 +12,26 @@ class XicheModel extends Crud {
      * 保存可退费订单到洗车机
      */
     public function XiCheCOrder ($devcode, $order_no, $order_price) {
-        $api_url = 'http://xicheba.net/chemi/API/Handler/COrder';
+        $url = 'http://xicheba.net/chemi/API/Handler/COrder';
+        $post = [
+            'apiKey' => $this->xiche_apikey,
+            'DevCode' => $devcode,
+            'OrderNo' => $order_no,
+            'totalFee' => $order_price
+        ];
 
         try {
-            $result = https_request($api_url, [
-                'apiKey' => $this->xiche_apikey,
-                'DevCode' => $devcode,
-                'OrderNo' => $order_no,
-                'totalFee' => $order_price
-            ]);
+            $result = https_request($url, $post);
         } catch (\Exception $e) {
             return error($e->getMessage());
         }
 
-        if (!$result['result']) {
-            write_log([
-                $api_url,
-                json_unicode_encode(func_get_args()),
-                json_unicode_encode($result)
-            ], 'xiche_api_err');
-
-            return error($result['messages']);
+        if (!isset($result['result']) || !$result['result']) {
+            return error([
+                'url' => $url,
+                'post' => $post,
+                'result' => $result
+            ]);
         }
 
         return success('OK');
@@ -146,10 +145,16 @@ class XicheModel extends Crud {
                     'money' => $Fee
                 ]);
                 if ($ret['errorcode'] !== 0) {
-                    write_log([
-                        json_unicode_encode($ret),
-                        'refundcode: ' . $param['refundcode']
-                    ], 'payerror');
+                    // 日志
+                    $this->log('recharge_error', [
+                        'name' => '洗车结束,订单可退费(' . round_dollar($Fee) . '元),账户充值(' . round_dollar($Fee) . '元)异常',
+                        'uid' => $trade_info['trade_id'],
+                        'devcode' => $device_info['devcode'],
+                        'content' => [
+                            'post' => $param,
+                            'result' => $ret
+                        ]
+                    ]);
                     return $ret;
                 }
             }
@@ -442,16 +447,16 @@ class XicheModel extends Crud {
 
         // 余额大于支付金额，直接扣除账户余额，支付成功
         if ($totalPrice === 0) {
-            $result = $userModel->consume([
+            $ret = $userModel->consume([
                 'platform' => 3,
                 'authcode' => md5('xc' . $uid),
                 'trade_no' => $ordercode,
                 'money' => $deviceInfo['price']
             ]);
-            if ($result['errorcode'] !== 0) {
+            if ($ret['errorcode'] !== 0) {
                 // 回滚交易表
                 $this->getDb()->delete('__tablepre__payments', 'id = ' . $cardId);
-                return $result;
+                return $ret;
             }
             // 余额消费成功
             if (!$this->getDb()->update('__tablepre__payments', [
@@ -461,7 +466,16 @@ class XicheModel extends Crud {
                 return error('交易失败，请重试');
             }
             // 保存订单到洗车机
-            $this->XiCheCOrder($deviceInfo['devcode'], $ordercode, $deviceInfo['price']);
+            $ret = $this->XiCheCOrder($deviceInfo['devcode'], $ordercode, $deviceInfo['price']);
+            if ($ret['errorcode'] !== 0) {
+                // 记录日志
+                $this->log('apierror', [
+                    'name' => '账户扣费成功,保存订单到洗车机异常',
+                    'uid' => $uid,
+                    'devcode' => $deviceInfo['devcode'],
+                    'content' => $ret
+                ]);
+            }
         }
 
         return success([
@@ -512,6 +526,17 @@ class XicheModel extends Crud {
         return $this->getDb()->update('__tablepre__xiche_login', [
             'uid' => $uid
         ], 'authcode = :authcode', ['authcode' => $authcode]);
+    }
+
+    public function log ($type = 'info', $data = []) {
+        return $this->getDb()->insert('__tablepre__xiche_log', [
+            'type' => $type,
+            'name' => $data['name'],
+            'uid' => isset($data['uid']) ? $data['uid'] : null,
+            'devcode' => isset($data['devcode']) ? $data['devcode'] : null,
+            'content' => is_array($data['content']) ? json_mysql_encode($data['content']) : $data['content'],
+            'created_at' => date('Y-m-d H:i:s', TIMESTAMP)
+        ]);
     }
 
     /**
