@@ -289,9 +289,9 @@ abstract class ActionPDO {
         $ajax = isset($ajax) ? $ajax : $this->isAjax();
         if ($ajax) {
             if ($type == 'success') {
-                json(null, $message, 0);
+                json($message, '', 0);
             } else if ($type == 'error') {
-                json(null, $message, -1);
+                json($message, '', -1);
             }
             exit(0);
         }

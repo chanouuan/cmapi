@@ -362,7 +362,7 @@ class XicheModel extends Crud {
         $user_info['token'] = $loginret['data'];
 
         // 绑定微信
-        $this->bindingLogin($post['authcode'], $user_info['uid']);
+        $this->bindingLogin($post['__authcode'], $user_info['uid']);
 
         return success($user_info);
     }
@@ -501,8 +501,10 @@ class XicheModel extends Crud {
         if (!$ret) {
             // 创建空绑定
             if (!$this->getDb()->insert('__tablepre__xiche_login', [
+                'uid' => 0,
                 'type' => $post['type'],
                 'authcode' => $post['authcode'],
+                'openid' => $post['openid'],
                 'nickname' => msubstr(trim($post['nickname']), 0, 20),
                 'created_at' => date('Y-m-d H:i:s', TIMESTAMP)
             ])) {
@@ -529,9 +531,24 @@ class XicheModel extends Crud {
         }
         return $this->getDb()->update('__tablepre__xiche_login', [
             'uid' => $uid
-        ], 'authcode = :authcode', ['authcode' => $authcode]);
+        ], 'authcode = :authcode and uid = 0', ['authcode' => $authcode]);
     }
 
+    /**
+     * 获取微信openid
+     */
+    public function getWxOpenid ($uid) {
+        return $this->getDb()
+            ->table('__tablepre__xiche_login')
+            ->field('openid')
+            ->where('uid = ? and type = "wx"')
+            ->bindValue($uid)
+            ->count();
+    }
+
+    /**
+     * 记录日志
+     */
     public function log ($type = 'info', $data = []) {
         return $this->getDb()->insert('__tablepre__xiche_log', [
             'type' => $type,

@@ -98,7 +98,7 @@ $(function(){
             success: function(card){
                 //1
                 if(card.errorcode != 0){
-                    loading.hide();
+                    loading_el.hide();
                     _self.removeClass('weui-btn_disabled');
                     return weui.alert(card.message);
                 }
@@ -111,7 +111,7 @@ $(function(){
                     success: function(query){
                         //2
                         if(query.errorcode == 0){
-                            loading.hide();
+                            loading_el.hide();
                             weui.toast(query.message,{duration:500,callback:function(){
                                 location.replace('<?=gurl('xiche/payItem',burl())?>&tradeid='+card.data.tradeid);
                             }});
@@ -126,43 +126,44 @@ $(function(){
                             success: function(wxsdk){
                                 //3
                                 if(wxsdk.errorcode != 0){
-                                    loading.hide();
+                                    loading_el.hide();
                                     _self.removeClass('weui-btn_disabled');
                                     return weui.alert(wxsdk.message);
                                 }
+                                loading_el.hide();
                                 JSAPI.chooseWXPay(wxsdk.data,function(res){
                                     //4
-                                    loading.hide();
+                                    loading_el.hide();
                                     weui.toast('支付完成',{duration:500,callback:function(){
                                         location.replace('<?=gurl('xiche/payItem',burl())?>&tradeid='+card.data.tradeid);
                                     }});
                                 },function(res){
-                                    loading.hide();
+                                    loading_el.hide();
                                     weui.alert('支付失败！');
                                     _self.removeClass('weui-btn_disabled');
                                 });
                                 return false;
                             },
                             error: function(xhr, type){
-                                loading.hide();
+                                loading_el.hide();
                                 weui.alert('网络错误，请重试!');
                                 _self.removeClass('weui-btn_disabled');
                             }
                         });
                     },
                     error: function(xhr, type){
-                        loading.hide();
+                        loading_el.hide();
                         weui.alert('网络错误，请重试!');
                         _self.removeClass('weui-btn_disabled');
                     }
                 });
             },
             beforeSend: function(xhr){
-                loading = weui.loading('提交中...');
+                loading_el = weui.loading('提交中...');
                 _self.addClass('weui-btn_disabled');
             },
             error: function(xhr, type){
-                loading.hide();
+                loading_el.hide();
                 weui.alert('网络错误，请重试!');
                 _self.removeClass('weui-btn_disabled');
             }
@@ -174,12 +175,7 @@ $(function(){
 
 var JSAPI = {
     chooseWXPay: function(config, success, fail){
-        try{
-            config = JSON.parse(config);
-        }catch(e){
-            fail && fail(e);
-            return;
-        }
+        config = typeof config == 'object' ? config : {};
         config.success = success;
         config.cancel = fail;
         wx.chooseWXPay(config);

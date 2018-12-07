@@ -6,6 +6,7 @@
 namespace controllers;
 
 use models\TradeModel;
+use models\XicheModel;
 
 class Wxpayjs extends \ActionPDO {
 
@@ -45,9 +46,12 @@ class Wxpayjs extends \ActionPDO {
             'mchid' => MCHID
         ]);
 
+        // 获取openid
+        $openid = (new XicheModel())->getWxOpenid($trade_info['trade_id']);
+
         // 使用统一支付接口，获取prepay_id
         $unifiedOrder = new \UnifiedOrder_pub();
-        $unifiedOrder->setParameter('openid', ''); // openid
+        $unifiedOrder->setParameter('openid', $openid); // openid
         $unifiedOrder->setParameter('body', $trade_info['uses']); // 商品描述
         $unifiedOrder->setParameter('out_trade_no', $trade_info['ordercode']); // 商户订单号
         $unifiedOrder->setParameter('total_fee', $trade_info['pay']); // 总金额 单位分 不能有小数点
@@ -66,7 +70,7 @@ class Wxpayjs extends \ActionPDO {
             // jssdk中的timestamp为小写
             $jsApiParameters['timestamp'] = $jsApiParameters['timeStamp'];
             unset($jsApiParameters['timeStamp']);
-            $this->success(json_encode($jsApiParameters));
+            $this->success($jsApiParameters);
         } else {
             $this->error('API ERROR');
         }
