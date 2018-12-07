@@ -469,7 +469,7 @@ class XicheModel extends Crud {
             $ret = $this->XiCheCOrder($deviceInfo['devcode'], $ordercode, $deviceInfo['price']);
             if ($ret['errorcode'] !== 0) {
                 // 记录日志
-                $this->log('apierror', [
+                $this->log('api_error', [
                     'name' => '账户扣费成功,保存订单到洗车机异常',
                     'uid' => $uid,
                     'devcode' => $deviceInfo['devcode'],
