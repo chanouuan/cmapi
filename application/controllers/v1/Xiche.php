@@ -14,7 +14,7 @@ class Xiche extends \ActionPDO {
         $ret = $model->ReportStatus();
         if ($ret['errorcode'] !== 0) {
             // 日志
-            $model->log('api_error', [
+            $model->log($this->_action, [
                 'name' => '洗车机状态上报异常(ReportStatus)',
                 'devcode' => getgpc('DevCode'),
                 'content' => [
@@ -36,8 +36,9 @@ class Xiche extends \ActionPDO {
         $ret = $model->BeginService();
         if ($ret['errorcode'] !== 0) {
             // 日志
-            $model->log('api_error', [
+            $model->log($this->_action, [
                 'name' => '机器启动通知异常(BeginService)',
+                'orderno' => getgpc('OrderNo'),
                 'devcode' => getgpc('DevCode'),
                 'content' => [
                     'get' => $_GET,
@@ -58,8 +59,9 @@ class Xiche extends \ActionPDO {
         $ret = $model->FinishService();
         if ($ret['errorcode'] !== 0) {
             // 日志
-            $model->log('api_error', [
+            $model->log($this->_action, [
                 'name' => '洗车结束通知异常(FinishService)',
+                'orderno' => getgpc('OrderNo'),
                 'devcode' => getgpc('DevCode'),
                 'content' => [
                     'get' => $_GET,
@@ -196,11 +198,14 @@ class Xiche extends \ActionPDO {
         if (empty($this->_G['user'])) {
             $this->error('用户校验失败', null);
         }
-        $model = new \models\TradeModel();
+
+        $tradeModel = new \models\TradeModel();
+        $xicheModel = new XicheModel();
+
         // 查询支付结果
-        $model->payQuery($this->_G['user']['uid'], getgpc('tradeid'));
+        $tradeModel->payQuery($this->_G['user']['uid'], getgpc('tradeid'));
         // 查询订单信息
-        $info = $model->get(intval(getgpc('tradeid')), 'trade_id = ' . $this->_G['user']['uid'], 'money,ordercode,paytime,uses,status');
+        $info = $tradeModel->get(intval(getgpc('tradeid')), 'trade_id = ' . $this->_G['user']['uid'], 'money,ordercode,paytime,uses,status');
         if (empty($info)) {
             $this->error('该订单不存在或无效', null);
         }
@@ -209,6 +214,23 @@ class Xiche extends \ActionPDO {
             1 => '已付款'
         ];
         $info['result'] = $str[$info['status']];
+
+        if ($info['status'] == 1) {
+            // 获取洗车机错误日志
+            $log = $xicheModel->getErrorLog($info['ordercode']);
+            $info['dev_status'] = '请求成功'; // 设备启动状态
+            if ($log) {
+                // 重新发起请求
+                $ret = $xicheModel->XiCheCOrder($log['devcode'], $info['ordercode'], $info['money']);
+                if ($ret['errorcode'] === 0) {
+                    // 请求成功
+                    $xicheModel->updateErrorLog($log['id']);
+                } else {
+                    $info['dev_status'] = $log['message'];
+                }
+            }
+        }
+
         return compact('info');
     }
 

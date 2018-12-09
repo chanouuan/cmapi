@@ -1,5 +1,17 @@
 <?php
 
+function concat (...$args)
+{
+    if (isset($args[0])) {
+        if (is_array($args[0])) {
+            return implode('', $args[0]);
+        } else {
+            return implode('', $args);
+        }
+    }
+    return '';
+}
+
 function import_vendor($path)
 {
     $path = trim($path, DIRECTORY_SEPARATOR) . '.php';

@@ -57,6 +57,12 @@
             <label class="weui-form-preview__label">支付时间</label>
             <span class="weui-form-preview__value"><?=$info['paytime']?></span>
         </div>
+        <?php if(isset($info['dev_status'])){ ?>
+        <div class="weui-form-preview__item">
+            <label class="weui-form-preview__label">设备状态</label>
+            <span class="weui-form-preview__value"><?=$info['dev_status']?></span>
+        </div>
+        <?php } ?>
     </div>
     <div class="weui-form-preview__ft">
         <a class="weui-form-preview__btn weui-form-preview__btn_default" href="javascript:window.location.reload()">刷新结果</a>

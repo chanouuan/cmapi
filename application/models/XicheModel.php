@@ -146,9 +146,10 @@ class XicheModel extends Crud {
                 ]);
                 if ($ret['errorcode'] !== 0) {
                     // 日志
-                    $this->log('recharge_error', [
+                    $this->log('recharge', [
                         'name' => '洗车结束,订单可退费(' . round_dollar($Fee) . '元),账户充值(' . round_dollar($Fee) . '元)异常',
                         'uid' => $trade_info['trade_id'],
+                        'orderno' => $OrderNo,
                         'devcode' => $device_info['devcode'],
                         'content' => [
                             'post' => $param,
@@ -313,7 +314,7 @@ class XicheModel extends Crud {
             return error('手机号为空或格式不正确！');
         }
         if (!$post['password'] && !$post['msgcode']) {
-            return error('密码或验证码不能为空！');
+            return error('请输入密码或验证码！');
         }
 
         // 获取用户
@@ -469,11 +470,14 @@ class XicheModel extends Crud {
             $ret = $this->XiCheCOrder($deviceInfo['devcode'], $ordercode, $deviceInfo['price']);
             if ($ret['errorcode'] !== 0) {
                 // 记录日志
-                $this->log('api_error', [
+                $this->log('COrder', [
                     'name' => '账户扣费成功,保存订单到洗车机异常',
                     'uid' => $uid,
+                    'orderno' => $ordercode,
                     'devcode' => $deviceInfo['devcode'],
-                    'content' => $ret
+                    'content' => [
+                        'result' => $ret
+                    ]
                 ]);
             }
         }
@@ -554,10 +558,39 @@ class XicheModel extends Crud {
             'type' => $type,
             'name' => $data['name'],
             'uid' => isset($data['uid']) ? $data['uid'] : null,
+            'orderno' => isset($data['orderno']) ? $data['orderno'] : null,
             'devcode' => isset($data['devcode']) ? $data['devcode'] : null,
             'content' => is_array($data['content']) ? json_mysql_encode($data['content']) : $data['content'],
             'created_at' => date('Y-m-d H:i:s', TIMESTAMP)
         ]);
+    }
+
+    /**
+     * 获取保存到洗车机的错误日志
+     */
+    public function getErrorLog ($order_no, $type = 'COrder') {
+        $log_info = $this->getDb()
+            ->table('__tablepre__xiche_log')
+            ->field('id,devcode,content')
+            ->where('orderno = ? and type = ? and updated_at is null')
+            ->bindValue($order_no, $type)
+            ->find();
+        if (!$log_info) {
+            return null;
+        }
+
+        $log_info['content'] = json_decode($log_info['content'], true);
+        $log_info['message'] = $log_info['content']['result']['data']['result']['message'];
+        return $log_info;
+    }
+
+    /**
+     * 更新日志时间
+     */
+    public function updateErrorLog ($id) {
+        return $this->getDb()->update('__tablepre__xiche_log', [
+            'updated_at' => date('Y-m-d H:i:s', TIMESTAMP)
+        ], 'id = ' . $id);
     }
 
     /**

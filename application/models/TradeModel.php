@@ -124,9 +124,10 @@ class TradeModel extends Crud {
             ]);
             if ($ret['errorcode'] !== 0) {
                 // 日志
-                $xicheModel->log('recharge_error', [
+                $xicheModel->log('recharge', [
                     'name' => '支付回调成功,账户充值(' . round_dollar($trade_info['pay']) . '元)异常',
                     'uid' => $trade_info['trade_id'],
+                    'orderno' => $out_trade_no,
                     'devcode' => $device_info['devcode'],
                     'content' => [
                         'trade' => $trade_info,
@@ -143,9 +144,10 @@ class TradeModel extends Crud {
             ]);
             if ($ret['errorcode'] !== 0) {
                 // 日志
-                $xicheModel->log('consume_error', [
+                $xicheModel->log('consume', [
                     'name' => '支付回调成功,账户消费(' . round_dollar($trade_info['money']) . '元)异常',
                     'uid' => $trade_info['trade_id'],
+                    'orderno' => $out_trade_no,
                     'devcode' => $device_info['devcode'],
                     'content' => [
                         'trade' => $trade_info,
@@ -158,9 +160,10 @@ class TradeModel extends Crud {
             $ret = $xicheModel->XiCheCOrder($device_info['devcode'], $out_trade_no, $trade_info['money']);
             if ($ret['errorcode'] !== 0) {
                 // 记录日志
-                $xicheModel->log('api_error', [
+                $xicheModel->log('COrder', [
                     'name' => '保存订单到洗车机异常',
                     'uid' => $trade_info['trade_id'],
+                    'orderno' => $out_trade_no,
                     'devcode' => $device_info['devcode'],
                     'content' => [
                         'trade' => $trade_info,
