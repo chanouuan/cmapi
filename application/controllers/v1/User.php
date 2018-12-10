@@ -5,8 +5,9 @@ namespace controllers;
 class User extends \ActionPDO {
 
     public function __init () {
-        //echo $this->setSign(['clientapp'=>'ios','apiversion'=>1,'platform'=>2]);exit;
+        // echo $this->setSign(['clientapp'=>'ios','apiversion'=>1,'platform'=>2]);exit;
         // 校验sign
+        $this->getRequestHeader();
         $auth_result = $this->checkSignPass($this->_G['header']);
         if($auth_result['errorcode'] !== 0) {
             json(null, $auth_result['message'], -1);

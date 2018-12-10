@@ -125,19 +125,9 @@ abstract class ActionPDO {
         define('CLIENT_TYPE', check_client());
 
         // 定义视图样式
-        define('APPLICATION_STYLE', 'mobile');
-
-        // 获取Http头
-        $this->_G['header'] = [];
-        foreach ($_SERVER as $k => $v) {
-            if (0 === strpos($k, 'HTTP_')) {
-                $this->_G['header'][str_replace('_', '-', strtolower(substr($k, 5)))] = $v;
-            }
-        }
-        if (isset($_POST['platform'])) {
-            $this->_G['header']['platform'] = $_POST['platform'];
-        } else {
-            $this->_G['header']['platform'] = 2;
+        $_style = $this->__style();
+        if ($_style) {
+            define('APPLICATION_STYLE', $_style);
         }
 
         // 用户效验
@@ -146,6 +136,27 @@ abstract class ActionPDO {
         // 过滤数据
         safepost($_GET);
         safepost($_POST);
+    }
+
+    /**
+     * 获取Http头
+     */
+    protected function getRequestHeader () {
+        $this->_G['header'] = [];
+
+        foreach ($_SERVER as $k => $v) {
+            if (0 === strpos($k, 'HTTP_')) {
+                $this->_G['header'][str_replace('_', '-', strtolower(substr($k, 5)))] = $v;
+            }
+        }
+
+        if (isset($_POST['platform'])) {
+            $this->_G['header']['platform'] = $_POST['platform'];
+        } else {
+            $this->_G['header']['platform'] = 2;
+        }
+
+        return $this->_G['header'];
     }
     
     /**
@@ -247,6 +258,11 @@ abstract class ActionPDO {
         return F('platform');
     }
 
+    protected function __style ()
+    {
+        return null;
+    }
+
     public function __init ()
     {}
 
@@ -255,9 +271,9 @@ abstract class ActionPDO {
         return error('Undefined Action: ' . $this->_module . $this->_action);
     }
 
-    public function render ($tplName, $params = array(), $style = null)
+    public function render ($tplName, $params = null, $style = null)
     {
-        $style = !empty($style) ? $style : (defined(APPLICATION_STYLE) ? APPLICATION_STYLE : 'mobile');
+        $style = !empty($style) ? $style : (defined('APPLICATION_STYLE') ? APPLICATION_STYLE : 'mobile');
         $tpl_dir = APPLICATION_URL . '/application/views/' . $style;
         is_array($params) && extract($params);
         include concat(APPLICATION_PATH, DIRECTORY_SEPARATOR, 'application', DIRECTORY_SEPARATOR, 'views', DIRECTORY_SEPARATOR, $style, DIRECTORY_SEPARATOR, $tplName);
