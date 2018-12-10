@@ -112,7 +112,7 @@ class Wxpayjs extends \ActionPDO {
                 if ($result['errorcode'] === 0) {
                     $success = true;
                 } else {
-                    $error[] = $result['data'];
+                    $error[] = $result['message'];
                     $error[] = $xml;
                 }
             } else {

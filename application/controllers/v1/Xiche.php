@@ -226,7 +226,7 @@ class Xiche extends \ActionPDO {
                     // 请求成功
                     $xicheModel->updateErrorLog($log['id']);
                 } else {
-                    $info['dev_status'] = $log['message'];
+                    $info['dev_status'] = $ret['data']['result'];
                 }
             }
         }

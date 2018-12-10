@@ -23,14 +23,18 @@ class XicheModel extends Crud {
         try {
             $result = https_request($url, $post);
         } catch (\Exception $e) {
-            return error($e->getMessage());
+            return error([
+                'url' => $url,
+                'post' => $post,
+                'result' => $e->getMessage()
+            ]);
         }
 
         if (!isset($result['result']) || !$result['result']) {
             return error([
                 'url' => $url,
                 'post' => $post,
-                'result' => $result
+                'result' => isset($result['messages']) ? $result['messages'] : json_unicode_encode($result)
             ]);
         }
 
@@ -471,7 +475,7 @@ class XicheModel extends Crud {
             if ($ret['errorcode'] !== 0) {
                 // 记录日志
                 $this->log('COrder', [
-                    'name' => '账户扣费成功,保存订单到洗车机异常',
+                    'name' => '账户成功扣费' . round_dollar($deviceInfo['price']) . '元,保存订单到洗车机异常',
                     'uid' => $uid,
                     'orderno' => $ordercode,
                     'devcode' => $deviceInfo['devcode'],
@@ -571,7 +575,7 @@ class XicheModel extends Crud {
     public function getErrorLog ($order_no, $type = 'COrder') {
         $log_info = $this->getDb()
             ->table('__tablepre__xiche_log')
-            ->field('id,devcode,content')
+            ->field('id,devcode')
             ->where('orderno = ? and type = ? and updated_at is null')
             ->bindValue($order_no, $type)
             ->find();
@@ -579,8 +583,6 @@ class XicheModel extends Crud {
             return null;
         }
 
-        $log_info['content'] = json_decode($log_info['content'], true);
-        $log_info['message'] = $log_info['content']['result']['data']['result']['message'];
         return $log_info;
     }
 

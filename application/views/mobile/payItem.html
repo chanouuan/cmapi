@@ -60,13 +60,13 @@
         <?php if(isset($info['dev_status'])){ ?>
         <div class="weui-form-preview__item">
             <label class="weui-form-preview__label">设备状态</label>
-            <span class="weui-form-preview__value"><?=$info['dev_status']?></span>
+            <span class="weui-form-preview__value"><b style="color: #E64340;"><?=$info['dev_status']?></b></span>
         </div>
         <?php } ?>
     </div>
     <div class="weui-form-preview__ft">
-        <a class="weui-form-preview__btn weui-form-preview__btn_default" href="javascript:window.location.reload()">刷新结果</a>
-        <a class="weui-form-preview__btn weui-form-preview__btn_primary" href="tel:4008883126">联系客服</a>
+        <a class="weui-form-preview__btn weui-form-preview__btn_default" href="javascript:window.location.reload()">重试</a>
+        <a class="weui-form-preview__btn weui-form-preview__btn_primary" href="tel:4008883126">客服</a>
     </div>
 </div>
 

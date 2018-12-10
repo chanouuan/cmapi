@@ -161,7 +161,7 @@ class TradeModel extends Crud {
             if ($ret['errorcode'] !== 0) {
                 // 记录日志
                 $xicheModel->log('COrder', [
-                    'name' => '保存订单到洗车机异常',
+                    'name' => '用户成功支付' . round_dollar($trade_info['pay']) . '元,保存订单到洗车机异常',
                     'uid' => $trade_info['trade_id'],
                     'orderno' => $out_trade_no,
                     'devcode' => $device_info['devcode'],
