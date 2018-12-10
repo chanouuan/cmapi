@@ -102,7 +102,7 @@ class Controller {
                 if (isset($result['errorcode'])) {
                     json($result['data'], $result['message'], $result['errorcode']);
                 }
-                $referer->render($action . '.html', $result);
+                $referer->render(concat($module, DIRECTORY_SEPARATOR, $action, '.html'), $result);
             } else {
                 json(null, $result);
             }
@@ -260,7 +260,7 @@ abstract class ActionPDO {
         $style = !empty($style) ? $style : (defined(APPLICATION_STYLE) ? APPLICATION_STYLE : 'mobile');
         $tpl_dir = APPLICATION_URL . '/application/views/' . $style;
         is_array($params) && extract($params);
-        include APPLICATION_PATH . DIRECTORY_SEPARATOR . 'application' . DIRECTORY_SEPARATOR . 'views' . DIRECTORY_SEPARATOR . $style . DIRECTORY_SEPARATOR . $tplName;
+        include concat(APPLICATION_PATH, DIRECTORY_SEPARATOR, 'application', DIRECTORY_SEPARATOR, 'views', DIRECTORY_SEPARATOR, $style, DIRECTORY_SEPARATOR, $tplName);
         exit(0);
     }
 

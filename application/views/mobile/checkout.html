@@ -136,16 +136,16 @@ $(function(){
                             try{
                                 js.jumpRechargeActivity();
                             }catch(e){
-                                alert(JSON.stringify(e));
+                                weui.alert(JSON.stringify(e));
                             }
                         } else if (typeof window.webkit != "undefined") {
                             try {
                                 window.webkit.messageHandlers.jumpRechargeActivity.postMessage();
                             }catch (e) {
-                                alert(JSON.stringify(e))
+                                weui.alert(JSON.stringify(e))
                             }
                         } else {
-                            alert("jumpRechargeActivity(...) is not defined.");
+                            weui.alert("jumpRechargeActivity(...) is not defined.");
                         }
                         loading_el.hide();
                         _self.removeClass('weui-btn_disabled');
