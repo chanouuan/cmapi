@@ -18,6 +18,7 @@ class User extends \ActionPDO {
      */
     public function extend () {
         $userModel = new \models\UserModel();
+        unset($_POST['nopw']);
         $ret = $userModel->loginBinding($_POST);
         if ($ret['errorcode'] !== 0) {
             return $ret;

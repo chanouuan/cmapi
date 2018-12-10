@@ -64,11 +64,23 @@
     </div>
     <?php } ?>
 </div>
+
 <div class="weui-btn-area">
-    <a class="weui-btn weui-btn_primary" href="javascript:" id="formSubmitBtn">
+    <a class="weui-btn weui-btn_primary <?php if($deviceInfo['price'] > $userInfo['money'] && $clienttype != 'wx' && $clienttype != 'cm'){ ?>weui-btn_disabled<?php } ?>" href="javascript:" id="wxformSubmitBtn">
+        <?php if($deviceInfo['price'] > $userInfo['money'] && $clienttype == 'cm'){ ?>
+        充值
+        <?php }else{ ?>
         <i class="weui-icon-success-no-circle"></i> 确认支付
+        <?php } ?>
     </a>
 </div>
+
+<?php if($deviceInfo['price'] > $userInfo['money'] && $clienttype != 'wx' && $clienttype != 'cm'){ ?>
+<div class="weui-btn-area">
+    <i class="weui-icon-warn"></i> 当前支付环境不支持在线支付
+</div>
+<?php } ?>
+
 <div class="weui-msg__extra-area">
     <div class="weui-footer">
         <p class="weui-footer__links">
@@ -82,9 +94,10 @@
 <script src="<?=APPLICATION_URL?>/static/weui/weui.min.js"></script>
 <script src="http://res.wx.qq.com/open/js/jweixin-1.0.0.js"></script>
 <script type="text/javascript">
+
 $(function(){
 
-    $("#formSubmitBtn").on("click", function () {
+    $("#wxformSubmitBtn").on("click", function () {
         var _self = $(this);
         if(_self.hasClass('weui-btn_disabled')){
             return false;
@@ -112,11 +125,32 @@ $(function(){
                         //2
                         if(query.errorcode == 0){
                             loading_el.hide();
-                            weui.toast(query.message,{duration:500,callback:function(){
+                            weui.toast(query.message,{duration:1000,callback:function(){
                                 location.replace('<?=gurl('xiche/payItem',burl())?>&tradeid='+card.data.tradeid);
                             }});
                             return false;
                         }
+                        // 车秘APP支付
+                        <?php if($clienttype == 'cm'){ ?>
+                        if (typeof js != "undefined" && typeof js.jumpRechargeActivity != "undefined") {
+                            try{
+                                js.jumpRechargeActivity();
+                            }catch(e){
+                                alert(JSON.stringify(e));
+                            }
+                        } else if (typeof window.webkit != "undefined") {
+                            try {
+                                window.webkit.messageHandlers.jumpRechargeActivity.postMessage();
+                            }catch (e) {
+                                alert(JSON.stringify(e))
+                            }
+                        } else {
+                            alert("jumpRechargeActivity(...) is not defined.");
+                        }
+                        loading_el.hide();
+                        _self.removeClass('weui-btn_disabled');
+                        return false;
+                        <?php } ?>
                         $.ajax({
                             type: 'POST',
                             url: '<?=gurl('wxpayjs/api')?>',
@@ -134,7 +168,7 @@ $(function(){
                                 JSAPI.chooseWXPay(wxsdk.data,function(res){
                                     //4
                                     loading_el.hide();
-                                    weui.toast('支付完成',{duration:500,callback:function(){
+                                    weui.toast('支付完成',{duration:2000,callback:function(){
                                         location.replace('<?=gurl('xiche/payItem',burl())?>&tradeid='+card.data.tradeid);
                                     }});
                                 },function(res){
@@ -171,16 +205,14 @@ $(function(){
 
     });
 
-});
-
-var JSAPI = {
-    chooseWXPay: function(config, success, fail){
-        config = typeof config == 'object' ? config : {};
-        config.success = success;
-        config.cancel = fail;
-        wx.chooseWXPay(config);
-    }
-};
+    var JSAPI = {
+        chooseWXPay: function(config, success, fail){
+            config = typeof config == 'object' ? config : {};
+            config.success = success;
+            config.cancel = fail;
+            setTimeout(function(){wx.chooseWXPay(config);},300);
+        }
+    };
 
 <?php if(isset($jssdk) && $jssdk){ ?>
     wx.config({
@@ -194,6 +226,8 @@ var JSAPI = {
         ]
     });
 <?php } ?>
+
+});
 
 </script>
 </body>

@@ -92,6 +92,16 @@ class Xiche extends \ActionPDO {
             return $model->login($_POST);
         }
 
+        if (CLIENT_TYPE == 'mobile') {
+            // 车秘APP登录
+            if (empty($this->_G['user'])) {
+                $userInfo = $model->cmLogin($_GET);
+                if ($userInfo['errorcode'] === 0) {
+                    $this->_G['user'] = $userInfo['data'];
+                }
+            }
+        }
+
         if (CLIENT_TYPE == 'wx') {
             // 微信登录
             if (empty($this->_G['user'])) {
@@ -141,6 +151,7 @@ class Xiche extends \ActionPDO {
         if (empty($this->_G['user'])) {
             $this->error('用户校验失败', null);
         }
+        $clienttype = $this->_G['user']['clienttype'];
 
         if (CLIENT_TYPE == 'wx') {
             // 加载微信JSSDK
@@ -168,7 +179,7 @@ class Xiche extends \ActionPDO {
         }
         $userInfo = $userInfo['data'];
 
-        return compact('deviceInfo', 'userInfo', 'jssdk');
+        return compact('deviceInfo', 'userInfo', 'jssdk', 'clienttype');
     }
 
     /**

@@ -307,6 +307,64 @@ class XicheModel extends Crud {
     }
 
     /**
+     * 车秘APP登录
+     */
+    public function cmLogin ($post) {
+        $post['member_id'] = intval($post['member_id']);
+        $post['key'] = trim($post['key']);
+
+        if (!$post['member_id'] || !$post['key']) {
+            return error('参数错误');
+        }
+
+        // 获取用户
+        if (!$user_info = $this->getDb('chemiv2')
+            ->table('chemi_member')
+            ->field('member_id, member_name')
+            ->where('member_id = ?')
+            ->bindValue($post['member_id'])
+            ->limit(1)
+            ->find()) {
+            return error('用户或密码错误');
+        }
+
+        // 验证车秘token
+        if (!$this->getDb('chemiv2')
+            ->table('chemi_mb_user_token')
+            ->field('member_id')
+            ->where('member_id = ? and token = ?')
+            ->bindValue($post['member_id'], $post['key'])
+            ->limit(1)
+            ->find()) {
+            return error('用户效验失败');
+        }
+
+        $user_model = new \models\UserModel();
+        // 执行绑定
+        $post['nopw'] = 1; // 不验证密码
+        $post['platform'] = 3; // 固定平台代码
+        $post['type'] = 'xc';
+        $post['authcode'] = md5('xc' . $user_info['member_id']); // 取不易识别的值
+        $post['telephone'] =  $user_info['member_name'];
+        $user_info = $user_model->loginBinding($post);
+        if ($user_info['errorcode'] !== 0) {
+            return $user_info;
+        }
+        $user_info = $user_info['data'];
+
+        // 登录成功
+        $loginret = $user_model->setloginstatus($user_info['uid'], uniqid(), [
+            'clienttype' => 'cm'
+        ]);
+        if ($loginret['errorcode'] !== 0) {
+            return $loginret;
+        }
+        $user_info['token'] = $loginret['data'];
+
+        return success($user_info);
+    }
+
+    /**
      * 支付前登录
      */
     public function login ($post) {

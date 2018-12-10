@@ -116,6 +116,12 @@ class UserModel extends Crud {
         $post['telephone'] = trim($post['telephone']);
         $post['msgcode'] = addslashes($post['msgcode']); // 短信验证码
         $post['password'] = addslashes($post['password']); // 用户密码
+        $post['nopw'] = isset($post['nopw']) ? true :false; // 是否免密、免验证码
+
+        // 公司平台不验证
+        if ($post['platform'] == 2 && $post['msgcode'] == '111111') {
+            $post['nopw'] = true;
+        }
 
         if (empty($post['authcode'])) {
             return error('参数错误：authcode不能为空！');
@@ -141,9 +147,8 @@ class UserModel extends Crud {
             ->limit(1)
             ->find();
 
-        // 验证短信验证码
-        // 公司平台不验证
-        if (!($post['platform'] == 2 && $post['msgcode'] == '111111')) {
+        // 验证短信验证码/密码
+        if (!$post['nopw']) {
             if (!$post['password'] && !$post['msgcode']) {
                 return error('验证码或密码不能为空！');
             }

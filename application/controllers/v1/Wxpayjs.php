@@ -28,6 +28,10 @@ class Wxpayjs extends \ActionPDO {
      */
     public function api ()
     {
+        if (CLIENT_TYPE != 'wx') {
+            $this->error('当前支付环境不支持在线支付');
+        }
+
         // 交易单id
         $tradeid = intval(getgpc('tradeid'));
 
