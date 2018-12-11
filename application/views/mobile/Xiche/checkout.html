@@ -132,20 +132,34 @@ $(function(){
                         }
                         // 车秘APP支付
                         <?php if($clienttype == 'cm'){ ?>
-                        if (typeof js != "undefined" && typeof js.jumpRechargeActivity != "undefined") {
-                            try{
-                                js.jumpRechargeActivity();
-                            }catch(e){
+                        if (typeof js != "undefined" && typeof js.ScanAction != "undefined") {
+                            try {
+                                js.ScanAction({
+                                    success:function(r){
+                                        location.replace(location.href);
+                                    },
+                                    fail:function(r){
+                                        weui.alert(r)
+                                    }
+                                });
+                            }catch (e) {
                                 weui.alert(JSON.stringify(e));
                             }
                         } else if (typeof window.webkit != "undefined") {
                             try {
-                                window.webkit.messageHandlers.jumpRechargeActivity.postMessage();
+                                window.webkit.messageHandlers.ScanAction.postMessage({
+                                    success:function(r){
+                                        location.replace(location.href);
+                                    },
+                                    fail:function(r){
+                                        weui.alert(r)
+                                    }
+                                });
                             }catch (e) {
                                 weui.alert(JSON.stringify(e))
                             }
                         } else {
-                            weui.alert("jumpRechargeActivity(...) is not defined.");
+                            weui.alert("ScanAction(...) is not defined.");
                         }
                         loading_el.hide();
                         _self.removeClass('weui-btn_disabled');

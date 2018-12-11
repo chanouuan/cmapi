@@ -396,7 +396,7 @@ class XicheModel extends Crud {
             if (!$user_info) {
                 return error('用户名或密码错误！');
             }
-            if ($user_info['member_passwd'] != md5($post['password'])) {
+            if ($user_info['member_passwd'] != md5(md5($post['password']))) {
                 return error('用户名或密码错误！');
             }
         }

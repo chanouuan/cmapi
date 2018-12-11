@@ -78,9 +78,21 @@ function sizecount ($byte)
     }
 }
 
-function round_dollar ($fen)
+function round_dollar ($fen, $suffix = true)
 {
-    return sprintf("%01.2f", abs($fen) / 100);
+    $fen /= 100;
+    return $suffix ? sprintf("%01.2f", $fen) : round($fen, 2);
+}
+
+function get_real_val ()
+{
+    $arguments = func_get_args();
+    foreach ($arguments as $v) {
+        if ($v) {
+            return $v;
+        }
+    }
+    return $arguments[0];
 }
 
 function getSysConfig ($key = null, $target = 'config')

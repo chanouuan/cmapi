@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>后台管理</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width,user-scalable=yes, minimum-scale=0.4, initial-scale=0.8,target-densitydpi=low-dpi" />
+    <link rel="stylesheet" href="<?=APPLICATION_URL?>/static/X-admin/css/font.css">
+    <link rel="stylesheet" href="<?=APPLICATION_URL?>/static/X-admin/css/xadmin.css">
+    <script type="text/javascript" src="https://cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+    <script type="text/javascript" src="<?=APPLICATION_URL?>/static/X-admin/lib/layui/layui.js" charset="utf-8"></script>
+    <script type="text/javascript" src="<?=APPLICATION_URL?>/static/X-admin/js/xadmin.js"></script>
+    <!-- 让IE8/9支持媒体查询，从而兼容栅格 -->
+    <!--[if lt IE 9]>
+    <script src="https://cdn.staticfile.org/html5shiv/r29/html5.min.js"></script>
+    <script src="https://cdn.staticfile.org/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+</head>
+
+<body>
+<div class="x-nav">
+      <span class="layui-breadcrumb">
+        <a><cite>设备管理</cite></a>
+      </span>
+    <a class="layui-btn layui-btn-small" style="line-height:1.6em;margin-top:3px;float:right" href="javascript:location.replace(location.href);" title="刷新"><i class="layui-icon" style="line-height:30px">ဂ</i></a>
+</div>
+<div class="x-body">
+    <div class="layui-row">
+        <form class="layui-form layui-col-md12 x-so" method="get">
+            <input value="<?=$_GET['devcode']?>" maxlength="14" type="text" name="devcode"  placeholder="请输入设备编码" autocomplete="off" class="layui-input">
+            <button class="layui-btn" lay-submit="" lay-filter="sreach"><i class="layui-icon">&#xe615;</i></button>
+        </form>
+    </div>
+    <xblock>
+        <button class="layui-btn" onclick="x_admin_show('添加设备','<?=gurl('xicheManage/deviceAdd')?>')"><i class="layui-icon"></i>添加</button>
+        <span class="x-right" style="line-height:40px">共有数据：<?=$pagesize['totalcount']?> 条</span>
+    </xblock>
+    <table class="layui-table">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>设备编码</th>
+            <th>在线状态</th>
+            <th>设备状态</th>
+            <th>使用时间</th>
+            <th>区块ID</th>
+            <th>区块名称</th>
+            <th>售价</th>
+            <th>设备参数</th>
+            <th>操作</th>
+        </tr>
+        </thead>
+        <tbody>
+        <?php foreach($list as $k=>$v){ ?>
+        <tr>
+            <td><?=$v['id']?></td>
+            <td><?=$v['devcode']?></td>
+            <td><?=$v['isonline']?'在线':'离线'?></td>
+            <td><?=isset($stat[$v['usestate']])?$stat[$v['usestate']]:$v['usestate']?></td>
+            <td><?=$v['usetime']?date('Y-m-d H:i:s',$v['usetime']):'未使用'?></td>
+            <td><?=$v['areaid']?></td>
+            <td><?=$v['areaname']?></td>
+            <td><?=round_dollar($v['price'])?></td>
+            <td><pre><?=print_r(json_decode($v['parameters'],true),true)?></pre></td>
+            <td class="td-manage">
+                <a title="下载二维码" onclick="x_admin_show('查看二维码（下载请右键图片选择“图片另存为”）','<?=gurl('xiche/qrcode',['devcode'=>$v['devcode']])?>')" href="javascript:;">
+                    <i class="layui-icon">&#xe601;</i>
+                </a>
+
+                <a title="编辑设备" onclick="x_admin_show('编辑设备','<?=gurl('xicheManage/deviceUpdate',['devcode'=>$v['devcode']])?>')" href="javascript:;">
+                    <i class="layui-icon">&#xe642;</i>
+                </a>
+            </td>
+        </tr>
+        <?php } ?>
+        </tbody>
+    </table>
+
+    <?php if($pagesize['totalpage']>1){ ?>
+    <div class="page">
+        <div>
+            <?php foreach($pagesize['scrollpage'] as $k=>$v){ ?>
+            <?php if($pagesize['page']==$k){ ?>
+            <span class="current"><?=$v?></span>
+            <?php }else{ ?>
+            <a class="num" href="?<?=burl('page='.$k)?>"><?=$v?></a>
+            <?php } ?>
+            <?php } ?>
+        </div>
+    </div>
+    <?php } ?>
+
+</div>
+
+</body>
+
+</html>

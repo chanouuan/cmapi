@@ -2,8 +2,6 @@
 
 namespace library;
 
-use library\DB;
-
 class Crud {
 
     protected $fields = [];
@@ -23,7 +21,7 @@ class Crud {
 
     protected function getDb($link = null) {
         $link = $link ? $link : $this->link;
-        return Db::getInstance($link);
+        return \library\DB::getInstance($link);
     }
 
 	public function __set($name, $value){

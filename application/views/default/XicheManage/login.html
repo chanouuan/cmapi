@@ -44,26 +44,23 @@
     <div class="weui-cell" id="login_password">
         <div class="weui-cell__hd"><label class="weui-label">密　码</label></div>
         <div class="weui-cell__bd">
-            <input id="password" name="password" class="weui-input" type="password" maxlength="30" placeholder="请输入密码">
+            <input id="password" name="password" class="weui-input" type="password" maxlength="30" placeholder="请输入密码" required emptyTips="密码不能为空">
         </div>
         <div class="weui_cell_ft">
             <i class="weui-icon-warn"></i>
         </div>
     </div>
-    <div class="weui-cell weui-cell_vcode" id="login_sms" style="display: none">
+    <div class="weui-cell weui-cell_vcode">
         <div class="weui-cell__hd"><label class="weui-label">验证码</label></div>
         <div class="weui-cell__bd">
-            <input id="code" name="code" class="weui-input" type="tel" maxlength="6" placeholder="请输入验证码"/>
+            <input name="imgcode" maxlength="4" class="weui-input" type="tel" placeholder="请输入验证码" required emptyTips="验证码不能为空">
         </div>
-        <div class="weui_cell_ft">
-            <button id="user-send-sms" type="button" class="weui-vcode-btn">获取验证码</button>
+        <div class="weui-cell__ft">
+            <img class="weui-vcode-img" src="<?=gurl('xicheManage/checkImgCode')?>?t=" onclick="this.src=this.src+parseInt(Math.random()*10)">
         </div>
     </div>
     <div class="weui-btn-area">
         <a class="weui-btn weui-btn_primary" href="javascript:" id="formSubmitBtn">登录</a>
-    </div>
-    <div onclick="changeLogin()" class="weui-btn-area" style="color: #586C94; font-size: 14px;">
-        点击切换到『<span id="login_type">短信</span>』登录
     </div>
 </div>
 <div class="weui-msg__extra-area">
@@ -78,24 +75,7 @@
 <script src="<?=APPLICATION_URL?>/static/js/zepto.min.js"></script>
 <script src="<?=APPLICATION_URL?>/static/weui/weui.min.js"></script>
 <script type="text/javascript">
-function changeLogin(){
-	var is_pass_login = document.getElementById('login_password').style.display != 'none';
-	if(is_pass_login){
-		$('#login_password').hide();
-		$('#password').val('');
-		$('#code').val('');
-		$('#imgVerify').hide();
-		$('#login_sms').show();
-		$('#login_type').html('密码');
-	}else{
-		$('#login_password').show();
-		$('#password').val('');
-		$('#code').val('');
-		$('#imgVerify').show();
-		$('#login_sms').hide();
-        $('#login_type').html('短信');
-	}
-}
+
 $(function(){
 
     $("#formSubmitBtn").on("click", function () {
@@ -103,19 +83,15 @@ $(function(){
             if (!error) {
                 $.ajax({
             	  type: 'POST',
-            	  url: '<?=gurl('xiche/login')?>',
-            	  data: {formhash:"<?=encode_formhash()?>",__authcode:"<?=$authcode?>",devcode:"<?=getgpc('devcode')?>",telephone:$("input[name=name]").val(),password:$("input[name=password]").val(),msgcode:$("input[name=code]").val()},
+            	  url: '<?=gurl('xicheManage/login')?>',
+            	  data: {formhash:"<?=encode_formhash()?>",telephone:$("input[name=name]").val(),password:$("input[name=password]").val(),imgcode:$("input[name=imgcode]").val()},
             	  dataType: 'json',
             	  timeout: 5000,
             	  success: function(data){
                       loading.hide();
                 	  if(data && data.errorcode === 0){
                           weui.toast('登录成功',{duration:500,callback:function(){
-                              if(data.data.ispw == 1){
-                                  location.replace('<?=gurl('xiche/checkout',burl())?>');
-                              }else{
-                                  location.replace('<?=gurl('xiche/setpw',burl())?>');
-                              }
+                              location.replace('<?=gurl('xicheManage/index')?>');
                           }});
                       }else{
                     	  weui.alert(data ? data.message : '登录失败');
@@ -131,67 +107,6 @@ $(function(){
             	});
             }
         });
-    });
-
-    var CountDown = {
-	    timeContain: [],
-	    push: function(target, fn){
-	        this.timeContain.push({'count':60,'target':target,'fn':fn});
-	        target.disabled = 'disabled';
-	        if(this.timeContain.length === 1) this.each();
-	    },
-	    each: function(){
-	        if(this.timeContain.length < 1) return false;
-	        this.timeContain.forEach(function(n, i){
-	            var count = --n.count;
-	            n.target.innerHTML = count + '秒';
-	            if(count < 1){
-	                CountDown.timeContain.splice(i, 1);
-	                n.target.innerHTML = '重新获取';
-	                n.target.disabled = '';
-	                n.fn && n.fn();
-	            }
-	        });
-	        if(this.timeContain.length) this.go();
-	    },
-	    go: function(){
-	        setTimeout(function(){
-	            CountDown.each();
-	        },1000);
-	    }
-	};
-	
-    $('#user-send-sms').on('click', function(e){
-        var _target = this;
-        if($(this).hasClass('weui-btn_disabled'))return false;
-        var _tel = $('#telephone');
-        if(!/^1[0-9]{10}$/.test(_tel.val())){
-            weui.alert('手机号不正确');
-            return false;
-        }
-        $.ajax({
-            type: 'post',
-            url: '<?=gurl('xiche/sendSms')?>',
-            data: {telephone:_tel.val()},
-            dataType: 'json',
-            timeout: 5000,
-            success: function(data){
-            	$(_target).removeClass('weui-btn_disabled');
-                if(data && data.errorcode === 0){
-                    CountDown.push(_target);
-                }else{
-                    weui.alert(data?data.message:'操作失败');
-                }
-            },
-            beforeSend: function(xhr){
-            	$(_target).addClass('weui-btn_disabled');
-            },
-            error: function(xhr, type){
-            	$(_target).removeClass('weui-btn_disabled');
-                weui.alert('网络超时，请重试!');
-            }
-        });
-        return false;
     });
     
 	if (/Android/gi.test(navigator.userAgent)) {

@@ -280,6 +280,18 @@ abstract class ActionPDO {
         exit(0);
     }
 
+    public function checkImgCode ($code = null)
+    {
+        session_start();
+        if (isset($code)) {
+            return $_SESSION['ImgCode'] === strtolower($code);
+        }
+        $checkcode = new \library\Checkcode();
+        $checkcode->doimage();
+        $_SESSION['ImgCode'] = $checkcode->get_code();
+        return null;
+    }
+
     public function success ($message = '', $url = '', $wait = 3, $ajax = null)
     {
         $this->_showMessage('success', $message, $url, $wait, $ajax);

@@ -48,6 +48,17 @@ class UserModel extends Crud {
     }
 
     /**
+     * 根据绑定信息获取用户信息
+     */
+    public function getUserByBinding ($condition) {
+        return DB::getInstance()
+            ->table('__tablepre__loginbinding')
+            ->field('uid,tel')
+            ->where($condition)
+            ->select();
+    }
+
+    /**
      * 设置登录密码
      */
     public function setpw ($post) {
@@ -68,7 +79,7 @@ class UserModel extends Crud {
         }
 
         if (false === $this->getDb('chemiv2')->update('chemi_member', [
-            'member_passwd' => md5($post['password'])
+            'member_passwd' => md5(md5($post['password']))
         ], 'member_id = ' . $post['uid'])) {
             return error('密码设置失败');
         }
@@ -157,7 +168,7 @@ class UserModel extends Crud {
                 if (!$user_info) {
                     return error('用户名或密码错误！');
                 }
-                if ($user_info['member_passwd'] != md5($post['password'])) {
+                if ($user_info['member_passwd'] != md5(md5($post['password']))) {
                     return error('用户名或密码错误！');
                 }
             }
