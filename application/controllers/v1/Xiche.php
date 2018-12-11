@@ -153,6 +153,37 @@ class Xiche extends \ActionPDO {
         }
         $clienttype = $this->_G['user']['clienttype'];
 
+        $model = new XicheModel();
+        $deviceInfo = $model->checkDevcode(getgpc('devcode'));
+        if ($deviceInfo['errorcode'] !== 0) {
+            $this->error($deviceInfo['message'], null);
+        }
+        $deviceInfo = $deviceInfo['data'];
+
+        // 如果当前用户已支付，且机器未结束运行，就直接进入订单详情页
+        if ($deviceInfo['usetime']) {
+            $tradeModel = new \models\TradeModel();
+            // 设备使用中，判断是否当前用户正在使用
+            $tradeInfo = $tradeModel->get(null, [
+                'trade_id = ' . $this->_G['user']['uid'],
+                'param_id = ' . $deviceInfo['id'],
+                'param_a = ' . $deviceInfo['usetime']
+            ], 'id,ordercode');
+            if ($tradeInfo) {
+                // 跳过支付页
+                $this->success('你正在使用该设备。', gurl('xiche/payItem', [
+                    'tradeid' => $tradeInfo['id']
+                ]));
+            }
+        }
+
+        $userModel = new \models\UserModel();
+        $userInfo = $userModel->getUserInfo($this->_G['user']['uid']);
+        if ($userInfo['errorcode'] !== 0) {
+            $this->error($userInfo['message'], null);
+        }
+        $userInfo = $userInfo['data'];
+
         if (CLIENT_TYPE == 'wx') {
             // 加载微信JSSDK
             $wxConfig = getSysConfig('xiche', 'wx');
@@ -164,20 +195,6 @@ class Xiche extends \ActionPDO {
                 $jssdk = $jssdk['data'];
             }
         }
-
-        $model = new XicheModel();
-        $deviceInfo = $model->checkDevcode(getgpc('devcode'));
-        if ($deviceInfo['errorcode'] !== 0) {
-            $this->error($deviceInfo['message'], null);
-        }
-        $deviceInfo = $deviceInfo['data'];
-
-        $userModel = new \models\UserModel();
-        $userInfo = $userModel->getUserInfo($this->_G['user']['uid']);
-        if ($userInfo['errorcode'] !== 0) {
-            $this->error($userInfo['message'], null);
-        }
-        $userInfo = $userInfo['data'];
 
         return compact('deviceInfo', 'userInfo', 'jssdk', 'clienttype');
     }
@@ -237,7 +254,7 @@ class Xiche extends \ActionPDO {
                     // 请求成功
                     $xicheModel->updateErrorLog($log['id']);
                 } else {
-                    $info['dev_status'] = $ret['data']['result'];
+                    $info['dev_status'] = concat('<b style="color:#E64340;">', $ret['data']['result'], '</b>');
                 }
             }
         }
