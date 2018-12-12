@@ -86,18 +86,16 @@ function round_dollar ($fen, $suffix = true)
 
 function get_real_val (...$args)
 {
-    if (isset($args[0])) {
-        if (is_array($args[0])) {
-            foreach ($args[0] as $v) {
-                if ($v) {
-                    return $v;
-                }
+    if (is_array($args[0])) {
+        foreach ($args[0] as $v) {
+            if ($v) {
+                return $v;
             }
-        } else {
-            foreach ($args as $v) {
-                if ($v) {
-                    return $v;
-                }
+        }
+    } else {
+        foreach ($args as $v) {
+            if ($v) {
+                return $v;
             }
         }
     }

@@ -640,7 +640,7 @@ class UserModel extends Crud {
             'scode' => null,
             'online' => 0,
             'updated_at' => date('Y-m-d H:i:s', TIMESTAMP)
-        ], concat('uid = ', $uid, ' and clienttype = "', get_real_val($clienttype, CLIENT_TYPE), '""'));
+        ], concat('uid = ', $uid, ' and clienttype = "', get_real_val($clienttype, CLIENT_TYPE), '"'));
 
         set_cookie('token', null);
     }
