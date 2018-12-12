@@ -112,6 +112,9 @@ class TradeModel extends Crud {
             $userModel = new \models\UserModel();
             $xicheModel = new \models\XicheModel();
 
+            // 更新设备使用中
+            $xicheModel->updateDevUse($trade_info['id'], $trade_info['param_id']);
+
             // 获取设备
             $device_info = $xicheModel->getDeviceById($trade_info['param_id']);
 

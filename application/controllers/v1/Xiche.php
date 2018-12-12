@@ -164,11 +164,11 @@ class Xiche extends \ActionPDO {
         if ($deviceInfo['usetime']) {
             $tradeModel = new \models\TradeModel();
             // 设备使用中，判断是否当前用户正在使用
-            $tradeInfo = $tradeModel->get(null, [
+            $tradeInfo = $tradeModel->get($deviceInfo['usetime'], [
                 'trade_id = ' . $this->_G['user']['uid'],
                 'param_id = ' . $deviceInfo['id'],
-                'param_a = ' . $deviceInfo['usetime']
-            ], 'id,ordercode');
+                'status = 1'
+            ], 'id');
             if ($tradeInfo) {
                 // 跳过支付页
                 $this->success('你正在使用该设备。', gurl('xiche/payItem', [

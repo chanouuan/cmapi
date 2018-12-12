@@ -90,13 +90,14 @@
     </div>
 </div>
 
+<script src="http://res.wx.qq.com/open/js/jweixin-1.0.0.js"></script>
 <script src="<?=APPLICATION_URL?>/static/js/zepto.min.js"></script>
 <script src="<?=APPLICATION_URL?>/static/weui/weui.min.js"></script>
-<script src="http://res.wx.qq.com/open/js/jweixin-1.0.0.js"></script>
+
 <script type="text/javascript">
 
 $(function(){
-
+    var loading_el = null;
     $("#wxformSubmitBtn").on("click", function () {
         var _self = $(this);
         if(_self.hasClass('weui-btn_disabled')){
@@ -134,27 +135,13 @@ $(function(){
                         <?php if($clienttype == 'cm'){ ?>
                         if (typeof js != "undefined" && typeof js.ScanAction != "undefined") {
                             try {
-                                js.ScanAction({
-                                    success:function(r){
-                                        location.replace(location.href);
-                                    },
-                                    fail:function(r){
-                                        weui.alert(r)
-                                    }
-                                });
+                                js.ScanAction();
                             }catch (e) {
                                 weui.alert(JSON.stringify(e));
                             }
                         } else if (typeof window.webkit != "undefined") {
                             try {
-                                window.webkit.messageHandlers.ScanAction.postMessage({
-                                    success:function(r){
-                                        location.replace(location.href);
-                                    },
-                                    fail:function(r){
-                                        weui.alert(r)
-                                    }
-                                });
+                                window.webkit.messageHandlers.ScanAction.postMessage(null);
                             }catch (e) {
                                 weui.alert(JSON.stringify(e))
                             }
@@ -187,8 +174,13 @@ $(function(){
                                     }});
                                 },function(res){
                                     loading_el.hide();
-                                    weui.alert('支付失败！');
+                                    weui.alert('支付失败');
                                     _self.removeClass('weui-btn_disabled');
+                                },function(res){
+                                    if(res && res['errMsg'] == 'chooseWXPay:fail') {
+                                        weui.alert('支付超时,请重试!');
+                                        _self.removeClass('weui-btn_disabled');
+                                    }
                                 });
                                 return false;
                             },
@@ -220,10 +212,11 @@ $(function(){
     });
 
     var JSAPI = {
-        chooseWXPay: function(config, success, fail){
+        chooseWXPay: function(config, success, fail, complete){
             config = typeof config == 'object' ? config : {};
             config.success = success;
             config.cancel = fail;
+            config.complete = complete;
             setTimeout(function(){wx.chooseWXPay(config);},300);
         }
     };

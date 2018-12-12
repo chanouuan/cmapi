@@ -68,12 +68,6 @@ class XicheModel extends Crud {
         // 更新启动时间
         if (!$trade_info['param_a']) {
 
-            if (!$this->getDb()->update('__tablepre__xiche_device', [
-                'usetime' => TIMESTAMP
-            ], 'id = ' . $device_info['id'])) {
-                return error('更新设备失败');
-            }
-
             if (!$this->getDb()->update('__tablepre__payments', [
                 'param_a' => TIMESTAMP
             ], 'id = ' . $trade_info['id'])) {
@@ -118,9 +112,7 @@ class XicheModel extends Crud {
         // 更新结束时间
         if (!$trade_info['param_b']) {
 
-            if (false === $this->getDb()->update('__tablepre__xiche_device', [
-                'usetime' => 0
-            ], 'id = ' . $device_info['id'])) {
+            if (false === $this->updateDevUse(0, $device_info['id'])) {
                 return error('更新设备失败');
             }
 
@@ -131,8 +123,8 @@ class XicheModel extends Crud {
                 'refundtime' => date('Y-m-d H:i:s', TIMESTAMP)
             ];
             if (!$trade_info['param_a']) {
-                // 如果订单没有启动时间，就用设备的启动时间
-                $param['param_a'] = $device_info['usetime'];
+                // 如果订单没有启动时间，就用设备的更新时间
+                $param['param_a'] = strtotime($device_info['updated_at']);
             }
 
             if (!$this->getDb()->update('__tablepre__payments', $param, 'id = ' . $trade_info['id'] . ' and refundtime is null')) {
@@ -242,6 +234,25 @@ class XicheModel extends Crud {
     }
 
     /**
+     * 获取设备使用状态 0：空闲 1：使用中
+     */
+    public function getDevIsUse ($DevCode) {
+        try {
+            $device_info = https_request('http://xicheba.net/chemi/API/Handler/DeviceOne', [
+                'apiKey' => $this->xiche_apikey,
+                'DevCode' => $DevCode
+            ]);
+        } catch (\Exception $e) {
+            return error($e->getMessage());
+        }
+        if (!$device_info['result']) {
+            return error($device_info['messages']);
+        }
+        $device_info = $device_info['data'];
+        return success([intval($device_info['UseState'])]);
+    }
+
+    /**
      * 创建洗车机二维码
      */
     public function qrcode ($devcode) {
@@ -266,7 +277,7 @@ class XicheModel extends Crud {
      */
     public function getDeviceByCode($devcode) {
 
-        return $this->getDb()->table('__tablepre__xiche_device')->field('id,price,areaname,devcode,usetime,isonline')->where('devcode = ?')->bindValue($devcode)->limit(1)->find();
+        return $this->getDb()->table('__tablepre__xiche_device')->field('id,price,areaname,devcode,usetime,isonline,updated_at')->where('devcode = ?')->bindValue($devcode)->limit(1)->find();
     }
 
     /**
@@ -292,13 +303,19 @@ class XicheModel extends Crud {
         }
 
         // 如果发生异常，机器状态未能通知到服务端
-        // 验证设备已使用时长，超过1个小时，就更新为未使用
+        // 验证设备状态，判断是否重置为未使用
         if ($device_info['usetime']) {
-            if ($device_info['usetime'] < TIMESTAMP - 3600) {
-                if ($this->getDb()->update('__tablepre__xiche_device', [
-                    'usetime' => 0
-                ], 'id = ' . $device_info['id'])) {
-                    $device_info['usetime'] = 0;
+            // 5分钟验证一次
+            if (strtotime($device_info['updated_at']) < TIMESTAMP - 300) {
+                // 获取设备状态
+                $ret = $this->getDevIsUse($device_info['devcode']);
+                if ($ret['errorcode'] === 0) {
+                    if ($ret['data'][0] === 0) {
+                        // 状态为空闲
+                        if ($this->updateDevUse(0, $device_info['id'])) {
+                            $device_info['usetime'] = 0;
+                        }
+                    }
                 }
             }
         }
@@ -484,10 +501,19 @@ class XicheModel extends Crud {
 
         // 防止重复扣费
         if ($lastTradeInfo = $this->getDb()->table('__tablepre__payments')
-            ->field('id')
+            ->field('id,createtime')
             ->where('trade_id = ' . $uid . ' and pay = ' . $totalPrice . ' and money = ' . $deviceInfo['price'] . ' and param_id = "' . $deviceInfo['id'] . '" and status = 0')
             ->limit(1)
             ->find()) {
+            if (strtotime($lastTradeInfo['createtime']) < TIMESTAMP - 600) {
+                // 10分钟后更新订单号
+                if (false === $this->getDb()->update('__tablepre__payments', [
+                        'ordercode' => $ordercode,
+                        'createtime' => date('Y-m-d H:i:s', TIMESTAMP)
+                    ], 'id = ' . $lastTradeInfo['id'])) {
+                    return error('更新订单失败');
+                }
+            }
             return success([
                 'tradeid' => $lastTradeInfo['id']
             ]);
@@ -527,6 +553,10 @@ class XicheModel extends Crud {
                 'status' => 1
             ], 'id = ' . $cardId)) {
                 return error('交易失败，请重试');
+            }
+            // 更新设备使用中
+            if (!$this->updateDevUse($cardId, $deviceInfo['id'])) {
+                return error('更新设备失败，请重试');
             }
             // 保存订单到洗车机
             $ret = $this->XiCheCOrder($deviceInfo['devcode'], $ordercode, $deviceInfo['price']);
@@ -571,7 +601,6 @@ class XicheModel extends Crud {
                 'type' => $post['type'],
                 'authcode' => $post['authcode'],
                 'openid' => $post['openid'],
-                'nickname' => msubstr(trim($post['nickname']), 0, 20),
                 'created_at' => date('Y-m-d H:i:s', TIMESTAMP)
             ])) {
                 return [];
@@ -651,6 +680,16 @@ class XicheModel extends Crud {
         return $this->getDb()->update('__tablepre__xiche_log', [
             'updated_at' => date('Y-m-d H:i:s', TIMESTAMP)
         ], 'id = ' . $id);
+    }
+
+    /**
+     * 更新设备使用状态
+     */
+    public function updateDevUse ($usetime, $devid) {
+        return $this->getDb()->update('__tablepre__xiche_device', [
+            'usetime' => $usetime,
+            'updated_at' => date('Y-m-d H:i:s', TIMESTAMP)
+        ], 'id = ' . $devid);
     }
 
     /**
