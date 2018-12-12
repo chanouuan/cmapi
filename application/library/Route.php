@@ -213,9 +213,17 @@ class Route
     {
         $path = explode($ds, $path);
         $module = [];
-        if (isset($path[0]) && isset($path[1])) {
-            $module[] = $path[0];
-            $module[] = $path[1];
+        foreach ($path as $v) {
+            if (!$v) {
+                continue;
+            }
+            if (preg_match('/^[0-9_]+$/', $v)) {
+                continue;
+            }
+            if (!preg_match('/^[A-Za-z0-9_]+$/', $v)) {
+                continue;
+            }
+            $module[] = $v;
         }
         return $module;
     }

@@ -631,4 +631,18 @@ class UserModel extends Crud {
         return success($token);
     }
 
+    /**
+     * 登出
+     */
+    public function logout ($uid, $clienttype = null)
+    {
+        $this->getDb()->update('__tablepre__session', [
+            'scode' => null,
+            'online' => 0,
+            'updated_at' => date('Y-m-d H:i:s', TIMESTAMP)
+        ], concat('uid = ', $uid, ' and clienttype = "', get_real_val($clienttype, CLIENT_TYPE), '""'));
+
+        set_cookie('token', null);
+    }
+
 }

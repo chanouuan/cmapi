@@ -84,15 +84,24 @@ function round_dollar ($fen, $suffix = true)
     return $suffix ? sprintf("%01.2f", $fen) : round($fen, 2);
 }
 
-function get_real_val ()
+function get_real_val (...$args)
 {
-    $arguments = func_get_args();
-    foreach ($arguments as $v) {
-        if ($v) {
-            return $v;
+    if (isset($args[0])) {
+        if (is_array($args[0])) {
+            foreach ($args[0] as $v) {
+                if ($v) {
+                    return $v;
+                }
+            }
+        } else {
+            foreach ($args as $v) {
+                if ($v) {
+                    return $v;
+                }
+            }
         }
     }
-    return $arguments[0];
+    return '';
 }
 
 function getSysConfig ($key = null, $target = 'config')

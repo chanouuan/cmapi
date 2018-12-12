@@ -124,12 +124,6 @@ abstract class ActionPDO {
         // 检查客服端类型
         define('CLIENT_TYPE', check_client());
 
-        // 定义视图样式
-        $_style = $this->__style();
-        if ($_style) {
-            define('APPLICATION_STYLE', $_style);
-        }
-
         // 用户效验
         $this->_G['user'] = $this->loginCheck();
         
@@ -273,8 +267,8 @@ abstract class ActionPDO {
 
     public function render ($tplName, $params = null, $style = null)
     {
-        $style = !empty($style) ? $style : (defined('APPLICATION_STYLE') ? APPLICATION_STYLE : 'mobile');
-        $tpl_dir = APPLICATION_URL . '/application/views/' . $style;
+        $style = !empty($style) ? $style : (defined('APPLICATION_STYLE') ? APPLICATION_STYLE : get_real_val($this->__style(), 'mobile'));
+        $tpl_dir = concat(APPLICATION_URL, '/application/views/', $style);
         is_array($params) && extract($params);
         include concat(APPLICATION_PATH, DIRECTORY_SEPARATOR, 'application', DIRECTORY_SEPARATOR, 'views', DIRECTORY_SEPARATOR, $style, DIRECTORY_SEPARATOR, $tplName);
         exit(0);
@@ -284,7 +278,10 @@ abstract class ActionPDO {
     {
         session_start();
         if (isset($code)) {
-            return $_SESSION['ImgCode'] === strtolower($code);
+            $_code = $_SESSION['ImgCode'];
+            $_SESSION['ImgCode'] = null;
+            unset($_SESSION['ImgCode']);
+            return $_code == strtolower($code);
         }
         $checkcode = new \library\Checkcode();
         $checkcode->doimage();

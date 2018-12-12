@@ -16,11 +16,23 @@ class XicheManage extends \ActionPDO {
     }
 
     public function __style () {
+        if ($this->_action == 'login') {
+            return CLIENT_TYPE == 'pc' ? 'default' : 'mobile';
+        }
         return 'default';
     }
 
     public function index () {
-        return [];
+        $user_list = (new \models\UserModel())->getUserByBinding([
+            'platform = 3',
+            'uid = ' . $this->_G['user']['uid']
+        ]);
+        if ($user_list) {
+            $this->_G['user']['telephone'] = $user_list[0]['tel'];
+        }
+        return [
+            'user_info' => $this->_G['user']
+        ];
     }
 
     /**
@@ -182,7 +194,8 @@ class XicheManage extends \ActionPDO {
 
         // 管理员白名单
         $administrator = [
-            '15208666791'
+            '15208666791',
+            '18984054936'
         ];
 
         if (submitcheck()) {
@@ -198,6 +211,14 @@ class XicheManage extends \ActionPDO {
         }
 
         return [];
+    }
+
+    /**
+     * 登出
+     */
+    public function logout () {
+        (new \models\UserModel())->logout($this->_G['user']['uid']);
+        $this->success('登出成功', gurl('xicheManage/login'), 0);
     }
 
 }
