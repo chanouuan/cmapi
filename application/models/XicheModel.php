@@ -305,8 +305,8 @@ class XicheModel extends Crud {
         // 如果发生异常，机器状态未能通知到服务端
         // 验证设备状态，判断是否重置为未使用
         if ($device_info['usetime']) {
-            // 5分钟验证一次
-            if (strtotime($device_info['updated_at']) < TIMESTAMP - 300) {
+            // 10分钟验证一次
+            if (strtotime($device_info['updated_at']) < TIMESTAMP - 600) {
                 // 获取设备状态
                 $ret = $this->getDevIsUse($device_info['devcode']);
                 if ($ret['errorcode'] === 0) {

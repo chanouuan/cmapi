@@ -59,7 +59,7 @@
             <td><?=$v['devcode']?></td>
             <td><?=$v['isonline']?'在线':'离线'?></td>
             <td><?=isset($stat[$v['usestate']])?$stat[$v['usestate']]:$v['usestate']?></td>
-            <td><?=$v['usetime']?date('Y-m-d H:i:s',$v['usetime']):'未使用'?></td>
+            <td title="<?=$v['usetime']?>"><?=$v['usetime']?'使用中':'未使用'?></td>
             <td><?=$v['areaid']?></td>
             <td><?=$v['areaname']?></td>
             <td><?=round_dollar($v['price'])?></td>
