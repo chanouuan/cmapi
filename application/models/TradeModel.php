@@ -123,7 +123,8 @@ class TradeModel extends Crud {
                 'platform' => 3,
                 'authcode' => md5('xc' . $trade_info['trade_id']),
                 'trade_no' => $trade_no,
-                'money' => $trade_info['pay']
+                'money' => $trade_info['pay'],
+                'remark' => '自助洗车在线充值'
             ]);
             if ($ret['errorcode'] !== 0) {
                 // 日志
@@ -143,7 +144,8 @@ class TradeModel extends Crud {
                 'platform' => 3,
                 'authcode' => md5('xc' . $trade_info['trade_id']),
                 'trade_no' => $out_trade_no,
-                'money' => $trade_info['money']
+                'money' => $trade_info['money'],
+                'remark' => '支付自助洗车费'
             ]);
             if ($ret['errorcode'] !== 0) {
                 // 日志

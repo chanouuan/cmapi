@@ -41,6 +41,7 @@
         <thead>
         <tr>
             <th>ID</th>
+            <th>订单号</th>
             <th>用户</th>
             <th>设备编码</th>
             <th>开始洗车时间</th>
@@ -56,6 +57,7 @@
         <?php foreach($list as $k=>$v){ ?>
         <tr>
             <td><?=$v['id']?></td>
+            <td><?=$v['ordercode']?></td>
             <td><?=$v['uname']?> (UID:<?=$v['trade_id']?>)</td>
             <td><?=$v['devcode']?></td>
             <td><?=$v['param_a']?></td>

@@ -138,7 +138,8 @@ class XicheModel extends Crud {
                     'platform' => 3,
                     'authcode' => md5('xc' . $trade_info['trade_id']),
                     'trade_no' => $param['refundcode'],
-                    'money' => $Fee
+                    'money' => $Fee,
+                    'remark' => '自助洗车退款'
                 ]);
                 if ($ret['errorcode'] !== 0) {
                     // 日志
@@ -540,7 +541,8 @@ class XicheModel extends Crud {
                 'platform' => 3,
                 'authcode' => md5('xc' . $uid),
                 'trade_no' => $ordercode,
-                'money' => $deviceInfo['price']
+                'money' => $deviceInfo['price'],
+                'remark' => '支付自助洗车费'
             ]);
             if ($ret['errorcode'] !== 0) {
                 // 回滚交易表

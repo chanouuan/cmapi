@@ -239,6 +239,7 @@ class UserModel extends Crud {
         $post['trade_no'] = addslashes(msubstr($post['trade_no'], 0, 32));
         $post['money'] = intval($post['money']);
         $post['money'] = $post['money'] < 1 ? 0 : $post['money'];
+        $post['remark'] = $post['remark'] ? $post['remark'] : '平台消费';
 
         if (!$post['platform'] || !$post['authcode']) {
             return error('平台代码不能为空');
@@ -293,11 +294,11 @@ class UserModel extends Crud {
         $data['pay_amount'] = 0;
         $data['discount_amount'] = 0;
         $data['consume_state'] = 1; // 1申请中，2成功，3失败
-        $data['remark'] = '平台消费' . $post['platform'];
+        $data['remark'] = $post['remark'];
         $data['attr_exd_c'] = $post['trade_no'];
-        $data['consume_dt'] = date('Y-m-d H:i:s', TIMESTAMP);;
-        $data['update_dt'] = date('Y-m-d H:i:s', TIMESTAMP);;
-        $data['insert_dt'] = date('Y-m-d H:i:s', TIMESTAMP);;
+        $data['consume_dt'] = date('Y-m-d H:i:s', TIMESTAMP);
+        $data['update_dt'] = date('Y-m-d H:i:s', TIMESTAMP);
+        $data['insert_dt'] = date('Y-m-d H:i:s', TIMESTAMP);
         if (!DB::getInstance('chemiaccount')->insert('t_chemi_account_consume_flow', $data)) {
             return error('创建消费流水单失败');
         }
@@ -326,11 +327,11 @@ class UserModel extends Crud {
                 $param['flow_state'] = 2; // 1申请中，2成功，3失败
                 $param['member_balance'] = $user_info['money'] / 100 - $data['consume_amount']; // 变动后用户余额
                 $param['present_ordersn'] = '';
-                $param['attr_exd_a'] = '平台消费' . $post['platform'];
+                $param['attr_exd_a'] = $post['remark'];
                 $param['attr_exd_c'] = $post['trade_no'];
-                $param['flow_dt'] = date('Y-m-d H:i:s', TIMESTAMP);;
-                $param['update_dt'] = date('Y-m-d H:i:s', TIMESTAMP);;
-                $param['insert_dt'] = date('Y-m-d H:i:s', TIMESTAMP);;
+                $param['flow_dt'] = date('Y-m-d H:i:s', TIMESTAMP);
+                $param['update_dt'] = date('Y-m-d H:i:s', TIMESTAMP);
+                $param['insert_dt'] = date('Y-m-d H:i:s', TIMESTAMP + 1); // 为了排序消费记录在充值记录前面，所以这里+1
                 if (!$db_1->insert('t_chemi_account_chebi_flow', $param)) {
                     return false;
                 }
@@ -359,6 +360,7 @@ class UserModel extends Crud {
         $post['trade_no'] = addslashes(msubstr($post['trade_no'], 0, 32));
         $post['money'] = intval($post['money']);
         $post['money'] = $post['money'] < 1 ? 0 : $post['money'];
+        $post['remark'] = $post['remark'] ? $post['remark'] : '平台充值';
 
         if (!$post['platform'] || !$post['authcode']) {
             return error('平台代码不能为空');
@@ -407,7 +409,7 @@ class UserModel extends Crud {
             $data['pdr_payment_code'] = 100 + $post['platform']; // 新定义111为商城充值
             $data['pdr_payment_state'] = '1'; // 充值成功
             $data['pdr_add_time'] = TIMESTAMP;
-            $data['pdr_admin'] = '平台充值' . $post['platform'];
+            $data['pdr_admin'] = $post['remark'];
             if (!$db->insert('chemi_pd_recharge', $data)) {
                 return false;
             }
@@ -433,7 +435,7 @@ class UserModel extends Crud {
                 $param['update_dt'] = date('Y-m-d H:i:s', TIMESTAMP);
                 $param['insert_dt'] = date('Y-m-d H:i:s', TIMESTAMP);
                 $param['log_dt'] = date('Y-m-d H:i:s', TIMESTAMP);
-                $param['remark'] = '平台充值' . $post['platform'];
+                $param['remark'] = $post['remark'];
                 $param['attr_exd_c'] = $post['trade_no'];
                 if (!$db_1->insert('t_chemi_account_pay_flow_log', $param)) {
                     return false;
@@ -449,11 +451,11 @@ class UserModel extends Crud {
                 $param['flow_state'] = 2; // 1申请中，2成功，3失败
                 $param['member_balance'] = $user_info['money'] / 100 + $data['pdr_amount']; // 变动后用户余额
                 $param['present_ordersn'] = '';
-                $param['attr_exd_a'] = '平台充值' . $post['platform'];
+                $param['attr_exd_a'] = $post['remark'];
                 $param['attr_exd_c'] = $post['trade_no'];
-                $param['flow_dt'] = date('Y-m-d H:i:s', TIMESTAMP);;
-                $param['update_dt'] = date('Y-m-d H:i:s', TIMESTAMP);;
-                $param['insert_dt'] = date('Y-m-d H:i:s', TIMESTAMP);;
+                $param['flow_dt'] = date('Y-m-d H:i:s', TIMESTAMP);
+                $param['update_dt'] = date('Y-m-d H:i:s', TIMESTAMP);
+                $param['insert_dt'] = date('Y-m-d H:i:s', TIMESTAMP);
                 if (!$db_1->insert('t_chemi_account_chebi_flow', $param)) {
                     return false;
                 }
