@@ -129,7 +129,7 @@ class TradeModel extends Crud {
             if ($ret['errorcode'] !== 0) {
                 // 日志
                 $xicheModel->log('recharge', [
-                    'name' => '支付回调成功,账户充值(' . round_dollar($trade_info['pay']) . '元)异常',
+                    'name' => concat('支付回调成功,账户充值(', round_dollar($trade_info['pay']), '元)异常'),
                     'uid' => $trade_info['trade_id'],
                     'orderno' => $out_trade_no,
                     'devcode' => $device_info['devcode'],
@@ -150,7 +150,7 @@ class TradeModel extends Crud {
             if ($ret['errorcode'] !== 0) {
                 // 日志
                 $xicheModel->log('consume', [
-                    'name' => '支付回调成功,账户消费(' . round_dollar($trade_info['money']) . '元)异常',
+                    'name' => concat('支付回调成功,账户消费(', round_dollar($trade_info['money']), '元)异常'),
                     'uid' => $trade_info['trade_id'],
                     'orderno' => $out_trade_no,
                     'devcode' => $device_info['devcode'],
@@ -166,7 +166,7 @@ class TradeModel extends Crud {
             if ($ret['errorcode'] !== 0) {
                 // 记录日志
                 $xicheModel->log('COrder', [
-                    'name' => '用户成功支付' . round_dollar($trade_info['pay']) . '元,保存订单到洗车机异常',
+                    'name' => concat('用户成功支付', round_dollar($trade_info['pay']), '元,保存订单到洗车机异常'),
                     'uid' => $trade_info['trade_id'],
                     'orderno' => $out_trade_no,
                     'devcode' => $device_info['devcode'],

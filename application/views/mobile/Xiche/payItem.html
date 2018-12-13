@@ -60,7 +60,12 @@
         <?php if(isset($info['dev_status'])){ ?>
         <div class="weui-form-preview__item">
             <label class="weui-form-preview__label">设备状态</label>
+            <?php if($info['dev_status']=='请求成功'){ ?>
             <span class="weui-form-preview__value"><?=$info['dev_status']?></span>
+            <?php }else{ ?>
+            <span class="weui-form-preview__value" style="color: #E64340;"><?=$info['dev_status']?></span>
+            <span class="weui-form-preview__value" style="color: #FFBE00;">设备启动异常，请点击下方 “重试” 按钮</span>
+            <?php } ?>
         </div>
         <?php } ?>
     </div>

@@ -254,7 +254,7 @@ class Xiche extends \ActionPDO {
                     // 请求成功
                     $xicheModel->updateErrorLog($log['id']);
                 } else {
-                    $info['dev_status'] = concat('<b style="color:#E64340;">', $ret['data']['result'], '</b>');
+                    $info['dev_status'] = $ret['data']['result'];
                 }
             }
         }

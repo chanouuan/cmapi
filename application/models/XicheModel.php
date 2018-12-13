@@ -144,7 +144,7 @@ class XicheModel extends Crud {
                 if ($ret['errorcode'] !== 0) {
                     // 日志
                     $this->log('recharge', [
-                        'name' => '洗车结束,订单可退费(' . round_dollar($Fee) . '元),账户充值(' . round_dollar($Fee) . '元)异常',
+                        'name' => concat('洗车结束,订单可退费(', round_dollar($Fee), '元),账户充值(', round_dollar($Fee), '元)异常'),
                         'uid' => $trade_info['trade_id'],
                         'orderno' => $OrderNo,
                         'devcode' => $device_info['devcode'],
@@ -522,7 +522,7 @@ class XicheModel extends Crud {
 
         if (!$this->getDb()->insert('__tablepre__payments', [
             'type' => 'xc',
-            'uses' => '洗车费(' . $deviceInfo['areaname'] . ')',
+            'uses' => concat('自助洗车-', $deviceInfo['areaname']),
             'trade_id' => $uid,
             'param_id' => $deviceInfo['id'],
             'pay' => $totalPrice,
@@ -565,7 +565,7 @@ class XicheModel extends Crud {
             if ($ret['errorcode'] !== 0) {
                 // 记录日志
                 $this->log('COrder', [
-                    'name' => '账户成功扣费' . round_dollar($deviceInfo['price']) . '元,保存订单到洗车机异常',
+                    'name' => concat('账户成功扣费', round_dollar($deviceInfo['price']), '元,保存订单到洗车机异常'),
                     'uid' => $uid,
                     'orderno' => $ordercode,
                     'devcode' => $deviceInfo['devcode'],
