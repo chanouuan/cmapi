@@ -625,6 +625,8 @@ class XicheModel extends Crud {
         ], 'uid = :uid and type = "wx"', ['uid' => $uid])) {
             return error('解绑失败');
         }
+        // 注销登录
+        (new UserModel())->logout($uid);
         return success('OK');
     }
 

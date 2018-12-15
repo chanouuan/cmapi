@@ -663,11 +663,13 @@ class UserModel extends Crud {
     public function logout ($uid, $clienttype = null)
     {
         $this->getDb()->update('__tablepre__session', [
-            'scode' => null,
+            'scode' => 0,
             'online' => 0,
             'updated_at' => date('Y-m-d H:i:s', TIMESTAMP)
-        ], concat('uid = ', $uid, ' and clienttype = "', get_real_val($clienttype, CLIENT_TYPE), '"'));
-
+        ], [
+            'userid' => $uid,
+            'clienttype' => get_real_val($clienttype, CLIENT_TYPE)
+        ]);
         set_cookie('token', null);
     }
 

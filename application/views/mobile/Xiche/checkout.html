@@ -218,14 +218,13 @@ $(function(){
     });
 
     $('#changeBinding').on('click',function(){
-        weui.confirm('是否确定解绑当前账号？', function(){
+        weui.confirm('是否解绑当前账号？', function(){
             $.ajax({
                 type: 'get',
                 url: '<?=gurl('xiche/unbind')?>',
                 dataType: 'json',
                 timeout: 5000,
                 success: function(data){
-                    loading_el.hide();
                     if(data.errorcode != 0){
                         weui.alert(data.message);
                         return false;
@@ -236,10 +235,8 @@ $(function(){
                     return true;
                 },
                 beforeSend: function(xhr){
-                    loading_el = weui.loading('提交中...');
                 },
                 error: function(xhr, type){
-                    loading_el.hide();
                     weui.alert('网络错误，请重试!');
                 }
             });
