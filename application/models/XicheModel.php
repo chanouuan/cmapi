@@ -335,29 +335,23 @@ class XicheModel extends Crud {
             return error('参数错误');
         }
 
+        $user_model = new \models\UserModel();
+
         // 获取用户
-        if (!$user_info = $this->getDb('chemiv2')
-            ->table('chemi_member')
-            ->field('member_id, member_name')
-            ->where('member_id = ?')
-            ->bindValue($post['member_id'])
-            ->limit(1)
-            ->find()) {
+        if (!$user_info = $user_model->getUserInfoCondition([
+            'member_id'=> $post['member_id']
+        ])) {
             return error('用户或密码错误');
         }
 
         // 验证车秘token
-        if (!$this->getDb('chemiv2')
-            ->table('chemi_mb_user_token')
-            ->field('member_id')
-            ->where('member_id = ? and token = ?')
-            ->bindValue($post['member_id'], $post['key'])
-            ->limit(1)
-            ->find()) {
+        if (!$user_model->checkCmToken([
+            'member_id'=> $post['member_id'],
+            'token' => $post['key']
+        ])) {
             return error('用户效验失败');
         }
 
-        $user_model = new \models\UserModel();
         // 执行绑定
         $post['nopw'] = 1; // 不验证密码
         $post['platform'] = 3; // 固定平台代码
@@ -397,17 +391,13 @@ class XicheModel extends Crud {
             return error('请输入密码或验证码！');
         }
 
-        // 获取用户
-        $user_info = $this->getDb('chemiv2')
-            ->table('chemi_member')
-            ->field('member_id, member_name, member_passwd')
-            ->where('member_name = ?')
-            ->bindValue([$post['telephone']])
-            ->limit(1)
-            ->find();
-
         // 加载模型
         $user_model = new \models\UserModel();
+
+        // 获取用户
+        $user_info = $user_model->getUserInfoCondition([
+            'member_name'=> $post['telephone']
+        ], 'member_id, member_name, member_passwd');
 
         if ($post['password']) {
             // 密码验证
@@ -422,6 +412,13 @@ class XicheModel extends Crud {
             // 短信验证
             if (!$user_model->checkSmsCode($post['telephone'], $post['msgcode'])) {
                 return error('验证码错误！');
+            }
+        }
+
+        // 限制重复绑定微信
+        if ($post['__authcode']) {
+            if ($this->getWxOpenid($user_info['member_id'])) {
+                return error('该手机号已绑定，请先解绑或填写其他手机号');
             }
         }
 
@@ -620,6 +617,18 @@ class XicheModel extends Crud {
     }
 
     /**
+     * 解绑微信
+     */
+    public function unbind ($uid) {
+        if (false === $this->getDb()->update('__tablepre__xiche_login', [
+            'uid' => 0
+        ], 'uid = :uid and type = "wx"', ['uid' => $uid])) {
+            return error('解绑失败');
+        }
+        return success('OK');
+    }
+
+    /**
      * 绑定登录账号
      */
     public function bindingLogin ($authcode, $uid) {
@@ -640,6 +649,7 @@ class XicheModel extends Crud {
             ->field('openid')
             ->where('uid = ? and type = "wx"')
             ->bindValue($uid)
+            ->limit(1)
             ->count();
     }
 

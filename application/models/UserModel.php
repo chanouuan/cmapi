@@ -87,6 +87,30 @@ class UserModel extends Crud {
     }
 
     /**
+     * 获取用户信息(搜索条件)
+     */
+    public function getUserInfoCondition ($condition, $field = 'member_id, member_name') {
+        return $this->getDb('chemiv2')
+            ->table('chemi_member')
+            ->field($field)
+            ->where($condition)
+            ->limit(1)
+            ->find();
+    }
+
+    /**
+     * 验证车秘登录token
+     */
+    public function checkCmToken ($condition) {
+        return $this->getDb('chemiv2')
+            ->table('chemi_mb_user_token')
+            ->field('member_id')
+            ->where($condition)
+            ->limit(1)
+            ->find();
+    }
+
+    /**
      * 获取用户信息
      */
     public function getUserInfo ($uid) {

@@ -200,6 +200,16 @@ class Xiche extends \ActionPDO {
     }
 
     /**
+     * 解绑微信
+     */
+    public function unbind () {
+        if (empty($this->_G['user'])) {
+            $this->error('用户校验失败', null);
+        }
+        return (new XicheModel())->unbind($this->_G['user']['uid']);
+    }
+
+    /**
      * 创建交易单
      */
     public function createCard () {

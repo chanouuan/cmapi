@@ -36,7 +36,7 @@
 <h1 class="page_title">设备：<?=$deviceInfo['areaname']?></h1>
 <div class="weui-cells weui-cells_form" id="form">
     <div class="weui-cell">
-        <div class="weui-cell__hd"><label class="weui-label">账户</label></div>
+        <div class="weui-cell__hd"><label class="weui-label">账号</label></div>
         <div class="weui-cell__bd"><?=$userInfo['telephone']?></div>
     </div>
     <div class="weui-cell">
@@ -74,6 +74,12 @@
         <?php } ?>
     </a>
 </div>
+
+<?php if($clienttype == 'wx'){ ?>
+<div id="changeBinding" class="weui-btn-area">
+    <i class="weui-icon-info-circle" style="color: #FFBE00; vertical-align: middle;"></i> 绑定到其他账号
+</div>
+<?php } ?>
 
 <?php if($deviceInfo['price'] > $userInfo['money'] && $clienttype != 'wx' && $clienttype != 'cm'){ ?>
 <div class="weui-btn-area">
@@ -209,6 +215,35 @@ $(function(){
             }
         });
 
+    });
+
+    $('#changeBinding').on('click',function(){
+        weui.confirm('是否确定解绑当前账号？', function(){
+            $.ajax({
+                type: 'get',
+                url: '<?=gurl('xiche/unbind')?>',
+                dataType: 'json',
+                timeout: 5000,
+                success: function(data){
+                    loading_el.hide();
+                    if(data.errorcode != 0){
+                        weui.alert(data.message);
+                        return false;
+                    }
+                    weui.toast('解绑成功',{duration:1000,callback:function(){
+                        location.replace('<?=gurl('xiche/login',burl())?>');
+                    }});
+                    return true;
+                },
+                beforeSend: function(xhr){
+                    loading_el = weui.loading('提交中...');
+                },
+                error: function(xhr, type){
+                    loading_el.hide();
+                    weui.alert('网络错误，请重试!');
+                }
+            });
+        });
     });
 
     var JSAPI = {

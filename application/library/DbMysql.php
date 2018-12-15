@@ -46,6 +46,53 @@ class DbMysql extends Db {
         return $this;
     }
 
+    private function buildParams ($content)
+    {
+        if (empty($content)) {
+            return '';
+        }
+        if (!is_array($content)) {
+            return $content;
+        }
+        if (isset($content[0])) {
+            return implode(' AND ', $content);
+        }
+
+        $vals = [];
+        $parameters = [];
+        foreach($content as $k => $v) {
+            if (is_array($v)) {
+                $vals[] = isset($v[2]) ? $v[2] : 'AND';
+                $vals[] = $k;
+                $vals[] = $v[0];
+                if ($v[0] == 'in' || $v[0] == 'IN') {
+                    $v[1] = is_array($v[1]) ? $v[1] : explode(',', $v[1]);
+                    $placeholder = [];
+                    foreach ($v[1] as $kk => $vv) {
+                        $name = concat($k, $kk);
+                        $placeholder[] = concat(':', $name);
+                        $parameters[$name] = $vv;
+                    }
+                    $vals[] = concat('(', implode(',', $placeholder), ')');
+                } else {
+                    $vals[] = concat(':', $k);
+                    $parameters[$k] = $v[1];
+                }
+            } else {
+                $vals[] = 'AND';
+                $vals[] = $k;
+                $vals[] = '=';
+                $vals[] = concat(':', $k);
+                $parameters[$k] = $v;
+            }
+        }
+
+        $this->bindValue($parameters);
+
+        unset($parameters, $vals[0]);
+        return implode(' ', $vals);
+    }
+
     private function putLastSql ($sql)
     {
         $this->_fetchSql[] = $sql;
@@ -64,9 +111,9 @@ class DbMysql extends Db {
                 '%LIMIT%'
         ], [
                 !empty($this->_options['table']) ? $this->parseTableName($this->_options['table']) : '', 
-                !empty($this->_options['field']) ? (is_array($this->_options['field']) ? implode(',', $this->_options['field']) : $this->_options['field']) : '', 
+                !empty($this->_options['field']) ? (is_array($this->_options['field']) ? implode(',', $this->_options['field']) : $this->_options['field']) : '*',
                 !empty($this->_options['join']) ? $this->parseTableName($this->_options['join']) : '', 
-                !empty($this->_options['where']) ? ('WHERE ' . (is_array($this->_options['where']) ? implode(' AND ', $this->_options['where']) : $this->_options['where'])) : '', 
+                !empty($this->_options['where']) ? ('WHERE ' . $this->buildParams($this->_options['where'])) : '',
                 !empty($this->_options['group']) ? ('GROUP BY ' . $this->_options['group']) : '', 
                 !empty($this->_options['order']) ? ('ORDER BY ' . $this->_options['order']) : '', 
                 !empty($this->_options['limit']) ? ('LIMIT ' . $this->_options['limit']) : ''
@@ -158,7 +205,7 @@ class DbMysql extends Db {
         }
         unset($fieldlist);
         $value = implode(',', $value);
-        $query = 'UPDATE ' . $this->parseTableName($tablename) . ' SET ' . $value . ' WHERE ' . (is_array($where) ? implode(' AND ', $where) : $where);
+        $query = 'UPDATE ' . $this->parseTableName($tablename) . ' SET ' . $value . ' WHERE ' . $this->buildParams($where);
         unset($value, $where);
         return $this->execute($query, $parameters, function  ($statement) {
             return $statement->rowCount();
@@ -170,7 +217,7 @@ class DbMysql extends Db {
      */
     public function delete ($tablename, $where, $parameters = null)
     {
-        $query = 'DELETE FROM ' . $this->parseTableName($tablename) . ' WHERE ' .  (is_array($where) ? implode(' AND ', $where) : $where);
+        $query = 'DELETE FROM ' . $this->parseTableName($tablename) . ' WHERE ' .  $this->buildParams($where);
         unset($where);
         return $this->execute($query, $parameters, function  ($statement) {
             return $statement->rowCount();
@@ -324,9 +371,10 @@ class DbMysql extends Db {
         if (empty($query)) {
             $query = $this->parseSql();
         }
-        if (empty($parameters)) {
-            $parameters = $this->getBindValue();
+        if (!empty($parameters)) {
+            $this->bindValue($parameters);
         }
+        $parameters = $this->getBindValue();
         $lastSql = $this->putLastSql($query . (!empty($parameters) ? '{' . urldecode(http_build_query($parameters, '', ',')) . '}' : ''));
         $time = microtime_float();
         try {
