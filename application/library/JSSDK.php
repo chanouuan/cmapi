@@ -8,16 +8,19 @@ class JSSDK {
 
     private $appSecret;
 
-    public function __construct ($appId, $appSecret)
+    private $accessTokenUrl;
+
+    public function __construct ($appId, $appSecret, $accessTokenUrl = null)
     {
         $this->appId = $appId;
         $this->appSecret = $appSecret;
+        $this->accessTokenUrl = $accessTokenUrl;
     }
 
     /**
      * 网页授权
      */
-    public function connectAuth ($redirect_url, $scope = 'snsapi_userinfo')
+    public function connectAuth ($redirect_url, $scope = 'snsapi_userinfo', $fetch_userinfo = true)
     {
         session_start();
         $state = isset($_GET['state']) ? $_GET['state'] : null;
@@ -55,24 +58,25 @@ class JSSDK {
 
         // 获取微信用户信息
         $userInfo = [];
-        if ($scope == 'snsapi_base') {
-            $userInfo = $this->getUserInfo(null, $userToken['openid']);
-            if ($userInfo['errorcode'] !== 0) {
-                return $userInfo;
-            }
-        } else if ($scope == 'snsapi_userinfo') {
-            $userInfo = $this->snsapi_userinfo($userToken['access_token'], $userToken['openid']);
-            if ($userInfo['errorcode'] !== 0) {
-                return $userInfo;
+        if ($fetch_userinfo === true) {
+            if ($scope == 'snsapi_base') {
+                $userInfo = $this->getUserInfo(null, $userToken['openid']);
+                if ($userInfo['errorcode'] !== 0) {
+                    return $userInfo;
+                }
+            } else if ($scope == 'snsapi_userinfo') {
+                $userInfo = $this->snsapi_userinfo($userToken['access_token'], $userToken['openid']);
+                if ($userInfo['errorcode'] !== 0) {
+                    return $userInfo;
+                }
             }
         }
 
-        if ($userInfo) {
-            $userInfo = $userInfo['data'];
-            $userInfo['authcode'] = (isset($userInfo['unionid']) && $userInfo['unionid']) ? $userInfo['unionid'] : $userInfo['openid'];
-        }
+        $userInfo = isset($userInfo['data']) ? $userInfo['data'] : [];
+        $userInfo = array_merge($userToken, $userInfo);
+        $userInfo['authcode'] = (isset($userInfo['unionid']) && $userInfo['unionid']) ? $userInfo['unionid'] : $userInfo['openid'];
         $userInfo['type'] = 'wx';
-        return success(array_merge($userToken, $userInfo));
+        return success($userInfo);
     }
 
     /**
@@ -192,6 +196,17 @@ class JSSDK {
 
     public function getAccessToken ()
     {
+        if ($this->accessTokenUrl) {
+            try {
+                $reponse = https_request($this->accessTokenUrl, null, null, 4, null);
+            } catch (\Exception $e) {
+                return error($e->getMessage());
+            }
+            return success(array(
+                'access_token' => $reponse
+            ));
+        }
+
         $data = \library\Cache::getInstance(['type' => 'file'])->get('access_token' . $this->appId);
 
         if (!$data) {

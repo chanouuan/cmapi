@@ -107,7 +107,7 @@ class Xiche extends \ActionPDO {
             if (empty($this->_G['user'])) {
                 $wxConfig = getSysConfig('xiche', 'wx');
                 $jssdk = new \library\JSSDK($wxConfig['appid'], $wxConfig['appsecret']);
-                $userInfo = $jssdk->connectAuth(gurl('xiche/login', burl()));
+                $userInfo = $jssdk->connectAuth(gurl('xiche/login', burl()), 'snsapi_base', false);
                 if ($userInfo['errorcode'] === 0) {
                     $this->_G['user'] = $model->checkLogin($userInfo['data']);
                 }
@@ -184,7 +184,8 @@ class Xiche extends \ActionPDO {
         }
         $userInfo = $userInfo['data'];
 
-        if (CLIENT_TYPE == 'wx') {
+        // 不加载jssdk
+        if (CLIENT_TYPE == 'wx' && false) {
             // 加载微信JSSDK
             $wxConfig = getSysConfig('xiche', 'wx');
             $jssdk = new \library\JSSDK($wxConfig['appid'], $wxConfig['appsecret']);

@@ -172,7 +172,7 @@ $(function(){
                                     return weui.alert(wxsdk.message);
                                 }
                                 loading_el.hide();
-                                JSAPI.chooseWXPay(wxsdk.data,function(res){
+                                JSAPI.chooseWXPay_1(wxsdk.data,function(res){
                                     //4
                                     loading_el.hide();
                                     weui.toast('支付完成',{duration:2000,callback:function(){
@@ -183,8 +183,8 @@ $(function(){
                                     weui.alert('支付失败');
                                     _self.removeClass('weui-btn_disabled');
                                 },function(res){
-                                    if(res && res['errMsg'] == 'chooseWXPay:fail') {
-                                        weui.alert('支付超时,请重试!');
+                                    if(res['errMsg'] == 'chooseWXPay:fail' || res['err_msg'] == 'get_brand_wcpay_request:fail') {
+                                        weui.alert('支付失败,请重试!');
                                         _self.removeClass('weui-btn_disabled');
                                     }
                                 });
@@ -250,6 +250,29 @@ $(function(){
             config.cancel = fail;
             config.complete = complete;
             setTimeout(function(){wx.chooseWXPay(config);},300);
+        },
+        chooseWXPay_1: function(config, success, fail, complete){
+            setTimeout(function(){
+                WeixinJSBridge.invoke(
+                    'getBrandWCPayRequest',{
+                        "appId":config.appId,
+                        "timeStamp":config.timestamp,
+                        "nonceStr":config.nonceStr,
+                        "package":config.package,
+                        "signType":config.signType,
+                        "paySign":config.paySign
+                    },
+                    function(res){
+                        if(res.err_msg == "get_brand_wcpay_request:ok"){
+                            success(res);
+                        }else if(res.err_msg == "get_brand_wcpay_request:cancel"){
+                            fail(res);
+                        }else{
+                            complete(res);
+                        }
+                    }
+                );
+            },300);
         }
     };
 
