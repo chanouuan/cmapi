@@ -1,25 +1,5 @@
-/*
- Navicat Premium Data Transfer
 
- Source Server         : 120.25.65.27__3306
- Source Server Type    : MySQL
- Source Server Version : 50637
- Source Host           : 120.25.65.27:3306
- Source Schema         : chemi_api_v1
 
- Target Server Type    : MySQL
- Target Server Version : 50637
- File Encoding         : 65001
-
- Date: 13/12/2018 09:37:07
-*/
-
-SET NAMES utf8mb4;
-SET FOREIGN_KEY_CHECKS = 0;
-
--- ----------------------------
--- Table structure for pro_hashcheck
--- ----------------------------
 
 CREATE TABLE `pro_hashcheck`  (
   `hash` char(8) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '唯一标识',
@@ -27,9 +7,6 @@ CREATE TABLE `pro_hashcheck`  (
   PRIMARY KEY (`hash`) USING BTREE
 ) ENGINE = MyISAM CHARACTER SET = utf8 COLLATE = utf8_general_ci COMMENT = '验证唯一性记录表' ROW_FORMAT = Fixed;
 
--- ----------------------------
--- Table structure for pro_loginbinding
--- ----------------------------
 
 CREATE TABLE `pro_loginbinding`  (
   `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -44,11 +21,8 @@ CREATE TABLE `pro_loginbinding`  (
   UNIQUE INDEX `index`(`platform`, `authcode`) USING BTREE,
   INDEX `uid`(`uid`) USING BTREE,
   INDEX `authcode`(`authcode`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 32 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '第三方平台绑定' ROW_FORMAT = Compact;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '第三方平台绑定' ROW_FORMAT = Compact;
 
--- ----------------------------
--- Table structure for pro_payments
--- ----------------------------
 
 CREATE TABLE `pro_payments`  (
   `id` mediumint(8) UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -75,11 +49,8 @@ CREATE TABLE `pro_payments`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `ordercode`(`ordercode`) USING BTREE,
   INDEX `trade_id`(`trade_id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 43 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Compact;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Compact;
 
--- ----------------------------
--- Table structure for pro_platform
--- ----------------------------
 
 CREATE TABLE `pro_platform`  (
   `id` mediumint(8) UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -91,9 +62,6 @@ CREATE TABLE `pro_platform`  (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = MyISAM AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
 
--- ----------------------------
--- Table structure for pro_session
--- ----------------------------
 
 CREATE TABLE `pro_session`  (
   `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -110,11 +78,8 @@ CREATE TABLE `pro_session`  (
   UNIQUE INDEX `u`(`userid`, `clienttype`) USING BTREE,
   INDEX `u1`(`userid`) USING BTREE,
   INDEX `clienttype`(`clienttype`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 152 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Compact;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Compact;
 
--- ----------------------------
--- Table structure for pro_smscode
--- ----------------------------
 
 CREATE TABLE `pro_smscode`  (
   `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -126,11 +91,8 @@ CREATE TABLE `pro_smscode`  (
   `day_fc` tinyint(2) UNSIGNED NULL DEFAULT 0 COMMENT '天级限制',
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `tel`(`tel`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 6 CHARACTER SET = utf8 COLLATE = utf8_general_ci COMMENT = '短信验证码' ROW_FORMAT = Compact;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8 COLLATE = utf8_general_ci COMMENT = '短信验证码' ROW_FORMAT = Compact;
 
--- ----------------------------
--- Table structure for pro_trades
--- ----------------------------
 
 CREATE TABLE `pro_trades`  (
   `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -143,11 +105,8 @@ CREATE TABLE `pro_trades`  (
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `trade_no`(`platform`, `trade_no`) USING BTREE,
   INDEX `uid`(`uid`) USING BTREE
-) ENGINE = MyISAM AUTO_INCREMENT = 78 CHARACTER SET = utf8 COLLATE = utf8_general_ci COMMENT = '交易记录表' ROW_FORMAT = Fixed;
+) ENGINE = MyISAM AUTO_INCREMENT = 1 CHARACTER SET = utf8 COLLATE = utf8_general_ci COMMENT = '交易记录表' ROW_FORMAT = Fixed;
 
--- ----------------------------
--- Table structure for pro_xiche_device
--- ----------------------------
 
 CREATE TABLE `pro_xiche_device`  (
   `id` mediumint(8) UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -163,11 +122,8 @@ CREATE TABLE `pro_xiche_device`  (
   `updated_at` datetime(0) NULL DEFAULT NULL COMMENT '更新时间',
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `devcode`(`devcode`) USING BTREE
-) ENGINE = MyISAM AUTO_INCREMENT = 5 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '洗车机设备信息表' ROW_FORMAT = Dynamic;
+) ENGINE = MyISAM AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '洗车机设备信息表' ROW_FORMAT = Dynamic;
 
--- ----------------------------
--- Table structure for pro_xiche_log
--- ----------------------------
 
 CREATE TABLE `pro_xiche_log`  (
   `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -182,11 +138,8 @@ CREATE TABLE `pro_xiche_log`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `devcode`(`devcode`) USING BTREE,
   INDEX `orderno`(`orderno`) USING BTREE
-) ENGINE = MyISAM AUTO_INCREMENT = 41 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
+) ENGINE = MyISAM AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
 
--- ----------------------------
--- Table structure for pro_xiche_login
--- ----------------------------
 
 CREATE TABLE `pro_xiche_login`  (
   `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -199,6 +152,5 @@ CREATE TABLE `pro_xiche_login`  (
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `index`(`authcode`) USING BTREE,
   INDEX `uid`(`uid`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 37 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '第三方平台绑定' ROW_FORMAT = Compact;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '第三方平台绑定' ROW_FORMAT = Compact;
 
-SET FOREIGN_KEY_CHECKS = 1;
