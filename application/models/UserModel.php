@@ -144,7 +144,7 @@ class UserModel extends Crud {
      * 注册车秘用户
      */
     public function regCm ($post) {
-        if (!$this->getDb()->insert('chemi_member', [
+        if (!$this->getDb('chemiv2')->insert('chemi_member', [
             'member_name' => $post['telephone'],
             'member_time' => TIMESTAMP,
             'member_old_login_time'=>0,
