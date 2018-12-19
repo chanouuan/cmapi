@@ -250,7 +250,10 @@ class XicheModel extends Crud {
             return error($device_info['messages']);
         }
         $device_info = $device_info['data'];
-        return success([intval($device_info['UseState'])]);
+        return success([
+            intval($device_info['UseState']),
+            intval($device_info['IsOnline'])
+        ]);
     }
 
     /**
@@ -313,8 +316,9 @@ class XicheModel extends Crud {
                 if ($ret['errorcode'] === 0) {
                     if ($ret['data'][0] === 0) {
                         // 状态为空闲
-                        if ($this->updateDevUse(0, $device_info['id'])) {
+                        if ($this->updateDevUse(0, $device_info['id'], $ret['data'][1])) {
                             $device_info['usetime'] = 0;
+                            $device_info['isonline'] = $ret['data'][1];
                         }
                     }
                 }
@@ -699,11 +703,15 @@ class XicheModel extends Crud {
     /**
      * 更新设备使用状态
      */
-    public function updateDevUse ($usetime, $devid) {
-        return $this->getDb()->update('__tablepre__xiche_device', [
+    public function updateDevUse ($usetime, $devid, $isonline = null) {
+        $param = [
             'usetime' => $usetime,
             'updated_at' => date('Y-m-d H:i:s', TIMESTAMP)
-        ], 'id = ' . $devid);
+        ];
+        if (isset($isonline)) {
+            $param['isonline'] = $isonline ? 1 : 0;
+        }
+        return $this->getDb()->update('__tablepre__xiche_device', $param, 'id = ' . $devid);
     }
 
     /**
