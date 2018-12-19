@@ -375,7 +375,7 @@ class DbMysql extends Db {
             $this->bindValue($parameters);
         }
         $parameters = $this->getBindValue();
-        $lastSql = $this->putLastSql($query . (!empty($parameters) ? '{' . urldecode(http_build_query($parameters, '', ',')) . '}' : ''));
+        $lastSql = $this->putLastSql($query . json_unicode_encode($parameters));
         $time = microtime_float();
         try {
             $statement = $this->_db->prepare($query);

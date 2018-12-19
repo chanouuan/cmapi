@@ -141,6 +141,22 @@ class UserModel extends Crud {
     }
 
     /**
+     * 注册车秘用户
+     */
+    public function regCm ($post) {
+        if (!$this->getDb()->insert('chemi_member', [
+            'member_name' => $post['telephone'],
+            'member_time' => TIMESTAMP,
+            'member_old_login_time'=>0,
+            'member_login_time'=>0,
+            'member_login_num'=>0
+        ])) {
+            return false;
+        }
+        return $this->getDb()->getlastid();
+    }
+
+    /**
      * 第三方平台绑定（手机号密码方式）
      */
     public function loginBinding ($post) {

@@ -419,6 +419,15 @@ class XicheModel extends Crud {
             }
         }
 
+        // 注册新用户
+        if (empty($user_info)) {
+            $uid = $user_model->regCm($post);
+            if (!$uid) {
+                return error('注册失败');
+            }
+            $user_info['member_id'] = $uid;
+        }
+
         // 限制重复绑定微信
         if ($post['__authcode']) {
             if ($this->getWxOpenid($user_info['member_id'])) {
