@@ -153,7 +153,7 @@ class UserModel extends Crud {
         ])) {
             return false;
         }
-        return $this->getDb()->getlastid();
+        return $this->getDb('chemiv2')->getlastid();
     }
 
     /**
