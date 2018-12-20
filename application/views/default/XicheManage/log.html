@@ -60,7 +60,7 @@
             <td><?=$v['uid']?></td>
             <td><?=$v['orderno']?></td>
             <td><?=$v['devcode']?></td>
-            <td><pre><?=print_r(json_decode($v['content'],true),true)?></pre></td>
+            <td onclick="x_admin_show('详情','<?=gurl('xicheManage/logInfo',['id'=>$v['id']])?>')"><a href="#">查看</a></td>
             <td><?=$v['created_at']?></td>
             <td><?=$v['updated_at']?></td>
         </tr>

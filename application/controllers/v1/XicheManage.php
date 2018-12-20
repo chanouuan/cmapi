@@ -73,6 +73,20 @@ class XicheManage extends \ActionPDO {
     }
 
     /**
+     * 设备参数详情
+     */
+    public function deviceParamInfo () {
+        $modle = new XicheManageModel();
+        if (!$dev_info = $modle->getDeviceById(getgpc('id'))) {
+            return error('参数错误');
+        }
+
+        $this->render('XicheManage/view.html', [
+            'parameters' => print_r(json_decode($dev_info['parameters'],true),true)
+        ]);
+    }
+
+    /**
      * 设备管理
      */
     public function device () {
@@ -159,6 +173,20 @@ class XicheManage extends \ActionPDO {
             'pagesize' => $pagesize,
             'list' => $list
         ];
+    }
+
+    /**
+     * 日志详情
+     */
+    public function logInfo () {
+        $modle = new XicheManageModel();
+        if (!$log_info = $modle->getLogInfo(getgpc('id'))) {
+            return error('参数错误');
+        }
+
+        $this->render('XicheManage/view.html', [
+            'parameters' => print_r(json_decode($log_info['content'],true),true)
+        ]);
     }
 
     /**

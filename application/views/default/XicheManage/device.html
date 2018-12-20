@@ -63,7 +63,7 @@
             <td><?=$v['areaid']?></td>
             <td><?=$v['areaname']?></td>
             <td><?=round_dollar($v['price'])?></td>
-            <td><pre><?=print_r(json_decode($v['parameters'],true),true)?></pre></td>
+            <td onclick="x_admin_show('详情','<?=gurl('xicheManage/deviceParamInfo',['id'=>$v['id']])?>')"><a href="#">查看</a></td>
             <td class="td-manage">
                 <a title="下载二维码" onclick="x_admin_show('查看二维码（下载请右键图片选择“图片另存为”）','<?=gurl('xiche/qrcode',['devcode'=>$v['devcode']])?>')" href="javascript:;">
                     <i class="layui-icon">&#xe601;</i>

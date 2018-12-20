@@ -196,11 +196,21 @@ class XicheManageModel extends Crud {
         return $this->getDb()->table('__tablepre__xiche_device')->field('*')->where('devcode = ?')->bindValue($devcode)->limit(1)->find();
     }
 
+    /**
+     * 获取设备信息
+     */
     public function getDeviceById($id) {
         if (is_array($id)) {
             return $this->getDb()->table('__tablepre__xiche_device')->field('id,devcode')->where('id in (' . implode(',', $id) . ')')->select();
         }
-        return $this->getDb()->table('__tablepre__xiche_device')->field('id,devcode')->where('id = ?')->bindValue($id)->find();
+        return $this->getDb()->table('__tablepre__xiche_device')->field('id,devcode,parameters')->where('id = ?')->bindValue($id)->find();
+    }
+
+    /**
+     * 获取日志信息
+     */
+    public function getLogInfo ($id) {
+        return $this->getDb()->table('__tablepre__xiche_log')->field('*')->where('id = ?')->bindValue($id)->find();
     }
 
 }
