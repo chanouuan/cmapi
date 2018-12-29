@@ -353,8 +353,8 @@ abstract class ActionPDO {
         if (!$uid || !$scode) return false;
         return \library\DB::getInstance()->field('userid as uid, clienttype, clientapp, stoken, updated_at')
             ->table('__tablepre__session')
-            ->where('userid = ? and scode = ? and clienttype = ?')
-            ->bindValue($uid, $scode, $clienttype)
+            ->where('userid = ? and clienttype = ? and scode = ?')
+            ->bindValue($uid, $clienttype, $scode)
             ->find();
     }
 
@@ -369,7 +369,7 @@ class ComposerAutoloader {
                 APPLICATION_PATH,
                 DIRECTORY_SEPARATOR
         ];
-        if (0 === strpos($class_name, 'controllers'))  {
+        if (0 === strpos($class_name, 'controllers')) {
             $class_dir[] =  'application';
             $class_dir[] = DIRECTORY_SEPARATOR;
             $class_name = explode(DIRECTORY_SEPARATOR, $class_name);

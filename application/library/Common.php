@@ -538,10 +538,10 @@ function json ($data, $message = '', $errorcode = 0, $httpcode = 200) {
     exit(0);
 }
 
-function json_unicode_encode ($data)
+function json_unicode_encode ($data, $default = '')
 {
     // JSON_FORCE_OBJECT | JSON_UNESCAPED_UNICODE
-    return empty($data) ? '' : json_encode($data, JSON_UNESCAPED_UNICODE);
+    return empty($data) ? $default : json_encode($data, JSON_UNESCAPED_UNICODE);
 }
 
 function json_mysql_encode ($data)

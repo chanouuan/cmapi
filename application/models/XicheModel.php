@@ -178,14 +178,26 @@ class XicheModel extends Crud {
             return error('设备编码不能为空或格式不正确');
         }
 
+        // 限制机器上报频率
+        $cache_val = \library\Cache::getInstance(['type' => 'file'])->get(concat('ReportStatus', $DevCode));
+        if ($cache_val) {
+            if ($cache_val == concat($IsOnline, $UseState)) {
+                return success('上报频率过快');
+            }
+        }
+        \library\Cache::getInstance(['type' => 'file'])->set(concat('ReportStatus', $DevCode), concat($IsOnline, $UseState), 60);
+
         $device_info = $this->getDeviceByCode($DevCode);
         if ($device_info) {
-            if (false === $this->getDb()->update('__tablepre__xiche_device', [
-                    'isonline' => $IsOnline,
-                    'usestate' => $UseState,
-                    'updated_at' => date('Y-m-d H:i:s', TIMESTAMP)
-                ], 'id = ' . $device_info['id'])) {
-                return error('更新设备失败');
+            // 更新设备
+            if ($device_info['isonline'] != $IsOnline || $device_info['usestate'] != $UseState) {
+                if (false === $this->updateDevUse(0, $device_info['id'], [
+                        'usetime' => $UseState === 0 ? 0 : $device_info['usetime'],
+                        'usestate' => $UseState,
+                        'isonline' => $IsOnline,
+                    ])) {
+                    return error('更新设备失败');
+                }
             }
         } else {
             // 获取设备信息
@@ -281,7 +293,7 @@ class XicheModel extends Crud {
      */
     public function getDeviceByCode($devcode) {
 
-        return $this->getDb()->table('__tablepre__xiche_device')->field('id,price,areaname,devcode,usetime,isonline,updated_at')->where('devcode = ?')->bindValue($devcode)->limit(1)->find();
+        return $this->getDb()->table('__tablepre__xiche_device')->field('id,price,areaname,devcode,usetime,isonline,usestate,updated_at')->where('devcode = ?')->bindValue($devcode)->limit(1)->find();
     }
 
     /**
@@ -309,8 +321,8 @@ class XicheModel extends Crud {
         // 如果发生异常，机器状态未能通知到服务端
         // 验证设备状态，判断是否重置为未使用
         if ($device_info['usetime']) {
-            // 10分钟验证一次
-            if (strtotime($device_info['updated_at']) < TIMESTAMP - 600) {
+            // 一段时间验证一次
+            if (strtotime($device_info['updated_at']) < TIMESTAMP - 300) {
                 // 获取设备状态
                 $ret = $this->getDevIsUse($device_info['devcode']);
                 if ($ret['errorcode'] === 0) {

@@ -223,7 +223,8 @@ class XicheManage extends \ActionPDO {
         // 管理员白名单
         $administrator = [
             '15208666791',
-            '18984054936'
+            '18984054936',
+            '18825209184'
         ];
 
         if (submitcheck()) {

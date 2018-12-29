@@ -24,19 +24,7 @@ abstract class Cache {
             return self::$_instance[$name];
         }
         if (empty($options)) {
-            if (!isset(Yaf_Registry::get('config')->cache)) {
-                return NULL;
-            }
-            $options = [];
-            foreach (Yaf_Registry::get('config')->cache as $k => $v) {
-                if (is_object($v)) {
-                    foreach ($v as $kk => $vv) {
-                        $options[$k][$kk] = $vv;
-                    }
-                } else {
-                    $options[$k] = $v;
-                }
-            }
+            $options = ['type' => 'file'];
         }
         if (!isset($options['type'])) {
             return NULL;
@@ -44,11 +32,6 @@ abstract class Cache {
         $class = '\\library\\Cache' . ucfirst($options['type']);
         self::$_instance[$name] = new $class($options);
         return self::$_instance[$name];
-    }
-
-    public static function isSupport ()
-    {
-        return isset(Yaf_Registry::get('config')->cache) ? true : false;
     }
 
     abstract protected function close ();
@@ -325,7 +308,7 @@ class CacheRedis extends Cache {
                     }));
                     $res && $rs += $res;
                     $res = null;
-                } catch (RedisException $e) {
+                } catch (\RedisException $e) {
                     continue;
                 }
             }
@@ -333,7 +316,7 @@ class CacheRedis extends Cache {
             list ($hash, $key) = $this->getHash($key);
             try {
                 $rs = $this->getDrive($hash)->exists($key);
-            } catch (RedisException $e) {
+            } catch (\RedisException $e) {
                 return false;
             }
         }
@@ -357,7 +340,7 @@ class CacheRedis extends Cache {
             foreach ($tmp as $k => $v) {
                 try {
                     $rs = $this->getDrive($k, true)->del($v);
-                } catch (RedisException $e) {
+                } catch (\RedisException $e) {
                     continue;
                 }
             }
@@ -365,7 +348,7 @@ class CacheRedis extends Cache {
             list ($hash, $key) = $this->getHash($key);
             try {
                 $rs = $this->getDrive($hash)->del($key);
-            } catch (RedisException $e) {
+            } catch (\RedisException $e) {
                 return false;
             }
         }
@@ -407,7 +390,7 @@ class CacheRedis extends Cache {
                     }));
                     $res && $rs += $res;
                     $res = null;
-                } catch (RedisException $e) {
+                } catch (\RedisException $e) {
                     continue;
                 }
             }
@@ -419,7 +402,7 @@ class CacheRedis extends Cache {
                 } else {
                     $rs = $this->getDrive($hash)->hMset($key, $value);
                 }
-            } catch (RedisException $e) {
+            } catch (\RedisException $e) {
                 return false;
             }
         }
@@ -461,7 +444,7 @@ class CacheRedis extends Cache {
                     }));
                     $res && $rs += $res;
                     $res = null;
-                } catch (RedisException $e) {
+                } catch (\RedisException $e) {
                     continue;
                 }
             }
@@ -475,7 +458,7 @@ class CacheRedis extends Cache {
                 } else {
                     $rs = $this->getDrive($hash)->hGet($key, $value);
                 }
-            } catch (RedisException $e) {
+            } catch (\RedisException $e) {
                 return false;
             }
         }
@@ -500,7 +483,7 @@ class CacheRedis extends Cache {
             } else {
                 $ret = $this->getDrive($hash)->set($key, $value);
             }
-        } catch (RedisException $e) {
+        } catch (\RedisException $e) {
             return false;
         }
         return $ret;
@@ -530,7 +513,7 @@ class CacheRedis extends Cache {
                     $res = @array_combine($v, $this->getDrive($k, true)->mget($v));
                     $res && $rs += $res;
                     $res = null;
-                } catch (RedisException $e) {
+                } catch (\RedisException $e) {
                     continue;
                 }
             }
@@ -538,7 +521,7 @@ class CacheRedis extends Cache {
             list ($hash, $key) = $this->getHash($key);
             try {
                 $rs = $this->getDrive($hash)->get($key);
-            } catch (RedisException $e) {
+            } catch (\RedisException $e) {
                 return false;
             }
         }
@@ -573,7 +556,7 @@ class CacheRedis extends Cache {
                 foreach ($val as $kk => $vv) {
                     $ret[$v][$type[$_drive->type($vv)]][] = $vv;
                 }
-            } catch (RedisException $e) {
+            } catch (\RedisException $e) {
                 $ret[$v] = $e->getMessage();
                 continue;
             }
