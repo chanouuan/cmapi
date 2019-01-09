@@ -34,7 +34,7 @@
 <body ontouchstart>
 
 <h1 class="page_title">设备：<?=$deviceInfo['areaname']?></h1>
-<div class="weui-cells weui-cells_form" id="form">
+<div class="weui-cells weui-cells_form weui-cells_radio" id="form">
     <div class="weui-cell">
         <div class="weui-cell__hd"><label class="weui-label">账号</label></div>
         <div class="weui-cell__bd"><?=$userInfo['telephone']?></div>
@@ -45,33 +45,34 @@
     </div>
     <div class="weui-cell">
         <div class="weui-cell__hd"><label class="weui-label">价格</label></div>
-        <div class="weui-cell__bd"><?=round_dollar($deviceInfo['price'])?> 元 / 次</div>
+        <div class="weui-cell__bd"><b style="color: red"><?=round_dollar($deviceInfo['price'])?></b> 元 / 次</div>
     </div>
-    <?php if($deviceInfo['price'] > $userInfo['money']){ ?>
-    <div class="weui-cell">
-        <div class="weui-cell__hd"><label class="weui-label">在线支付</label></div>
+
+    <label class="weui-cell weui-check__label" for="x11">
         <div class="weui-cell__bd">
-            <b style="color: red"><?=round_dollar($deviceInfo['price']>$userInfo['money']?$deviceInfo['price']-$userInfo['money']:0)?></b> 元
+            <p>余额支付</p>
         </div>
-    </div>
-    <?php } ?>
-    <?php if($userInfo['money'] > 0){ ?>
-    <div class="weui-cell">
-        <div class="weui-cell__hd"><label class="weui-label">余额支付</label></div>
+        <div class="weui-cell__ft">
+            <input type="radio" class="weui-check" name="payway" value="cbpay" <?php if($userInfo['money'] >= $deviceInfo['price']){ ?> checked="checked" <?php } ?> id="x11">
+            <span class="weui-icon-checked"></span>
+        </div>
+    </label>
+
+    <label class="weui-cell weui-check__label" for="x12">
         <div class="weui-cell__bd">
-            <b style="color: red"><?=round_dollar($userInfo['money']>$deviceInfo['price']?$deviceInfo['price']:$userInfo['money'])?></b> 元
+            <p>在线支付</p>
         </div>
-    </div>
-    <?php } ?>
+        <div class="weui-cell__ft">
+            <input type="radio" name="payway" class="weui-check" value="wxpay" <?php if($userInfo['money'] < $deviceInfo['price']){ ?> checked="checked" <?php } ?> id="x12">
+            <span class="weui-icon-checked"></span>
+        </div>
+    </label>
+
 </div>
 
 <div class="weui-btn-area">
     <a class="weui-btn weui-btn_primary <?php if($deviceInfo['price'] > $userInfo['money'] && $clienttype != 'wx' && $clienttype != 'cm'){ ?>weui-btn_disabled<?php } ?>" href="javascript:" id="wxformSubmitBtn">
-        <?php if($deviceInfo['price'] > $userInfo['money'] && $clienttype == 'cm'){ ?>
-        充值
-        <?php }else{ ?>
         <i class="weui-icon-success-no-circle"></i> 确认支付
-        <?php } ?>
     </a>
 </div>
 
@@ -113,6 +114,7 @@ $(function(){
         $.ajax({
             type: 'POST',
             url: '<?=gurl('xiche/createCard',burl())?>',
+            data: {payway:$('input[name=payway]:checked').val()},
             dataType: 'json',
             timeout: 5000,
             success: function(card){
@@ -184,7 +186,7 @@ $(function(){
                                     _self.removeClass('weui-btn_disabled');
                                 },function(res){
                                     if(res['errMsg'] == 'chooseWXPay:fail' || res['err_msg'] == 'get_brand_wcpay_request:fail') {
-                                        weui.alert('支付失败,请重试!');
+                                        weui.alert('支付失败,请重试!'+JSON.stringify(res));
                                         _self.removeClass('weui-btn_disabled');
                                     }
                                 });

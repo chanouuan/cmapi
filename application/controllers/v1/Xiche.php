@@ -217,7 +217,7 @@ class Xiche extends \ActionPDO {
         if (empty($this->_G['user'])) {
             $this->error('用户校验失败', null);
         }
-        return (new XicheModel())->createCard($this->_G['user']['uid'], getgpc('devcode'));
+        return (new XicheModel())->createCard($this->_G['user']['uid'], getgpc('devcode'), getgpc('payway'));
     }
 
     /**
@@ -265,12 +265,12 @@ class Xiche extends \ActionPDO {
                     // 请求成功
                     $xicheModel->updateErrorLog($log['id']);
                 } else {
-                    $info['dev_status'] = $ret['data']['result'];
+                    $info['dev_status'] = concat('<span style="color:#E64340;">', $ret['data']['result'], '<br/>设备启动异常，请点击下方『重试』按钮</span>');
                 }
             }
         }
 
-        return compact('info');
+        return $this->isAjax() ? $this->success($info) : compact('info');
     }
 
     /**

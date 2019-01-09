@@ -485,7 +485,7 @@ class XicheModel extends Crud {
     /**
      * 创建交易单
      */
-    public function createCard ($uid, $devcode) {
+    public function createCard ($uid, $devcode, $payway) {
         // 设备信息
         $deviceInfo = $this->checkDevcode($devcode);
         if ($deviceInfo['errorcode'] !== 0) {
@@ -519,8 +519,18 @@ class XicheModel extends Crud {
         }
         $userInfo = $userInfo['data'];
 
-        // 支付金额
-        $totalPrice = $deviceInfo['price'] > $userInfo['money'] ? $deviceInfo['price'] - $userInfo['money'] : 0;
+        // 支付方式
+        if ($payway == 'cbpay') {
+            // 车币支付
+            if ($deviceInfo['price'] > $userInfo['money']) {
+                return error('余额不足');
+            }
+            $totalPrice = 0;
+        } else {
+            // 在线支付
+            $totalPrice = $deviceInfo['price'];
+        }
+
         // 订单号
         $ordercode = $this->generateOrderCode();
 

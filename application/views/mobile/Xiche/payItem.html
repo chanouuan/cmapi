@@ -51,26 +51,19 @@
         </div>
         <div class="weui-form-preview__item">
             <label class="weui-form-preview__label">支付结果</label>
-            <span class="weui-form-preview__value"><?=$info['result']?></span>
+            <span class="weui-form-preview__value" id="info_result"><?=$info['result']?></span>
         </div>
         <div class="weui-form-preview__item">
             <label class="weui-form-preview__label">支付时间</label>
             <span class="weui-form-preview__value"><?=$info['paytime']?></span>
         </div>
-        <?php if(isset($info['dev_status'])){ ?>
         <div class="weui-form-preview__item">
             <label class="weui-form-preview__label">设备状态</label>
-            <?php if($info['dev_status']=='请求成功'){ ?>
-            <span class="weui-form-preview__value"><?=$info['dev_status']?></span>
-            <?php }else{ ?>
-            <span class="weui-form-preview__value" style="color: #E64340;"><?=$info['dev_status']?></span>
-            <span class="weui-form-preview__value" style="color: #FFBE00;">设备启动异常，请点击下方『重试』按钮</span>
-            <?php } ?>
+            <span class="weui-form-preview__value" id="info_dev_status"><?=$info['dev_status']?></span>
         </div>
-        <?php } ?>
     </div>
     <div class="weui-form-preview__ft">
-        <a class="weui-form-preview__btn weui-form-preview__btn_default" href="javascript:window.location.reload()">重试</a>
+        <a class="weui-form-preview__btn weui-form-preview__btn_default" href="javascript:void(0)" id="restBtn">重试</a>
         <a class="weui-form-preview__btn weui-form-preview__btn_primary" href="tel:4008883126">客服</a>
     </div>
 </div>
@@ -84,5 +77,47 @@
     </div>
 </div>
 
+<script src="<?=APPLICATION_URL?>/static/js/zepto.min.js"></script>
+<script src="<?=APPLICATION_URL?>/static/weui/weui.min.js"></script>
+
+<script type="text/javascript">
+    $(function() {
+        $("#restBtn").on("click", function () {
+            var _self = $(this);
+            if(_self.hasClass('weui-btn_disabled')){
+                return false;
+            }
+            $.ajax({
+                type: 'POST',
+                url: '<?=gurl('xiche/payItem',burl())?>',
+                dataType: 'json',
+                timeout: 5000,
+                success: function(data){
+                    loading_el.hide();
+                    _self.removeClass('weui-btn_disabled');
+                    if(data.errorcode != 0){
+                        return weui.alert(data.message);
+                    }
+                    weui.toast('同步成功',{duration:500,callback:function(){
+                        for(var i in data.data){
+                            if($('#info_'+i).length){
+                                $('#info_'+i).html(data.data[i]);
+                            }
+                        }
+                    }});
+                },
+                beforeSend: function(xhr){
+                    loading_el = weui.loading('提交中...');
+                    _self.addClass('weui-btn_disabled');
+                },
+                error: function(xhr, type){
+                    loading_el.hide();
+                    weui.alert('网络错误，请重试!');
+                    _self.removeClass('weui-btn_disabled');
+                }
+            });
+        });
+    });
+</script>
 </body>
 </html>
