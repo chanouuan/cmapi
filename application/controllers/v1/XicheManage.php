@@ -216,27 +216,66 @@ class XicheManage extends \ActionPDO {
     }
 
     /**
+     * 系统配置
+     */
+    public function config () {
+
+        $list = (new XicheManageModel())->getList('config', ['app' => 'xc'], null);
+        return compact('list');
+    }
+
+    /**
+     * 编辑配置
+     */
+    public function configUpdate () {
+        if (submitcheck()) {
+            return (new XicheManageModel())->configUpdate($_POST);
+        }
+
+        $info = (new XicheManageModel())->getConfigInfo(getgpc('id'));
+        return compact('info');
+    }
+
+    /**
      * 登录
      */
     public function login () {
 
-        // 管理员白名单
-        $administrator = [
-            '15208666791',
-            '18984054936',
-            '18825209184'
-        ];
-
+        // 提交登录
         if (submitcheck()) {
-            // 提交登录
+
+            // 管理员白名单
+            $administrator = [
+                '15208666791'
+            ];
+            $config = getConfig('xc', 'admin');
+            $config = $config ? explode("\n", $config) : [];
+            $administrator = array_merge($administrator, $config);
+
             if (!in_array($_POST['telephone'], $administrator)) {
                 return error('权限不足');
             }
-            $model = new \models\XicheModel();
+
             if (!$this->checkImgCode(strval($_POST['imgcode']))) {
                 return error('验证码错误');
             }
-            return $model->login($_POST);
+
+            $model =  new \models\UserModel();
+            $userInfo = $model->getUserInfoCondition([
+                    'member_name'=> $_POST['telephone']
+                ], 'member_id,member_passwd');
+
+            if ($userInfo['member_passwd'] != md5(md5($_POST['password']))) {
+                return error('用户名或密码错误！');
+            }
+
+            // 登录成功
+            $loginret = $model->setloginstatus($userInfo['member_id'], uniqid());
+            if ($loginret['errorcode'] !== 0) {
+                return $loginret;
+            }
+
+            return success('OK');
         }
 
         return [];

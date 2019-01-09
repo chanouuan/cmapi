@@ -6,15 +6,13 @@ use library\Crud;
 
 class XicheModel extends Crud {
 
-    private $xiche_apikey = '64BCD13B69924837B6DF728F685A05B8'; // 洗车机apikey
-
     /**
      * 保存可退费订单到洗车机
      */
     public function XiCheCOrder ($devcode, $order_no, $order_price) {
         $url = 'http://xicheba.net/chemi/API/Handler/COrder';
         $post = [
-            'apiKey' => $this->xiche_apikey,
+            'apiKey' => getConfig('xc', 'apikey'),
             'DevCode' => $devcode,
             'OrderNo' => $order_no,
             'totalFee' => $order_price
@@ -51,7 +49,7 @@ class XicheModel extends Crud {
         $StartTime = getgpc('StartTime'); // 启动时间:格式:yyyy-MM-dd HH:mm:ss
 
         // 验证apikey
-        if ($this->xiche_apikey !== $apiKey) {
+        if (getConfig('xc', 'apikey') !== $apiKey) {
             return error('apikey错误');
         }
 
@@ -90,7 +88,7 @@ class XicheModel extends Crud {
         $OverTime = getgpc('OverTime'); // 结束时间:格式:yyyy-MM-dd HH:mm:ss
 
         // 验证apikey
-        if ($this->xiche_apikey !== $apiKey) {
+        if (getConfig('xc', 'apikey') !== $apiKey) {
             return error('apikey错误');
         }
 
@@ -171,7 +169,7 @@ class XicheModel extends Crud {
         $UseState = intval(getgpc('UseState')); // 0:空闲;1:投币洗车;2:刷卡洗车;3:微信洗车;4:停售;5:手机号洗车;6:会员扫码洗车; 7:缺泡沫
 
         // 验证apikey
-        if ($this->xiche_apikey !== $apiKey) {
+        if (getConfig('xc', 'apikey') !== $apiKey) {
             return error('apikey错误');
         }
         if (!preg_match('/^[0-9|a-z|A-Z]{14}$/', $DevCode)) {
@@ -203,7 +201,7 @@ class XicheModel extends Crud {
             // 获取设备信息
             try {
                 $device_info = https_request('http://xicheba.net/chemi/API/Handler/DeviceOne', [
-                    'apiKey' => $this->xiche_apikey,
+                    'apiKey' => getConfig('xc', 'apikey'),
                     'DevCode' => $DevCode
                 ]);
             } catch (\Exception $e) {
@@ -217,7 +215,7 @@ class XicheModel extends Crud {
             // 获取设置参数
             try {
                 $device_param = https_request('http://xicheba.net/chemi/API/Handler/DevParam', [
-                    'apiKey' => $this->xiche_apikey,
+                    'apiKey' => getConfig('xc', 'apikey'),
                     'AreaId' => $device_info['AreaId']
                 ]);
             } catch (\Exception $e) {
@@ -252,7 +250,7 @@ class XicheModel extends Crud {
     public function getDevIsUse ($DevCode) {
         try {
             $device_info = https_request('http://xicheba.net/chemi/API/Handler/DeviceOne', [
-                'apiKey' => $this->xiche_apikey,
+                'apiKey' => getConfig('xc', 'apikey'),
                 'DevCode' => $DevCode
             ]);
         } catch (\Exception $e) {

@@ -114,10 +114,10 @@ function getSysConfig ($key = null, $target = 'config')
     return $sys_config[$target][$key];
 }
 
-function getConfig ()
+function getConfig ($app = null, $name = null)
 {
     if (false === F('config')) {
-        $ret = \library\DB::getInstance()->table('__tablepre__config')->field('name,value,type')->select();
+        $ret = \library\DB::getInstance()->table('__tablepre__config')->field('app,name,value,type')->select();
         $config = array();
         foreach ($ret as $k => $v) {
             if ($v['type'] == 'textarea') {
@@ -125,11 +125,18 @@ function getConfig ()
             } elseif ($v['type'] == 'number') {
                 $v['value'] = intval($v['value']);
             }
-            $config[$v['name']] = $v['value'];
+            $config[$v['app']][$v['name']] = $v['value'];
         }
         F('config', $config);
     }
-    return F('config');
+    $config = F('config');
+    if (isset($config[$app])) {
+        $config = $config[$app];
+    }
+    if (isset($config[$name])) {
+        $config = $config[$name];
+    }
+    return $config;
 }
 
 function msubstr ($str, $start = 0, $length = 250, $charset = 'utf-8', $suffix = false)
