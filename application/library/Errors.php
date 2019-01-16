@@ -44,7 +44,7 @@ class Errors
     {
         \library\DebugLog::_log([
             'message' => iconv('GBK', 'UTF-8', $e->getMessage()),
-            'file' => $e->getFile() . '(' . $e->getLine() . ')',
+            'file' => concat($e->getFile(), '(', $e->getLine(), ')'),
             'trace' => $e->getTraceAsString()
         ], 'exception');
         json(null, iconv('GBK', 'UTF-8', $e->getMessage()), -1);

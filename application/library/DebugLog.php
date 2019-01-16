@@ -129,9 +129,9 @@ class DebugLog {
             array_splice($message, 0, 0, '[' . date('Y-m-d H:i:s', TIMESTAMP) . ']' );
         }
         if ($totaltime) {
-            $message[] = "TotalTime: " . round(microtime_float() - self::$instance->logId, 3) . 's';
+            $message[] = 'TotalTime: ' . round(microtime_float() - self::$instance->logId, 3) . 's';
         }
-        error_log(implode("\r\n", $message) . "\r\n\r\n", 3, APPLICATION_PATH . DIRECTORY_SEPARATOR . 'log' . DIRECTORY_SEPARATOR . $logfile . '_' . date('Ymd', TIMESTAMP) . '.log');
+        error_log(implode("\r\n", $message) . "\r\n\r\n", 3, concat(APPLICATION_PATH, DIRECTORY_SEPARATOR, 'log', DIRECTORY_SEPARATOR, $logfile, '_', date('Ymd', TIMESTAMP), '.log'));
     }
 
 	/**
