@@ -168,7 +168,7 @@ class Xiche extends \ActionPDO {
         // 默认套餐
         $deviceInfo['package'] = [
             [
-                'name' => '10元/20分钟'
+                'name' => round_dollar($deviceInfo['price'], false) . '元/20分钟'
             ]
         ];
 
