@@ -462,7 +462,7 @@ class XicheModel extends Crud {
         if ($loginret['errorcode'] !== 0) {
             return $loginret;
         }
-        $user_info['token'] = $loginret['data'];
+        $user_info['token'] = $loginret['message'];
 
         // 绑定微信
         $this->bindingLogin($post['__authcode'], $user_info['uid']);

@@ -551,6 +551,12 @@ function json_unicode_encode ($data, $default = '')
     return empty($data) ? $default : json_encode($data, JSON_UNESCAPED_UNICODE);
 }
 
+function pheader ($location)
+{
+    header('Location: ' . $location);
+    exit(0);
+}
+
 function json_mysql_encode ($data)
 {
     $data = json_unicode_encode($data);

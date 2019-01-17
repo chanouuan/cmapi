@@ -87,7 +87,7 @@ class Xiche extends \ActionPDO {
     public function login () {
         $model = new XicheModel();
 
-        if (submitcheck()) {
+        if (submitcheck() || $this->isAjax()) {
             // 提交登录
             return $model->login($_POST);
         }
@@ -121,10 +121,15 @@ class Xiche extends \ActionPDO {
 
         if ($this->_G['user']) {
             // 已绑定账号，就跳过登录页
-            header('Location: ' . gurl('xiche/checkout', burl()));
-            exit(0);
+            $this->showVuePage('profile', burl()); // vue
+            pheader(gurl('xiche/checkout', burl()));
         }
 
+        // vue
+        $this->showVuePage('', [
+            'devcode' => getgpc('devcode'),
+            'authcode' => (isset($userInfo) && isset($userInfo['data']['authcode'])) ? $userInfo['data']['authcode'] : ''
+        ]);
         return [
             'authcode' => (isset($userInfo) && isset($userInfo['data']['authcode'])) ? $userInfo['data']['authcode'] : ''
         ];
@@ -160,6 +165,13 @@ class Xiche extends \ActionPDO {
         }
         $deviceInfo = $deviceInfo['data'];
 
+        // 默认套餐
+        $deviceInfo['package'] = [
+            [
+                'name' => '10元/20分钟'
+            ]
+        ];
+
         // 如果当前用户已支付，且机器未结束运行，就直接进入订单详情页
         if ($deviceInfo['usetime']) {
             $tradeModel = new \models\TradeModel();
@@ -171,9 +183,9 @@ class Xiche extends \ActionPDO {
             ], 'id');
             if ($tradeInfo) {
                 // 跳过支付页
-                $this->success('你正在使用该设备。', gurl('xiche/payItem', [
+                return success([
                     'tradeid' => $tradeInfo['id']
-                ]));
+                ], '你正在使用该设备。');
             }
         }
 
@@ -257,7 +269,7 @@ class Xiche extends \ActionPDO {
         if ($info['status'] == 1) {
             // 获取洗车机错误日志
             $log = $xicheModel->getErrorLog($info['ordercode']);
-            $info['dev_status'] = '请求成功'; // 设备启动状态
+            $info['dev_status'] = '启动成功'; // 设备启动状态
             if ($log) {
                 // 重新发起请求
                 $ret = $xicheModel->XiCheCOrder($log['devcode'], $info['ordercode'], $info['money']);
@@ -270,7 +282,7 @@ class Xiche extends \ActionPDO {
             }
         }
 
-        return $this->isAjax() ? $this->success($info) : compact('info');
+        return compact('info');
     }
 
     /**
@@ -295,6 +307,15 @@ class Xiche extends \ActionPDO {
             exit(0);
         }
         return $code;
+    }
+
+    /**
+     * 进入vue页面
+     */
+    protected function showVuePage ($router = '', $params = null) {
+        $location = gurl(concat(APPLICATION_URL, '/', strtolower($this->_module), '/index.html'), $params);
+        $location .= concat('#/', $router);
+        pheader($location);
     }
 
 }

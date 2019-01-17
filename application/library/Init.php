@@ -102,6 +102,9 @@ class Controller {
                 if (isset($result['errorcode'])) {
                     json($result['data'], $result['message'], $result['errorcode']);
                 }
+                if ($referer->isAjax()) {
+                    json($result);
+                }
                 $referer->render(concat($module, DIRECTORY_SEPARATOR, $action, '.html'), $result);
             } else {
                 json(null, $result);
@@ -289,17 +292,17 @@ abstract class ActionPDO {
         return null;
     }
 
-    public function success ($message = '', $url = '', $wait = 3, $ajax = null)
+    public function success ($message = null, $url = '', $wait = 3, $ajax = null)
     {
         $this->_showMessage('success', $message, $url, $wait, $ajax);
     }
 
-    public function error ($message = '', $url = '', $wait = 3, $ajax = null)
+    public function error ($message = null, $url = '', $wait = 3, $ajax = null)
     {
         $this->_showMessage('error', $message, $url, $wait, $ajax);
     }
 
-    protected function isAjax()
+    public function isAjax()
     {
         if(isset($_SERVER['HTTP_X_REQUESTED_WITH'])
             && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
@@ -309,7 +312,7 @@ abstract class ActionPDO {
         }
     }
 
-    protected function _showMessage ($type, $message = '', $url = '', $wait = 3, $ajax = null)
+    protected function _showMessage ($type, $message = null, $url = '', $wait = 3, $ajax = null)
     {
         $ajax = isset($ajax) ? $ajax : $this->isAjax();
         if ($ajax) {
