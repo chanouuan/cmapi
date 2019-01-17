@@ -406,6 +406,4 @@ ComposerAutoloader::getLoader();
 
 library\Errors::register();
 
-library\DebugLog::_init();
-
 $controller = new Controller();

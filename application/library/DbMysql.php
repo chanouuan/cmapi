@@ -30,9 +30,7 @@ class DbMysql extends Db {
         $this->_db->setAttribute(\PDO::ATTR_STRINGIFY_FETCHES, false); // 提取的时候不将数值转换为字符串
         $this->_db->setAttribute(\PDO::ATTR_EMULATE_PREPARES, false); // 禁用本地预处理语句的模拟
         $this->_config = $config;
-        \library\DebugLog::_mysql('Connect dsn: mysql:dbname=' . $this->_config['database'] . ';host=' . $this->_config['server'] . ';port=' . $this->_config['port'] . ' from ' . __CLASS__,
-            null,
-            round(microtime_float() - $time, 3));
+        \library\DebugLog::_mysql(concat('[', round(microtime_float() - $time, 3), 's] Connect dsn: mysql:dbname=', $this->_config['database'], ';host=' . $this->_config['server'], ';port=' . $this->_config['port'], ' From ', __CLASS__));
     }
 
     public function close ()
@@ -310,7 +308,7 @@ class DbMysql extends Db {
             $this->_errorInfo[] = $last_error[1];
             return $last_error;
         }
-        return false;
+        return null;
     }
 
     /**
@@ -388,10 +386,7 @@ class DbMysql extends Db {
         } catch (\PDOException $e) {
             // 记录日志
             if ($reconnection === false) {
-                \library\DebugLog::_mysql(null,
-                    $lastSql,
-                    round(microtime_float() - $time, 3),
-                    $this->error($e->errorInfo));
+                \library\DebugLog::_mysql(null, concat('[', round(microtime_float() - $time, 3), 's] ', $lastSql), $this->error($e->errorInfo));
             }
             if ($reconnection === false && ($e->errorInfo[1] == 2006 || $e->errorInfo[1] == 2013)) {
                 $this->close();
@@ -408,9 +403,7 @@ class DbMysql extends Db {
         }
         // 记录日志
         if ($this->_debug === true && $reconnection === false) {
-            \library\DebugLog::_mysql(null,
-                $lastSql,
-                round(microtime_float() - $time, 3));
+            \library\DebugLog::_mysql(null, concat('[', round(microtime_float() - $time, 3), 's] ', $lastSql));
         }
         if (isset($invoke)) {
             return call_user_func_array($invoke, [$statement]);

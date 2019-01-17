@@ -163,6 +163,25 @@ function set_cookie ($name, $value, $expire = 0)
     $_COOKIE[$name] = $value;
 }
 
+function template_replace ($template, $value)
+{
+    if (empty($template)) {
+        return '';
+    }
+    if (empty($value)) {
+        return $template;
+    }
+    foreach ($value as $k => $v) {
+        $template = str_replace('{$' . $k . '}', $v, $template);
+    }
+    return $template;
+}
+
+function pass_string ($str)
+{
+    return !empty($str) ? preg_replace('/^(.+)(.{4})?(.{4})?$/Us', '\\1****\\3', $str) : $str;
+}
+
 function trim_space ($string)
 {
     return $string ? str_replace(array(
@@ -178,27 +197,48 @@ function ishttp ($url)
 
 function islocal ($url)
 {
-    static $_local = array();
-    if (!$url) return false;
-    if (isset($_local[$url])) return $_local[$url];
+    static $_local = [];
+    if (!$url) {
+        return false;
+    }
+    if (isset($_local[$url])) {
+        return $_local[$url];
+    }
     $_local[$url] = file_exists(APPLICATION_PATH . DIRECTORY_SEPARATOR . $url);
     return $_local[$url];
 }
 
 function avatar ($uid, $size = 'mid', $parent = '')
 {
-    if (!$uid) return '';
-    $uid = sprintf("%09d", $uid);
-    return $parent . 'upload/a/' . substr($uid, 0, 3) . '/' . substr($uid, 3, 2) . '/' . substr($uid, 5, 2) . '/' . substr($uid, -2) . '_' . $size . '.jpg';
+    if (!$uid) {
+        return '';
+    }
+    $url = [
+        'upload/a',
+        $uid % 512,
+        crc32($uid) % 512,
+        $uid,
+        $size
+    ];
+    return $parent . implode('/', $url) . '.jpg';
 }
 
-function httpurl ($url)
+function httpurl ($url, $default = true)
 {
-    if (!$url) return '';
+    if (!$url) {
+        return '';
+    }
     if (!ishttp($url)) {
         // 判断用户本地头像地址是否存在
-        if (0 === strpos($url, 'upload/a/')) {
-            if (!islocal($url)) return '';
+        if (0 === strpos($url, 'upload/a')) {
+            if (!is_dir(dirname($url))) {
+                if (false == $default) {
+                    return '';
+                }
+                $url = 'public/img/offline.png';
+            } else {
+                $url .= '?' . substr(filemtime(APPLICATION_PATH . DIRECTORY_SEPARATOR . $url), -3);
+            }
         }
         $url = APPLICATION_URL . '/' . $url;
     }
@@ -233,8 +273,7 @@ function submitcheck ($formhash = null, $disposable = false)
 function mkdirm ($path)
 {
     if ($path && !is_dir($path)) {
-        mkdirm(dirname($path));
-        @mkdir($path, 0777);
+        @mkdir($path, 0755, true);
     }
 }
 
@@ -387,7 +426,7 @@ function safe_subject ($txt)
 function F ($name, $value = '')
 {
     static $_cache = array();
-    $filename = APPLICATION_PATH . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . $name . '.php';
+    $filename = concat(APPLICATION_PATH, DIRECTORY_SEPARATOR, 'cache', DIRECTORY_SEPARATOR, $name, '.php');
     if ('' !== $value) {
         if (is_null($value)) {
             return unlink($filename);
@@ -419,12 +458,21 @@ function md5_mini ($a)
     return $d;
 }
 
-function char_conver ($str, $in_charset = 'GBK//IGNORE', $out_charset = 'UTF-8')
+function str_conver ($str, $in_charset = 'GBK', $out_charset = 'UTF-8')
 {
+    if (empty($str)) {
+        return $str;
+    }
+    if (function_exists('mb_convert_encoding')) {
+        return mb_convert_encoding($str, $out_charset, $in_charset);
+    }
+    if ($in_charset == 'GBK') {
+        $in_charset = 'GBK//IGNORE';
+    }
     return iconv($in_charset, $out_charset, $str);
 }
 
-function https_request ($url, $post = null, $headers = null, $timeout = 4, $encode = 'json', $reload = 1, $st = 0)
+function https_request ($url, $post = null, $headers = null, $timeout = 3, $encode = 'json', $reload = 1, $st = 0)
 {
     $st = $st ? $st : microtime_float();
     $curl = curl_init();

@@ -42,12 +42,13 @@ class Errors
      */
     public static function appException($e)
     {
+        $message = str_conver($e->getMessage());
         \library\DebugLog::_log([
-            'message' => iconv('GBK', 'UTF-8', $e->getMessage()),
+            'message' => $message,
             'file' => concat($e->getFile(), '(', $e->getLine(), ')'),
             'trace' => $e->getTraceAsString()
         ], 'exception');
-        json(null, iconv('GBK', 'UTF-8', $e->getMessage()), -1);
+        json(null, $message, -1);
     }
 
     /**

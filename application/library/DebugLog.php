@@ -7,131 +7,115 @@ namespace library;
 
 class DebugLog {
 
-    private $logId = 0;
-	private $header = [];
-	private $post = [];
-	private $mysql = [];
-    private $error = [];
 
-    private static $instance = null;
-    private function __construct() {}
+    private static $info = [];
+    private static $error = [];
 
-    public static function _init() {
-        if (!self::$instance) {
-            self::$instance = new DebugLog();
-            self::$instance->logId = microtime_float();
-        }
-    }
-
-    public static function _header () {
-        if (self::$instance === false) {
-            return;
-        }
-        $header = [
-            'REQUEST_URI: ' . $_SERVER['REQUEST_URI'],
-            'REMOTE_ADDR: ' . $_SERVER['REMOTE_ADDR'] . ':' . $_SERVER['REMOTE_PORT'],
-        ];
-        foreach ($_SERVER as $k => $v) {
-            if (0 === strpos($k, 'HTTP_')) {
-                $header[] = $k . ': ' . $v;
-            }
-        }
-        self::$instance->header = $header;
-    }
-
-    public static function _post() {
-        if (self::$instance === false) {
-            return;
-        }
-        if (!empty($_POST)) {
-            self::$instance->post[] = 'Post: ' . urldecode(http_build_query($_POST));
-        }
-    }
+    private static $mysql = [];
 
     public static function _error ($error) {
-        if (self::$instance === false) {
-            return;
-        }
-        if ($error) {
-            self::$instance->error[] = is_array($error) ? implode("\r\n", $error) : $error;
+        if (!empty($error)) {
+            if (is_array($error)) {
+                self::$error = array_merge(self::$error, $error);
+            } else {
+                self::$error[] = $error;
+            }
         }
     }
 
-    /**
-     * 记录运行时的mysql请求
-     */
-    public static function _mysql($config, $query, $dtime, $error = null, $rs = null) {
-        if (self::$instance === false) {
-            return;
+    public static function _mysql($dbConfig, $query = null, $error = null, $rs = null) {
+        if (isset($dbConfig)) {
+            self::$mysql[] = is_array($dbConfig) ? json_encode($dbConfig) : $dbConfig;
         }
-        $data = [
-            is_array($config) ? json_encode($config) : $config,
-            is_array($query) ? implode("\r\n", $query) : $query,
-            'Time: ' . $dtime . 's'
-        ];
+
+        if (isset($query)) {
+            if (is_array($query)) {
+                self::$mysql = array_merge(self::$mysql, $query);
+            } else {
+                self::$mysql[] = $query;
+            }
+        }
+
         if ($error) {
-            $error = is_array($error) ? implode("\r\n", $error) : $error;
-            self::$instance->error[] = $error;
-            $data[] = $error;
+            self::_error($error);
+            if (is_array($error)) {
+                self::$mysql = array_merge(self::$mysql, $error);
+            } else {
+                self::$mysql[] = $error;
+            }
         }
+
         if ($rs) {
-            $rs = is_array($rs) ? json_unicode_encode($rs) : $rs;
-            $data[] = msubstr($rs, 0, 100);
+            self::$mysql[] = msubstr(is_array($rs) ? json_unicode_encode($rs) : $rs, 0, 200);
         }
-        self::$instance->mysql[] = implode("\r\n", array_filter($data));
+    }
+
+    private static function _header () {
+        if (isset($_SERVER['REQUEST_URI'])) {
+            self::$info[] = 'REQUEST_URI: ' . $_SERVER['REQUEST_URI'];
+        }
+        if (isset($_SERVER['REMOTE_ADDR'])) {
+            self::$info[] = 'REMOTE_ADDR: ' . $_SERVER['REMOTE_ADDR'] . ':' . $_SERVER['REMOTE_PORT'];
+        }
+        if (isset($_SERVER['HTTP_HOST'])) {
+            self::$info[] = 'HTTP_HOST: ' . $_SERVER['HTTP_HOST'];
+        }
+        if (isset($_SERVER['HTTP_USER_AGENT'])) {
+            self::$info[] = 'HTTP_USER_AGENT: ' . $_SERVER['HTTP_USER_AGENT'];
+        }
+        if (isset($_SERVER['HTTP_REFERER'])) {
+            self::$info[] = 'HTTP_REFERER: ' . $_SERVER['HTTP_REFERER'];
+        }
+        if (isset($_SERVER['HTTP_COOKIE'])) {
+            self::$info[] = 'HTTP_COOKIE: ' . $_SERVER['HTTP_COOKIE'];
+        }
+    }
+
+    private static function _post() {
+        if (!empty($_POST)) {
+            self::$info[] = 'Post: ' . json_unicode_encode($_POST);
+        }
     }
 
     /**
      * 输出日志
      */
     public static function _show() {
-        if (self::$instance === false) {
-            return;
-        }
         if (isset($_GET['__debug']) && $_GET['__debug'] == DEBUG_PASS) {
             // 界面上可视化模式输出内容
-            self::$instance->showViews();
+            self::showViews();
         } else {
-            self::$instance->writeLogs();
+            self::writeLogs();
         }
     }
 
-    /**
-     * 将调试信息生成可视化的HTML代码
-     */
     private function showViews() {
-        echo 'log';
+        echo 'HtmlView';
     }
 
-    public function writeLogs() {
+    private function writeLogs() {
         if (DEBUG_LEVEL >= 3) {
-            self::$instance->_header();
+            self::_header();
         }
         if (DEBUG_LEVEL >= 2) {
-            self::$instance->_post();
+            self::_post();
         }
         if (DEBUG_LEVEL >= 1) {
-            self::$instance->_log(array_merge($this->header, $this->post, $this->mysql), 'debug', true, true);
+            self::_log(array_merge(self::$info, self::$mysql), 'debug', true, 'Ym_Ymd');
         }
-        self::$instance->writeErrorLogs();
+        if (self::$error) {
+            self::_log(self::$error, 'error');
+        }
     }
 
-    public static function writeErrorLogs() {
-        if (empty(self::$instance->error)) {
-            return;
-        }
-        self::$instance->_log(self::$instance->error, 'error');
-    }
-
-    public static function _log ($message, $logfile = 'debug', $curdate = true, $totaltime = false) {
+    public static function _log ($message, $logfile = 'debug', $curdate = true, $rule = 'Ymd') {
         $message = is_array($message) ? $message : [$message];
         if ($curdate) {
             array_splice($message, 0, 0, '[' . date('Y-m-d H:i:s', TIMESTAMP) . ']' );
         }
-        if ($totaltime) {
-            $message[] = 'TotalTime: ' . round(microtime_float() - self::$instance->logId, 3) . 's';
-        }
-        error_log(implode("\r\n", $message) . "\r\n\r\n", 3, concat(APPLICATION_PATH, DIRECTORY_SEPARATOR, 'log', DIRECTORY_SEPARATOR, $logfile, '_', date('Ymd', TIMESTAMP), '.log'));
+        $destination = concat(APPLICATION_PATH, DIRECTORY_SEPARATOR, 'log', DIRECTORY_SEPARATOR, str_replace('_', DIRECTORY_SEPARATOR, date($rule, TIMESTAMP)), '_', $logfile, '.log');
+        mkdirm(dirname($destination));
+        error_log(implode("\r\n", $message) . "\r\n\r\n", 3, $destination);
     }
 
 	/**
@@ -159,7 +143,7 @@ class DebugLog {
 		} else {
 			$result = $trace;
 		}
-		self::writeDebugLog(json_encode($result), 'backtrace.log');
+		return $result;
 	}
 
 }
