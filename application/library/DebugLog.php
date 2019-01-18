@@ -69,6 +69,9 @@ class DebugLog {
         if (isset($_SERVER['HTTP_COOKIE'])) {
             self::$info[] = 'HTTP_COOKIE: ' . $_SERVER['HTTP_COOKIE'];
         }
+        if (isset($_SERVER['HTTP_APIVERSION'])) {
+            self::$info[] = 'HTTP_APIVERSION: ' . $_SERVER['HTTP_APIVERSION'];
+        }
     }
 
     private static function _post() {

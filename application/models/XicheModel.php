@@ -691,6 +691,19 @@ class XicheModel extends Crud {
     }
 
     /**
+     * 获取authcode
+     */
+    public function getAuthCode ($uid, $type = 'wx') {
+        return $this->getDb()
+            ->table('__tablepre__xiche_login')
+            ->field('authcode')
+            ->where('uid = ? and type = ?')
+            ->bindValue($uid, $type)
+            ->limit(1)
+            ->count();
+    }
+
+    /**
      * 记录日志
      */
     public function log ($type = 'info', $data = []) {

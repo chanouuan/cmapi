@@ -119,19 +119,35 @@ class Xiche extends \ActionPDO {
             $this->error($ret['message'], null);
         }
 
-        if ($this->_G['user']) {
-            // 已绑定账号，就跳过登录页
-            $this->showVuePage('profile', burl()); // vue
-            pheader(gurl('xiche/checkout', burl()));
-        }
-
         // vue
         $this->showVuePage('', [
             'devcode' => getgpc('devcode'),
-            'authcode' => (isset($userInfo) && isset($userInfo['data']['authcode'])) ? $userInfo['data']['authcode'] : ''
+            'authcode' => (isset($userInfo) && isset($userInfo['data']['authcode'])) ? $userInfo['data']['authcode'] : '',
+            'token' => $this->_G['user'] ? $_COOKIE['token'] : ''
         ]);
+
+        if ($this->_G['user']) {
+            // 已绑定账号，就跳过登录页
+            pheader(gurl('xiche/checkout', burl()));
+        }
+
         return [
             'authcode' => (isset($userInfo) && isset($userInfo['data']['authcode'])) ? $userInfo['data']['authcode'] : ''
+        ];
+    }
+
+    /**
+     * 获取AuthCode
+     */
+    public function getAuthCode () {
+        if (empty($this->_G['user'])) {
+            $this->error('用户校验失败', null);
+        }
+        if (!$authcode = (new XicheModel())->getAuthCode($this->_G['user']['uid'], 'wx')) {
+            $this->error('尚未绑定账号', null);
+        }
+        return [
+            'authcode' => $authcode
         ];
     }
 
@@ -277,7 +293,7 @@ class Xiche extends \ActionPDO {
                     // 请求成功
                     $xicheModel->updateErrorLog($log['id']);
                 } else {
-                    $info['dev_status'] = concat('<span style="color:#E64340;">', $ret['data']['result'], '<br/>设备启动异常，请点击『重试』</span>');
+                    $info['dev_status'] = concat('<span style="color:#E64340;">', $ret['data']['result'], '<br/>设备启动异常，请点击连接设备</span>');
                 }
             }
         }
@@ -313,8 +329,11 @@ class Xiche extends \ActionPDO {
      * 进入vue页面
      */
     protected function showVuePage ($router = '', $params = null) {
-        $location = gurl(concat(APPLICATION_URL, '/', strtolower($this->_module), '/index.html'), $params);
-        $location .= concat('#/', $router);
+        $location = concat(APPLICATION_URL, '/', strtolower($this->_module), '/index.html#/', $router);
+        if ($params) {
+            $params = is_array($params) ? http_build_query($params) : $params;
+            $location .= '?' . $params;
+        }
         pheader($location);
     }
 
