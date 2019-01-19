@@ -212,6 +212,16 @@ class XicheManageModel extends Crud {
     }
 
     /**
+     * 删除日志
+     */
+    public function logDelete ($id) {
+        if (!$this->getDb()->delete('__tablepre__xiche_log', ['id' => intval($id)])) {
+            return error('操作失败');
+        }
+        return success('OK');
+    }
+
+    /**
      * 编辑配置
      */
     public function configUpdate ($post) {

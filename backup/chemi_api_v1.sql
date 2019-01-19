@@ -1,26 +1,4 @@
-/*
- Navicat Premium Data Transfer
 
- Source Server         : 120.25.65.27__3306
- Source Server Type    : MySQL
- Source Server Version : 50637
- Source Host           : 120.25.65.27:3306
- Source Schema         : chemi_api_v1
-
- Target Server Type    : MySQL
- Target Server Version : 50637
- File Encoding         : 65001
-
- Date: 18/01/2019 14:09:10
-*/
-
-SET NAMES utf8mb4;
-SET FOREIGN_KEY_CHECKS = 0;
-
--- ----------------------------
--- Table structure for pro_config
--- ----------------------------
-DROP TABLE IF EXISTS `pro_config`;
 CREATE TABLE `pro_config`  (
   `id` mediumint(8) UNSIGNED NOT NULL AUTO_INCREMENT,
   `app` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL,
@@ -37,20 +15,14 @@ CREATE TABLE `pro_config`  (
 INSERT INTO `pro_config` VALUES (1, 'xc', 'admin', 'textarea', '18984054936', '管理员列表，一行一个手机号');
 INSERT INTO `pro_config` VALUES (2, 'xc', 'apikey', 'text', '64BCD13B69924837B6DF728F685A05B8', '洗车机apikey');
 
--- ----------------------------
--- Table structure for pro_hashcheck
--- ----------------------------
-DROP TABLE IF EXISTS `pro_hashcheck`;
+
 CREATE TABLE `pro_hashcheck`  (
   `hash` char(8) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL COMMENT '唯一标识',
   `dateline` int(10) UNSIGNED NULL DEFAULT NULL COMMENT '修改时间',
   PRIMARY KEY (`hash`) USING BTREE
 ) ENGINE = MyISAM CHARACTER SET = utf8 COLLATE = utf8_general_ci COMMENT = '验证唯一性记录表' ROW_FORMAT = Fixed;
 
--- ----------------------------
--- Table structure for pro_loginbinding
--- ----------------------------
-DROP TABLE IF EXISTS `pro_loginbinding`;
+
 CREATE TABLE `pro_loginbinding`  (
   `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
   `platform` tinyint(3) UNSIGNED NULL DEFAULT NULL COMMENT '第三方平台代码',
@@ -66,10 +38,7 @@ CREATE TABLE `pro_loginbinding`  (
   INDEX `authcode`(`authcode`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '第三方平台绑定' ROW_FORMAT = Compact;
 
--- ----------------------------
--- Table structure for pro_payments
--- ----------------------------
-DROP TABLE IF EXISTS `pro_payments`;
+
 CREATE TABLE `pro_payments`  (
   `id` mediumint(8) UNSIGNED NOT NULL AUTO_INCREMENT,
   `type` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '交易场景',
@@ -97,10 +66,7 @@ CREATE TABLE `pro_payments`  (
   INDEX `trade_id`(`trade_id`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Compact;
 
--- ----------------------------
--- Table structure for pro_platform
--- ----------------------------
-DROP TABLE IF EXISTS `pro_platform`;
+
 CREATE TABLE `pro_platform`  (
   `id` mediumint(8) UNSIGNED NOT NULL AUTO_INCREMENT,
   `pfcode` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '平台代码',
@@ -117,10 +83,7 @@ CREATE TABLE `pro_platform`  (
 INSERT INTO `pro_platform` VALUES (1, '1', '0zcvnI48RbXvnmmn+1wCwOabNOlzjVgy04DIxIhiDCY=', 'K77uZoIHxeDBMp0Rjdn6Mg==', 'shop', 1);
 INSERT INTO `pro_platform` VALUES (2, '2', 'rBtgc6dHk4xyfEESx5qJVFLkyRa59pUJgBOdme7OSJI=', 's1Fs6VwMuzJaiQ6WalUpSg==', 'shop', 1);
 
--- ----------------------------
--- Table structure for pro_session
--- ----------------------------
-DROP TABLE IF EXISTS `pro_session`;
+
 CREATE TABLE `pro_session`  (
   `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
   `userid` mediumint(8) UNSIGNED NOT NULL,
@@ -137,10 +100,7 @@ CREATE TABLE `pro_session`  (
   INDEX `u1`(`userid`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Compact;
 
--- ----------------------------
--- Table structure for pro_smscode
--- ----------------------------
-DROP TABLE IF EXISTS `pro_smscode`;
+
 CREATE TABLE `pro_smscode`  (
   `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
   `tel` char(11) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL COMMENT '手机号',
@@ -153,10 +113,7 @@ CREATE TABLE `pro_smscode`  (
   UNIQUE INDEX `tel`(`tel`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8 COLLATE = utf8_general_ci COMMENT = '短信验证码' ROW_FORMAT = Compact;
 
--- ----------------------------
--- Table structure for pro_trades
--- ----------------------------
-DROP TABLE IF EXISTS `pro_trades`;
+
 CREATE TABLE `pro_trades`  (
   `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
   `platform` tinyint(3) UNSIGNED NULL DEFAULT NULL COMMENT '平台代码',
@@ -170,10 +127,7 @@ CREATE TABLE `pro_trades`  (
   INDEX `uid`(`uid`) USING BTREE
 ) ENGINE = MyISAM AUTO_INCREMENT = 1 CHARACTER SET = utf8 COLLATE = utf8_general_ci COMMENT = '交易记录表' ROW_FORMAT = Fixed;
 
--- ----------------------------
--- Table structure for pro_xiche_device
--- ----------------------------
-DROP TABLE IF EXISTS `pro_xiche_device`;
+
 CREATE TABLE `pro_xiche_device`  (
   `id` mediumint(8) UNSIGNED NOT NULL AUTO_INCREMENT,
   `devcode` char(14) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '设备编码',
@@ -199,10 +153,7 @@ INSERT INTO `pro_xiche_device` VALUES (3, 'F52700A408497E', 1, 0, 0, '2016040111
 INSERT INTO `pro_xiche_device` VALUES (4, 'F527007504ADD3', 0, 0, 0, '20160401114149', '深圳4', 10, '{\"AreaID\":20160401114149,\"AreaName\":\"深圳\",\"Price\":7,\"Channel1\":100,\"Channel2\":30,\"Channel3\":300,\"Channel4\":200,\"Channel5\":1000,\"MaxPauseTime\":10,\"WashTotal\":50,\"NotPauseTime\":2,\"FromTime\":\"17:50\",\"ToTime\":\"22:30\",\"VXPrice\":10}', '2019-01-16 16:15:55', '2019-01-18 14:00:18');
 INSERT INTO `pro_xiche_device` VALUES (5, 'F52700B1058AA7', 1, 0, 0, '20160401114149', '深圳5', 10, '{\"AreaID\":20160401114149,\"AreaName\":\"深圳\",\"Price\":7,\"Channel1\":100,\"Channel2\":30,\"Channel3\":300,\"Channel4\":200,\"Channel5\":1000,\"MaxPauseTime\":10,\"WashTotal\":50,\"NotPauseTime\":2,\"FromTime\":\"17:50\",\"ToTime\":\"22:30\",\"VXPrice\":10}', '2019-01-18 10:56:10', '2019-01-18 10:56:10');
 
--- ----------------------------
--- Table structure for pro_xiche_log
--- ----------------------------
-DROP TABLE IF EXISTS `pro_xiche_log`;
+
 CREATE TABLE `pro_xiche_log`  (
   `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
   `type` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '日志级别',
@@ -218,10 +169,7 @@ CREATE TABLE `pro_xiche_log`  (
   INDEX `orderno`(`orderno`) USING BTREE
 ) ENGINE = MyISAM AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
 
--- ----------------------------
--- Table structure for pro_xiche_login
--- ----------------------------
-DROP TABLE IF EXISTS `pro_xiche_login`;
+
 CREATE TABLE `pro_xiche_login`  (
   `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
   `uid` mediumint(8) UNSIGNED NULL DEFAULT 0 COMMENT '车秘用户ID',
@@ -235,4 +183,3 @@ CREATE TABLE `pro_xiche_login`  (
   INDEX `uid`(`uid`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '第三方平台绑定' ROW_FORMAT = Compact;
 
-SET FOREIGN_KEY_CHECKS = 1;

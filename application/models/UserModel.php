@@ -659,14 +659,14 @@ class UserModel extends Crud {
             'userid' => $uid,
             'scode' => $scode,
             'clienttype' => CLIENT_TYPE,
-            'clientinfo' => safe_subject(msubstr($_SERVER['HTTP_USER_AGENT'])),
+            'clientinfo' => null,
             'loginip' => get_ip(),
             'online' => 1,
             'updated_at' => date('Y-m-d H:i:s', TIMESTAMP)
         ];
         !empty($opt) && $update = array_merge($update, $opt);
         if (!$this->getDb()->norepeat('__tablepre__session', $update)) {
-            return error('会话操作错误');
+            return error('Session Error!');
         }
         $token = rawurlencode(authcode("$uid\t$scode\t{$update['clienttype']}", 'ENCODE'));
         set_cookie('token', $token, $expire);

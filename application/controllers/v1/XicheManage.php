@@ -190,6 +190,13 @@ class XicheManage extends \ActionPDO {
     }
 
     /**
+     * 日志删除
+     */
+    public function logDelete () {
+        return (new XicheManageModel())->logDelete(getgpc('id'));
+    }
+
+    /**
      * 日志管理
      */
     public function log () {

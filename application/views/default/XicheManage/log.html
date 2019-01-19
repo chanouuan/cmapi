@@ -49,6 +49,7 @@
             <th>报文</th>
             <th>创建时间</th>
             <th>修改时间</th>
+            <th>操作</th>
         </tr>
         </thead>
         <tbody>
@@ -63,6 +64,13 @@
             <td onclick="x_admin_show('详情','<?=gurl('xicheManage/logInfo',['id'=>$v['id']])?>')"><a href="#">查看</a></td>
             <td><?=$v['created_at']?></td>
             <td><?=$v['updated_at']?></td>
+            <td class="td-manage">
+                <?php if(!$v['orderno']){ ?>
+                <a title="删除日志" onclick="del(this,<?=$v['id']?>)" href="javascript:;">
+                    <i class="layui-icon">&#xe640;</i>
+                </a>
+                <?php } ?>
+            </td>
         </tr>
         <?php } ?>
         </tbody>
@@ -83,6 +91,37 @@
     <?php } ?>
 
 </div>
+
+<script>
+    function del(obj,id){
+        layer.confirm('确认要删除吗？',function(index){
+
+            $.ajax({
+                type: 'POST',
+                url: '<?=gurl('xicheManage/logDelete')?>',
+                data: {id: id},
+                dataType: 'json',
+                timeout: 5000,
+                success: function(res){
+                    layer.closeAll();
+                    if(res.errorcode != 0) {
+                        return layer.msg(res.message);
+                    }
+                    $(obj).parents("tr").remove();
+                    layer.msg('已删除!',{icon:1,time:1000});
+                },
+                beforeSend: function(xhr){
+                    layer.load();
+                },
+                error: function(xhr, type){
+                    layer.closeAll();
+                    layer.msg('网络错误，请重试!');
+                }
+            });
+            return;
+        });
+    }
+</script>
 
 </body>
 
