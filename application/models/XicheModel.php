@@ -534,12 +534,12 @@ class XicheModel extends Crud {
 
         // 防止重复扣费
         if ($lastTradeInfo = $this->getDb()->table('__tablepre__payments')
-            ->field('id,createtime')
+            ->field('id,createtime,payway')
             ->where('trade_id = ' . $uid . ' and pay = ' . $totalPrice . ' and money = ' . $deviceInfo['price'] . ' and param_id = "' . $deviceInfo['id'] . '" and status = 0')
             ->limit(1)
             ->find()) {
-            if (strtotime($lastTradeInfo['createtime']) < TIMESTAMP - 600) {
-                // 10分钟后更新订单号
+            if ($lastTradeInfo['payway'] != $payway || strtotime($lastTradeInfo['createtime']) < TIMESTAMP - 600) {
+                // 支付方式改变或 10 分钟后更新订单号
                 if (false === $this->getDb()->update('__tablepre__payments', [
                         'ordercode' => $ordercode,
                         'createtime' => date('Y-m-d H:i:s', TIMESTAMP)
