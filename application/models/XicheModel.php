@@ -190,9 +190,9 @@ class XicheModel extends Crud {
             // 更新设备
             if ($device_info['isonline'] != $IsOnline || $device_info['usestate'] != $UseState) {
                 if (false === $this->updateDevUse(0, $device_info['id'], [
-                        'usetime' => $UseState === 0 ? 0 : $device_info['usetime'],
+                        'usetime' => ($UseState === 0 || $UseState === 4) ? 0 : $device_info['usetime'],
                         'usestate' => $UseState,
-                        'isonline' => $IsOnline,
+                        'isonline' => $IsOnline
                     ])) {
                     return error('更新设备失败');
                 }
@@ -325,7 +325,7 @@ class XicheModel extends Crud {
                 $ret = $this->getDevIsUse($device_info['devcode']);
                 if ($ret['errorcode'] === 0) {
                     $param = [
-                        'usetime' => $ret['data'][0] === 0 ? 0 : $device_info['usetime'],
+                        'usetime' => ($ret['data'][0] === 0 || $ret['data'][0] === 4) ? 0 : $device_info['usetime'],
                         'usestate' => $ret['data'][0],
                         'isonline' => $ret['data'][1],
                     ];
