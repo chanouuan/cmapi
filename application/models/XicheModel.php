@@ -289,9 +289,9 @@ class XicheModel extends Crud {
     /**
      * 根据设备编号获取设备信息
      */
-    public function getDeviceByCode($devcode) {
+    public function getDeviceByCode($devcode, $field = null) {
 
-        return $this->getDb()->table('__tablepre__xiche_device')->field('id,price,areaname,devcode,usetime,isonline,usestate,updated_at')->where('devcode = ?')->bindValue($devcode)->limit(1)->find();
+        return $this->getDb()->table('__tablepre__xiche_device')->field(get_real_val($field, 'id,price,areaname,devcode,usetime,isonline,usestate,updated_at'))->where('devcode = ?')->bindValue($devcode)->limit(1)->find();
     }
 
     /**
@@ -320,7 +320,7 @@ class XicheModel extends Crud {
         // 验证设备状态，判断是否重置为未使用
         if ($device_info['usetime']) {
             // 一段时间验证一次
-            if (strtotime($device_info['updated_at']) < TIMESTAMP - 300) {
+            if (strtotime($device_info['updated_at']) < TIMESTAMP - 30) {
                 // 获取设备状态
                 $ret = $this->getDevIsUse($device_info['devcode']);
                 if ($ret['errorcode'] === 0) {

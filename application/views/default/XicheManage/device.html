@@ -72,6 +72,10 @@
                 <a title="编辑设备" onclick="x_admin_show('编辑设备','<?=gurl('xicheManage/deviceUpdate',['devcode'=>$v['devcode']])?>')" href="javascript:;">
                     <i class="layui-icon">&#xe642;</i>
                 </a>
+
+                <a title="同步设备参数" onclick="sync('<?=$v['devcode']?>')" href="javascript:;">
+                    <i class="layui-icon">&#xe631;</i>
+                </a>
             </td>
         </tr>
         <?php } ?>
@@ -93,6 +97,37 @@
     <?php } ?>
 
 </div>
+
+<script>
+    function sync(devcode){
+        layer.confirm('确定要同步吗？',function(index){
+
+            $.ajax({
+                type: 'POST',
+                url: '<?=gurl('xicheManage/deviceSync')?>',
+                data: {devcode: devcode},
+                dataType: 'json',
+                timeout: 5000,
+                success: function(res){
+                    layer.closeAll();
+                    if(res.errorcode != 0) {
+                        return layer.msg(res.message);
+                    }
+                    layer.msg('已同步!',{icon:1,time:1000});
+                    window.location.reload();
+                },
+                beforeSend: function(xhr){
+                    layer.load();
+                },
+                error: function(xhr, type){
+                    layer.closeAll();
+                    layer.msg('网络错误，请重试!');
+                }
+            });
+            return;
+        });
+    }
+</script>
 
 </body>
 

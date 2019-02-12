@@ -127,6 +127,55 @@ class XicheManageModel extends Crud {
     }
 
     /**
+     * 同步设备参数
+     */
+    public function deviceSync ($post) {
+        $post['devcode'] = trim($post['devcode']);
+
+        // 获取设备信息
+        try {
+            $device_info = https_request('http://xicheba.net/chemi/API/Handler/DeviceOne', [
+                'apiKey' => getConfig('xc', 'apikey'),
+                'DevCode' => $post['devcode']
+            ]);
+        } catch (\Exception $e) {
+            return error($e->getMessage());
+        }
+        if (!$device_info['result']) {
+            return error($device_info['messages']);
+        }
+        $device_info = $device_info['data'];
+
+        // 获取设备参数
+        try {
+            $device_param = https_request('http://xicheba.net/chemi/API/Handler/DevParam', [
+                'apiKey' => getConfig('xc', 'apikey'),
+                'AreaId' => $device_info['AreaId']
+            ]);
+        } catch (\Exception $e) {
+            return error($e->getMessage());
+        }
+        if (!$device_param['result']) {
+            return error($device_param['messages']);
+        }
+        $device_param = $device_param['data'];
+
+        if (!$this->getDb()->update('__tablepre__xiche_device', [
+            'isonline' => $device_info['IsOnline'],
+            'usestate' => $device_info['UseState'],
+            'updated_at' => date('Y-m-d H:i:s', TIMESTAMP),
+            'areaid' => $device_param['AreaID'],
+            'areaname' => $device_param['AreaName'],
+            'price' => $device_param['Price'] * 100,
+            'parameters' => json_unicode_encode($device_param)
+        ], ['devcode' => $post['devcode']])) {
+            return error('同步设备参数失败');
+        }
+
+        return success('OK');
+    }
+
+    /**
      * 设备添加
      */
     public function deviceAdd ($post) {

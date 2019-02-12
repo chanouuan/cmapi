@@ -73,6 +73,13 @@ class XicheManage extends \ActionPDO {
     }
 
     /**
+     * 同步设备参数
+     */
+    public function deviceSync () {
+        return (new XicheManageModel())->deviceSync($_POST);
+    }
+
+    /**
      * 设备参数详情
      */
     public function deviceParamInfo () {

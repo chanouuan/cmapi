@@ -181,10 +181,17 @@ class Xiche extends \ActionPDO {
         }
         $deviceInfo = $deviceInfo['data'];
 
+        // 获取设备参数
+        $deviceParams = $model->getDeviceByCode(getgpc('devcode'), 'parameters');
+        $deviceParams['parameters'] = json_decode($deviceParams['parameters'], true);
+        $washTime = intval($deviceParams['parameters']['WashTotal']); // 洗车时长
+        if ($washTime <= 0) {
+            $this->error('设备未设置洗车时长', null);
+        }
         // 默认套餐
         $deviceInfo['package'] = [
             [
-                'name' => round_dollar($deviceInfo['price'], false) . '元/20分钟'
+                'name' => round_dollar($deviceInfo['price'], false) . '元/' . $washTime . '分钟'
             ]
         ];
 

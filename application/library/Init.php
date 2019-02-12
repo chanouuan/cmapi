@@ -268,6 +268,74 @@ abstract class ActionPDO {
         return error('Undefined Action: ' . $this->_module . $this->_action);
     }
 
+    public function help ()
+    {
+        $reflection = new ReflectionClass($this);
+        $class_doc = $reflection->getDocComment();
+        if (empty($class_doc)) {
+            return null;
+        }
+
+        $class_doc = trim(str_replace(['/**', ' * ', ' */'], '', $class_doc));
+        if (empty($class_doc)) {
+            return null;
+        }
+
+        $doc_list = [];
+        foreach ($reflection->getMethods() as $k => $v) {
+            if ($v->class !== 'ActionPDO') {
+                $method_doc = $reflection->getMethod($v->name)->getDocComment();
+                $method_doc = trim(str_replace(['/**', ' * ', ' */'], '', $method_doc));
+                if (!empty($method_doc)) {
+                    $method_doc = array_map('trim', explode("\n", $method_doc));
+                    $doc = [];
+                    $key = '@name';
+                    foreach ($method_doc as $kk => $vv) {
+                        if ($vv{0} == '@') {
+                            $key = $vv;
+                        } else {
+                            $doc[$key][] = $vv;
+                        }
+                    }
+                    $doc_list[] = $doc;
+                }
+            }
+
+        }
+
+        $doc_name = [
+            '@name' => '功能',
+            '@url' => '地址',
+            '@param' => '请求参数',
+            '@return' => '返回',
+        ];
+        $rs = [];
+        foreach ($doc_list as $k => $v) {
+            foreach ($v as $kk => $vv) {
+                $title = isset($doc_name[$kk]) ? $doc_name[$kk] : $kk;
+                $rs[] = '<h2>' . $title . '</h2>';
+                $rs[] = '<p>' . (is_array($vv) ? implode('', $vv) : $vv) . '</p>';
+            }
+        }
+
+        echo '
+        <!DOCTYPE html>
+        <html>
+        <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            
+        </style>
+        </head>
+        <body>
+        '.implode('', $rs).'
+        </body>
+        </html>
+        ';
+        exit(0);
+    }
+
     public function render ($tplName, $params = null, $style = null)
     {
         $style = !empty($style) ? $style : (defined('APPLICATION_STYLE') ? APPLICATION_STYLE : get_real_val($this->__style(), 'mobile'));
