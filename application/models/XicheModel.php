@@ -297,9 +297,9 @@ class XicheModel extends Crud {
     /**
      * 根据设备ID获取设备信息
      */
-    public function getDeviceById($id) {
+    public function getDeviceById($id, $field = null) {
 
-        return $this->getDb()->table('__tablepre__xiche_device')->field('devcode')->where('id = ?')->bindValue($id)->limit(1)->find();
+        return $this->getDb()->table('__tablepre__xiche_device')->field(get_real_val($field, 'devcode'))->where('id = ?')->bindValue($id)->limit(1)->find();
     }
 
     /**

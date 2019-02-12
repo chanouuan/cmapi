@@ -182,7 +182,7 @@ class Xiche extends \ActionPDO {
         $deviceInfo = $deviceInfo['data'];
 
         // 获取设备参数
-        $deviceParams = $model->getDeviceByCode(getgpc('devcode'), 'parameters');
+        $deviceParams = $model->getDeviceById($deviceInfo['id'], 'parameters');
         $deviceParams['parameters'] = json_decode($deviceParams['parameters'], true);
         $washTime = intval($deviceParams['parameters']['WashTotal']); // 洗车时长
         if ($washTime <= 0) {
