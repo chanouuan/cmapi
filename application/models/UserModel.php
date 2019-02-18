@@ -689,4 +689,357 @@ class UserModel extends Crud {
         set_cookie('token', null);
     }
 
+    /**
+     * 获取车秘用户车辆信息
+     */
+    public function getUserCars ($uid)
+    {
+        // 获取用户车辆
+        // is_confirm 1 未认证 2 已认证
+        $cars = $this->getDb('chemiv2')
+            ->table('chemi_member_car')
+            ->field('car_id as id,license_number,is_confirm,is_default,is_newcar')
+            ->where([
+                'member_id' => $uid,
+                'is_del' => 0,
+                'is_confirm' => ['in', [1, 2]]
+            ])->select();
+
+        if (empty($cars)) {
+            return success([]);
+        }
+
+        // 未认证的在 chemi_member_car_auth 表，已认证的在 chemi_member_car_auth_log 表
+        $auth_car = [];
+        foreach ($cars as $k => $v) {
+            $auth_car[$v['is_confirm']][] = $v['license_number'];
+        }
+
+        // 获取车辆行驶证
+        // brand_number 车辆品牌
+        // frame_number 车架号
+        // engine_number 发动机号
+        // register_time 注册日期
+        // car_name 车主姓名
+        // vehicle_time 发证日期
+
+        $cards = [];
+        if (isset($auth_car[1])) {
+            $cards = $this->getDb('chemiv2')
+                ->table('chemi_member_car_auth')
+                ->field('license_number,brand_number,frame_number,engine_number,register_time,car_name,vehicle_time')
+                ->where([
+                    'member_id' => $uid,
+                    'license_number' => ['in', $auth_car[1]]
+                ])->select();
+        }
+        if (isset($auth_car[2])) {
+            $cards = array_merge($cards, $this->getDb('chemiv2')
+                ->table('chemi_member_car_auth_log')
+                ->field('license_number,brand_number,frame_number,engine_number,register_time,car_name,vehicle_time')
+                ->where([
+                    'member_id' => $uid,
+                    'license_number' => ['in', $auth_car[2]]
+                ])->select());
+        }
+
+        $cards = array_column($cards, null, 'license_number');
+
+        foreach ($cars as $k => $v) {
+            $cars[$k]['xsz'] = [];
+            if (isset($cards[$v['license_number']])) {
+                $xsz = $cards[$v['license_number']];
+                $xsz['register_time'] = date('Y-m-d', $xsz['register_time']);
+                $xsz['vehicle_time'] = date('Y-m-d', $xsz['vehicle_time']);
+                $cars[$k]['xsz'] = $xsz;
+            }
+        }
+        unset($cards);
+
+        return success($cars);
+    }
+
+    /**
+     * 添加车秘用户车辆
+     */
+    public function addUserCar ($uid, $post) {
+        if (!check_car_license($post['license_number'])) {
+            return error('车牌号错误');
+        }
+        $post['licenseId'] = $this->getLicenseId($post['license_number']);
+
+        // 最多添加 7 辆新车
+        $haveNum = $this->getDb('chemiv2')
+            ->table('chemi_member_car')
+            ->field('count(*)')
+            ->where([
+                'member_id' => $uid,
+                'is_newcar' => 0
+            ])->count();
+        if ($haveNum >= 7) {
+            return error('最多可添加 7 个车牌号');
+        }
+
+        $haveCar = $this->getDb('chemiv2')
+            ->table('chemi_member_car')
+            ->field('member_id')
+            ->where([
+                'license_number' => $post['license_number']
+            ])->find();
+        if ($haveCar) {
+            if($haveCar['member_id'] == $uid) {
+                return error('该车辆你已添加');
+            } else {
+                return error('该车辆已被其他人添加');
+            }
+        }
+
+        // 是否认证过
+        $lastAuth = $this->getDb('chemiv2')
+            ->table('chemi_member_car_auth_log')
+            ->field('auth_state')
+            ->where([
+                'member_id' => $uid,
+                'license_number' => $post['license_number']
+            ])
+            ->limit(1)
+            ->find();
+
+        // 已认证通过的就不再认证
+        $is_confirm = 1;
+        if ($lastAuth) {
+            if ($lastAuth['auth_state'] == 2) {
+                $is_confirm = 2; // 已认证
+            } else {
+                $is_confirm = 1; // 未认证
+            }
+        }
+
+        if (!$this->getDb('chemiv2')->insert('chemi_member_car', [
+            'member_id' => $uid,
+            'license_id' => $post['licenseId'],
+            'license_number' => $post['license_number'],
+            'is_confirm' => $is_confirm
+        ])) {
+            return error('认证失败');
+        }
+
+        return success('提交成功');
+    }
+
+    /**
+     * 申请认证车辆
+     */
+    public function authUserCar ($uid, $post) {
+
+        $post['id'] = intval($post['id']); // 车辆ID
+        $post['license_number'] = trim($post['license_number']); //车牌号
+        $post['brand_number'] = trim($post['brand_number']); //车辆型号
+        $post['frame_number'] = trim($post['frame_number']); //车架号
+        $post['engine_number'] = trim($post['engine_number']); //发动机号
+        $post['register_dt'] = trim($post['register_dt']); //注册日期
+
+        if (!$car_info = $this->getDb('chemiv2')
+            ->table('chemi_member_car')
+            ->field('car_id,license_number,is_confirm')
+            ->where([
+                'member_id' => $uid,
+                'car_id' => $post['id']
+            ])->find()) {
+            return error('该车辆不存在');
+        }
+
+        if ($car_info['is_confirm'] == 2) {
+            return error('该车辆已认证通过');
+        }
+
+        if ($car_info['license_number'] != $post['license_number']) {
+            return error('车牌号匹配错误（与待认证的车牌号不一致）');
+        }
+
+        $param = [
+            'member_id' => $uid,
+            'license_number' => $post['license_number'],
+            'license_id' => $this->getLicenseId($post['license_number']),
+            'brand_number' => $post['brand_number'],
+            'frame_number' => $post['frame_number'],
+            'engine_number' => $post['engine_number'],
+            'register_time' => strtotime($post['register_dt']),
+            'auth_state' => 1,
+            'add_time' => TIMESTAMP,
+            'update_time' => TIMESTAMP
+        ];
+
+        if ($this->getDb('chemiv2')
+            ->table('chemi_member_car_auth')
+            ->field('count(*)')
+            ->where([
+                'member_id' => $param['member_id'],
+                'license_number' => $param['license_number']
+            ])->count()) {
+            // 更新
+            unset($param['add_time']);
+            if (!$this->getDb('chemiv2')->update('chemi_member_car_auth', $param, [
+                'member_id' => $param['member_id'],
+                'license_number' => $param['license_number']
+            ])) {
+                return error('更新失败');
+            }
+        } else {
+            // 新增
+            if (!$this->getDb('chemiv2')->insert('chemi_member_car_auth', $param)) {
+                return error('新增失败');
+            }
+        }
+
+        return success('申请认证已提交');
+    }
+
+    /**
+     * 获取车秘用户优惠劵
+     */
+    public function getCouponList ($uid, $post) {
+        // 1 门店 2 保险 3 停车
+        $post['voucher_type'] = intval($post['voucher_type']);
+
+        $condition = [
+            'voucher_owner_id' => $uid
+        ];
+
+        if ($post['voucher_type']) {
+            $condition['voucher_type'] = $post['voucher_type'];
+        }
+
+        $voucher_list = $this->getDb('chemiv2')
+            ->table('chemi_voucher')
+            ->field('voucher_id,voucher_type,voucher_title,voucher_price,voucher_price_type,voucher_start_date,voucher_end_date,voucher_limit,voucher_state')
+            ->where($condition)
+            ->order('voucher_state')
+            ->select();
+
+        // voucher_state 代金券状态(1-未用,2-已用,3-过期,4-收回,10锁定)
+        // voucher_price 代金券面额
+        // voucher_start_date 代金券有效期开始时间
+        // voucher_end_date 代金券有效期结束时间
+        // voucher_price_type 1=满减 2=立减 3=折扣满减 4=折扣立减
+        // voucher_limit 消费满多少可以使用
+
+        foreach ($voucher_list as $k => $v) {
+            $voucher_list[$k]['voucher_state'] = ($v['voucher_state'] == 1 || $v['voucher_state'] == 2) ? $v['voucher_state'] : 3;
+            $voucher_list[$k]['voucher_start_date'] = $v['voucher_start_date'] ? date('Y-m-d H:i:s', $v['voucher_start_date']) : '';
+            $voucher_list[$k]['voucher_end_date'] = $v['voucher_start_date'] ? date('Y-m-d H:i:s', $v['voucher_end_date']) : '';
+        }
+
+        return success($voucher_list);
+    }
+
+    /**
+     * 添加车秘用户保险优惠劵
+     */
+    public function grantBaoxianCoupon ($uid) {
+
+        // voucher_type 1 门店 2 保险 3 停车
+        // voucher_state 代金券状态(1-未用,2-已用,3-过期,4-收回,10锁定)
+        // voucher_price 代金券面额
+        // voucher_start_date 代金券有效期开始时间
+        // voucher_end_date 代金券有效期结束时间
+        // voucher_price_type 1=满减 2=立减 3=折扣满减 4=折扣立减
+        // voucher_limit 消费满多少可以使用
+
+        $rows = [];
+        $rows[] = [
+            'voucher_title' => '车秘-保险专属红包',
+            'voucher_desc' => '车秘-保险专属红包',
+            'voucher_type' => 2,
+            'voucher_price' => 2000,
+            'voucher_price_type' => 1,
+            'voucher_start_date' => date('Y-m-d 00:00:00', TIMESTAMP),
+            'voucher_end_date' => mktime(23, 59, 59, date('m', TIMESTAMP), date('d', TIMESTAMP), date('Y', TIMESTAMP) + 1),
+            'voucher_limit' => 0,
+            'voucher_state' => 1,
+            'voucher_owner_id' => $uid
+        ];
+        $rows[] = [
+            'voucher_title' => '车秘-停车专属红包',
+            'voucher_desc' => '车秘-停车专属红包',
+            'voucher_type' => 3,
+            'voucher_price' => 1000,
+            'voucher_price_type' => 1,
+            'voucher_start_date' => date('Y-m-d 00:00:00', TIMESTAMP),
+            'voucher_end_date' => mktime(23, 59, 59, date('m', TIMESTAMP), date('d', TIMESTAMP), date('Y', TIMESTAMP) + 1),
+            'voucher_limit' => 0,
+            'voucher_state' => 1,
+            'voucher_owner_id' => $uid
+        ];
+        $rows[] = [
+            'voucher_title' => '车秘-洗车专属红包',
+            'voucher_desc' => '车秘-洗车专属红包',
+            'voucher_type' => 4,
+            'voucher_price' => 1000,
+            'voucher_price_type' => 1,
+            'voucher_start_date' => date('Y-m-d 00:00:00', TIMESTAMP),
+            'voucher_end_date' => mktime(23, 59, 59, date('m', TIMESTAMP), date('d', TIMESTAMP), date('Y', TIMESTAMP) + 1),
+            'voucher_limit' => 0,
+            'voucher_state' => 1,
+            'voucher_owner_id' => $uid
+        ];
+        if (!$this->getDb('chemiv2')->insert('chemi_voucher', $rows)) {
+            return false;
+        }
+        return $rows;
+    }
+
+    /**
+     * 获取车牌号 licenseId 车秘用
+     */
+    private function getLicenseId($licenseNumber) {
+        $dictTable=[];
+        $dictTable["9"] = "19";
+        $dictTable["8"] = "18";
+        $dictTable["7"] = "17";
+        $dictTable["6"] = "16";
+        $dictTable["5"] = "15";
+        $dictTable["4"] = "14";
+        $dictTable["3"] = "13";
+        $dictTable["2"] = "12";
+        $dictTable["1"] = "11";
+        $dictTable["0"] = "10";
+        $dictTable["A"] = "65";
+        $dictTable["B"] = "66";
+        $dictTable["C"] = "67";
+        $dictTable["D"] = "68";
+        $dictTable["E"] = "69";
+        $dictTable["F"] = "70";
+        $dictTable["G"] = "71";
+        $dictTable["H"] = "72";
+        $dictTable["I"] = "73";
+        $dictTable["J"] = "74";
+        $dictTable["K"] = "75";
+        $dictTable["L"] = "76";
+        $dictTable["M"] = "77";
+        $dictTable["N"] = "78";
+        $dictTable["O"] = "79";
+        $dictTable["P"] = "80";
+        $dictTable["Q"] = "81";
+        $dictTable["R"] = "82";
+        $dictTable["S"] = "83";
+        $dictTable["T"] = "84";
+        $dictTable["U"] = "85";
+        $dictTable["V"] = "86";
+        $dictTable["W"] = "87";
+        $dictTable["X"] = "88";
+        $dictTable["Y"] = "89";
+        $dictTable["Z"] = "90";
+
+        $licenseId = '';
+        for($i = 1; $i < mb_strlen($licenseNumber); $i ++) {
+            $str = strval(mb_substr($licenseNumber, $i, 1));
+            if(array_key_exists($str, $dictTable)){
+                $code = $dictTable[$str];
+                $licenseId .= $code . '';
+            }
+        }
+        return $licenseId;
+    }
+
 }

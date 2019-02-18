@@ -72,6 +72,18 @@ class DbMysql extends Db {
                         $parameters[$name] = $vv;
                     }
                     $vals[] = concat('(', implode(',', $placeholder), ')');
+                } elseif ($v[0] == 'between' || $v[0] == 'BETWEEN') {
+                    if (is_array($v[1])) {
+                        $placeholder = [];
+                        foreach ($v[1] as $kk => $vv) {
+                            $name = concat($k, $kk);
+                            $placeholder[] = concat(':', $name);
+                            $parameters[$name] = $vv;
+                        }
+                        $vals[] = implode(' AND ', $placeholder);
+                    } else {
+                        $vals[] = $v[1];
+                    }
                 } else {
                     $vals[] = concat(':', $k);
                     $parameters[$k] = $v[1];
