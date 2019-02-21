@@ -118,49 +118,6 @@ class TradeModel extends Crud {
             // 获取设备
             $device_info = $xicheModel->getDeviceById($trade_info['param_id']);
 
-            // 账户充值
-            $ret = $userModel->recharge([
-                'platform' => 3,
-                'authcode' => md5('xc' . $trade_info['trade_id']),
-                'trade_no' => $trade_no,
-                'money' => $trade_info['pay'],
-                'remark' => '自助洗车在线充值'
-            ]);
-            if ($ret['errorcode'] !== 0) {
-                // 日志
-                $xicheModel->log('recharge', [
-                    'name' => concat('支付回调成功,账户充值(', round_dollar($trade_info['pay']), '元)异常'),
-                    'uid' => $trade_info['trade_id'],
-                    'orderno' => $out_trade_no,
-                    'devcode' => $device_info['devcode'],
-                    'content' => [
-                        'trade' => $trade_info,
-                        'result' => $ret
-                    ]
-                ]);
-            }
-            // 账户消费
-            $ret = $userModel->consume([
-                'platform' => 3,
-                'authcode' => md5('xc' . $trade_info['trade_id']),
-                'trade_no' => $out_trade_no,
-                'money' => $trade_info['money'],
-                'remark' => '支付自助洗车费'
-            ]);
-            if ($ret['errorcode'] !== 0) {
-                // 日志
-                $xicheModel->log('consume', [
-                    'name' => concat('支付回调成功,账户消费(', round_dollar($trade_info['money']), '元)异常'),
-                    'uid' => $trade_info['trade_id'],
-                    'orderno' => $out_trade_no,
-                    'devcode' => $device_info['devcode'],
-                    'content' => [
-                        'trade' => $trade_info,
-                        'result' => $ret
-                    ]
-                ]);
-            }
-
             // 保存订单到洗车机
             $ret = $xicheModel->XiCheCOrder($device_info['devcode'], $out_trade_no, $trade_info['money']);
             if ($ret['errorcode'] !== 0) {

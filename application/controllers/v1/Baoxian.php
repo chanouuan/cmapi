@@ -103,8 +103,57 @@ class Baoxian extends \ActionPDO {
         if (empty($this->_G['user'])) {
             $this->error('用户校验失败');
         }
-        $_POST['voucher_type'] = 2; // 保险
+        $_POST['voucher_type'] = [0, 2]; // 通用，保险
         return (new UserModel())->getCouponList($this->_G['user']['uid'], $_POST);
+    }
+
+    /**
+     * 获取用户车辆信息和去年投保信息
+     */
+    public function getreinfo()
+    {
+        if (empty($this->_G['user'])) {
+            $this->error('用户校验失败');
+        }
+        return (new BaoxianModel())->getreinfo($this->_G['user']['uid'], $_POST);
+    }
+
+    /**
+     * 请求报价/核保信息
+     */
+    public function PostPrecisePrice()
+    {
+        if (empty($this->_G['user'])) {
+            $this->error('用户校验失败');
+        }
+        return (new BaoxianModel())->PostPrecisePrice($this->_G['user']['uid'], $_POST);
+    }
+
+    /**
+     * 获取车辆报价信息
+     */
+    public function GetPrecisePrice()
+    {
+        if (empty($this->_G['user'])) {
+            $this->error('用户校验失败');
+        }
+        return (new BaoxianModel())->GetPrecisePrice($this->_G['user']['uid'], $_POST);
+    }
+
+    /**
+     * 创建交易单
+     */
+    public function createCard () {
+        if (empty($this->_G['user'])) {
+            $this->error('用户校验失败');
+        }
+
+//        $_POST['money'] = 100;
+//        $_POST['voucher_id'] = 41524;
+//        $_POST['payway'] = 'cbpay';
+//        $_POST['LicenseNo'] = '贵A11111';
+//        $_POST['Source'] = 2;
+        return (new BaoxianModel())->createCard($this->_G['user']['uid'], $_POST);
     }
 
     /**

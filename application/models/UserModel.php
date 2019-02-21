@@ -346,7 +346,7 @@ class UserModel extends Crud {
         $res = DB::getInstance('chemiv2')->transaction(function  ($db) use($user_info, $post, $data) {
 
             // 更新用户余额
-            if (!$db->update('chemi_member', ['available_predeposit' => '{!available_predeposit-'.$data['consume_amount'].'}'], 'member_id = ' . $user_info['uid'] . ' and available_predeposit >= ' . $data['consume_amount'])) {
+            if (!$db->update('chemi_member', ['available_predeposit' => '{!available_predeposit-'.$data['consume_amount'].'}'], 'member_id = ' . $user_info['uid'] . ' and available_predeposit >= ' . $data['consume_amount'] . ' and available_predeposit = ' . ($user_info['money'] / 100))) {
                 return false;
             }
 
@@ -455,7 +455,7 @@ class UserModel extends Crud {
             }
 
             // 更新用户余额
-            if (!$db->update('chemi_member', ['available_predeposit' => '{!available_predeposit+'.$data['pdr_amount'].'}'], 'member_id = ' . $user_info['uid'])) {
+            if (!$db->update('chemi_member', ['available_predeposit' => '{!available_predeposit+'.$data['pdr_amount'].'}'], 'member_id = ' . $user_info['uid'] . ' and available_predeposit = ' . ($user_info['money'] / 100))) {
                 return false;
             }
 
@@ -746,12 +746,12 @@ class UserModel extends Crud {
         $cards = array_column($cards, null, 'license_number');
 
         foreach ($cars as $k => $v) {
-            $cars[$k]['xsz'] = [];
+            $cars[$k]['license'] = [];
             if (isset($cards[$v['license_number']])) {
-                $xsz = $cards[$v['license_number']];
-                $xsz['register_time'] = date('Y-m-d', $xsz['register_time']);
-                $xsz['vehicle_time'] = date('Y-m-d', $xsz['vehicle_time']);
-                $cars[$k]['xsz'] = $xsz;
+                $license = $cards[$v['license_number']];
+                $license['register_time'] = date('Y-m-d', $license['register_time']);
+                $license['vehicle_time'] = date('Y-m-d', $license['vehicle_time']);
+                $cars[$k]['license'] = $license;
             }
         }
         unset($cards);
@@ -899,15 +899,18 @@ class UserModel extends Crud {
      * 获取车秘用户优惠劵
      */
     public function getCouponList ($uid, $post) {
-        // 1 门店 2 保险 3 停车
-        $post['voucher_type'] = intval($post['voucher_type']);
 
         $condition = [
             'voucher_owner_id' => $uid
         ];
 
+        // 0 通用 1 门店 2 保险 3 停车
         if ($post['voucher_type']) {
-            $condition['voucher_type'] = $post['voucher_type'];
+            if (is_array($post['voucher_type'])) {
+                $condition['voucher_type'] = ['in', $post['voucher_type']];
+            } else {
+                $condition['voucher_type'] = intval($post['voucher_type']);
+            }
         }
 
         $voucher_list = $this->getDb('chemiv2')
@@ -936,7 +939,7 @@ class UserModel extends Crud {
     /**
      * 添加车秘用户保险优惠劵
      */
-    public function grantBaoxianCoupon ($uid) {
+    public function grantBaoxianCoupon ($uid, $coupons) {
 
         // voucher_type 1 门店 2 保险 3 停车
         // voucher_state 代金券状态(1-未用,2-已用,3-过期,4-收回,10锁定)
@@ -947,46 +950,91 @@ class UserModel extends Crud {
         // voucher_limit 消费满多少可以使用
 
         $rows = [];
-        $rows[] = [
-            'voucher_title' => '车秘-保险专属红包',
-            'voucher_desc' => '车秘-保险专属红包',
-            'voucher_type' => 2,
-            'voucher_price' => 2000,
-            'voucher_price_type' => 1,
-            'voucher_start_date' => date('Y-m-d 00:00:00', TIMESTAMP),
-            'voucher_end_date' => mktime(23, 59, 59, date('m', TIMESTAMP), date('d', TIMESTAMP), date('Y', TIMESTAMP) + 1),
-            'voucher_limit' => 0,
-            'voucher_state' => 1,
-            'voucher_owner_id' => $uid
-        ];
-        $rows[] = [
-            'voucher_title' => '车秘-停车专属红包',
-            'voucher_desc' => '车秘-停车专属红包',
-            'voucher_type' => 3,
-            'voucher_price' => 1000,
-            'voucher_price_type' => 1,
-            'voucher_start_date' => date('Y-m-d 00:00:00', TIMESTAMP),
-            'voucher_end_date' => mktime(23, 59, 59, date('m', TIMESTAMP), date('d', TIMESTAMP), date('Y', TIMESTAMP) + 1),
-            'voucher_limit' => 0,
-            'voucher_state' => 1,
-            'voucher_owner_id' => $uid
-        ];
-        $rows[] = [
-            'voucher_title' => '车秘-洗车专属红包',
-            'voucher_desc' => '车秘-洗车专属红包',
-            'voucher_type' => 4,
-            'voucher_price' => 1000,
-            'voucher_price_type' => 1,
-            'voucher_start_date' => date('Y-m-d 00:00:00', TIMESTAMP),
-            'voucher_end_date' => mktime(23, 59, 59, date('m', TIMESTAMP), date('d', TIMESTAMP), date('Y', TIMESTAMP) + 1),
-            'voucher_limit' => 0,
-            'voucher_state' => 1,
-            'voucher_owner_id' => $uid
-        ];
-        if (!$this->getDb('chemiv2')->insert('chemi_voucher', $rows)) {
-            return false;
+        foreach ($coupons as $k => $v) {
+            if ($v['price'] <= 0) {
+                continue;
+            }
+            $rows[] = [
+                'voucher_title' => $v['title'],
+                'voucher_desc' => $v['title'],
+                'voucher_type' => $v['type'],
+                'voucher_price' => $v['price'],
+                'voucher_price_type' => 1,
+                'voucher_start_date' => mktime(0, 0, 0, date('m', TIMESTAMP), date('d', TIMESTAMP), date('Y', TIMESTAMP)),
+                'voucher_end_date' => mktime(23, 59, 59, date('m', TIMESTAMP), date('d', TIMESTAMP), date('Y', TIMESTAMP) + 1),
+                'voucher_limit' => 0,
+                'voucher_state' => 1,
+                'voucher_owner_id' => $uid,
+                'operator_id' => 0
+            ];
         }
+
+        if ($rows) {
+            if (!$this->getDb('chemiv2')->insert('chemi_voucher', $rows)) {
+                return false;
+            }
+        }
+
         return $rows;
+    }
+
+    /**
+     * 使用优惠劵
+     * @param $voucher_id 优惠劵ID
+     * @param $voucher_real_price 实际抵扣金额
+     * @return bool
+     */
+    public function useVoucherInfo ($voucher_id, $voucher_real_price = 0) {
+
+        return $this->getDb('chemiv2')->update('chemi_voucher', [
+            'voucher_state' => 2, 'use_time' => TIMESTAMP, 'voucher_real_price' => $voucher_real_price
+        ], ['id' => $voucher_id, 'voucher_state' => 1]);
+    }
+
+    /**
+     * 获取优惠劵折扣金额
+     * @param $condition 搜索条件
+     * @param $total_price 待折扣金额(分)
+     * @return array {"voucher_price":分}
+     */
+    public function getVoucherPrice ($condition, $total_price = 0) {
+
+        if (!$voucher_info = $this->getDb('chemiv2')
+            ->table('chemi_voucher')
+            ->field('voucher_id,voucher_price,voucher_price_type,voucher_start_date,voucher_end_date,voucher_limit,voucher_state')
+            ->where($condition)
+            ->find()) {
+            return error('该优惠劵不存在');
+        }
+
+        if ($voucher_info['voucher_state'] != 1) {
+            return error('该优惠劵已使用或无效');
+        }
+        if (TIMESTAMP < $voucher_info['voucher_start_date']) {
+            return error('该优惠劵未到使用时间');
+        }
+        if (TIMESTAMP > $voucher_info['voucher_end_date']) {
+            return error('该优惠劵已过期');
+        }
+
+        $info['voucher_price'] = $voucher_info['voucher_price'] * 100;
+
+        // voucher_price_type 1=满减 2=立减 3=折扣满减 4=折扣立减
+        // voucher_limit 消费满多少可以使用
+
+        if ($voucher_info['voucher_price_type'] == 1) {
+            // 满减
+            if ($voucher_info['voucher_limit'] > $total_price / 100) {
+                return error('满 ' . $voucher_info['voucher_limit'] . ' 元，立减 ' . $voucher_info['voucher_price'] . ' 元');
+            }
+            return success($info);
+        }
+        if ($voucher_info['voucher_price_type'] == 2) {
+            // 立减
+            return success($info);
+        }
+
+        return error('该优惠劵不可用');
     }
 
     /**

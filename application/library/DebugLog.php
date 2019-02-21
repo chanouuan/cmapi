@@ -11,6 +11,7 @@ class DebugLog {
     private static $info = [];
     private static $error = [];
 
+    private static $curl = [];
     private static $mysql = [];
 
     public static function _error ($error) {
@@ -80,6 +81,30 @@ class DebugLog {
         }
     }
 
+    public static function _curl($url, $header = null, $args = null, $delay = null, $rs = null) {
+        $arr = [];
+        if ($delay) {
+            $arr[] = '['. $delay. 's]';
+        }
+        $arr[] = $url;
+        if ($header) {
+            if (is_array($header)) {
+                $header = json_unicode_encode($header);
+            }
+            $arr[] = $header;
+        }
+        if ($args) {
+            if (is_array($args)) {
+                $args = json_unicode_encode($args);
+            }
+            $arr[] = $args;
+        }
+        if ($rs) {
+            $arr[] = msubstr(is_array($rs) ? json_unicode_encode($rs) : $rs, 0, 200);
+        }
+        self::$curl[] = implode(' ', $arr);
+    }
+
     /**
      * 输出日志
      */
@@ -104,7 +129,7 @@ class DebugLog {
             self::_post();
         }
         if (DEBUG_LEVEL >= 1) {
-            self::_log(array_merge(self::$info, self::$mysql), 'debug', true, 'Ym_Ymd');
+            self::_log(array_merge(self::$info, self::$curl, self::$mysql), 'debug', true, 'Ym_Ymd');
         }
         if (self::$error) {
             self::_log(self::$error, 'error');

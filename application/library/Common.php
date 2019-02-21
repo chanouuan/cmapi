@@ -510,6 +510,7 @@ function https_request ($url, $post = null, $headers = null, $timeout = 3, $enco
         throw new \Exception($error);
     }
     curl_close($curl);
+    \library\DebugLog::_curl($url, $headers, $post, round(microtime_float() - $st, 3), $reponse);
     if ($encode == 'json') {
         if (!$reponse) {
             return [];
@@ -852,4 +853,58 @@ function check_car_license($license)
     }
 
     return false;
+}
+
+/**
+ * 生成每次请求的sign
+ * @param array $data
+ * @return string
+ */
+function setSign(& $data = [])
+{
+    if (!isset($data['time'])) {
+        $data['time'] = microtime_float();
+    }
+    if (!isset($data['nonce_str'])) {
+        $data['nonce_str'] = str_shuffle('abc0123456789');
+    }
+
+    // 加密秘钥
+    $app_secret = strval(getSysConfig('app_secret'));
+
+    // 去掉签名
+    unset($data['sig']);
+
+    // 按key排序
+    ksort($data);
+    // 拼接参数值与密钥，做md5加密
+    $data['sig'] = md5(implode('', $data) . $app_secret);
+
+    return $data;
+}
+
+/**
+ * 检查sign是否正常
+ * @param array $data
+ * @param $data
+ * @return boolen
+ */
+function checkSignPass($data)
+{
+    // 参数校验
+    if (empty($data)) {
+        return success(null);
+    }
+
+    // 验签
+    if (!isset($data['sig']) || setSign($data) != $data['sig']) {
+        return error('签名错误');
+    }
+
+    // 时间效验
+    if (abs(TIMESTAMP - $data['time']) > getSysConfig('auth_expire_time')) {
+        return error('签名过期');
+    }
+
+    return success('OK');
 }
