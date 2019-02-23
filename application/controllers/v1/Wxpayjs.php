@@ -37,10 +37,10 @@ class Wxpayjs extends \ActionPDO {
 
         $model = new TradeModel();
 
-        if (!$trade_info = $model->get($tradeid, 'status = 0', 'type,trade_id,pay,ordercode,uses')) {
+        if (!$tradeInfo = $model->get($tradeid, 'status = 0', 'type,trade_id,pay,ordercode,uses')) {
             $this->error('交易单不存在');
         }
-        if ($trade_info['pay'] <= 0) {
+        if ($tradeInfo['pay'] <= 0) {
             $this->error('交易金额错误');
         }
 
@@ -51,14 +51,14 @@ class Wxpayjs extends \ActionPDO {
         ]);
 
         // 获取openid
-        $openid = (new XicheModel())->getWxOpenid($trade_info['trade_id']);
+        $openid = (new XicheModel())->getWxOpenid($tradeInfo['trade_id']);
 
         // 使用统一支付接口，获取prepay_id
         $unifiedOrder = new \UnifiedOrder_pub();
         $unifiedOrder->setParameter('openid', $openid); // openid
-        $unifiedOrder->setParameter('body', $trade_info['uses']); // 商品描述
-        $unifiedOrder->setParameter('out_trade_no', $trade_info['ordercode']); // 商户订单号
-        $unifiedOrder->setParameter('total_fee', $trade_info['pay']); // 总金额 单位分 不能有小数点
+        $unifiedOrder->setParameter('body', $tradeInfo['uses']); // 商品描述
+        $unifiedOrder->setParameter('out_trade_no', $tradeInfo['ordercode']); // 商户订单号
+        $unifiedOrder->setParameter('total_fee', $tradeInfo['pay']); // 总金额 单位分 不能有小数点
         $unifiedOrder->setParameter('notify_url', NOTIFY_URL); // 通知地址
         $unifiedOrder->setParameter('trade_type', 'JSAPI'); // 交易类型
         $prepay_id = $unifiedOrder->getPrepayId();
@@ -142,13 +142,13 @@ class Wxpayjs extends \ActionPDO {
     {
         $tradeid = intval(getgpc('tradeid'));
         $model = new TradeModel();
-        if (!$trade_info = $model->get($tradeid, 'payway = "' . strtolower($this->_module) . '"', 'ordercode')) {
+        if (!$tradeInfo = $model->get($tradeid, 'payway = "' . strtolower($this->_module) . '"', 'ordercode')) {
             $this->error('交易单不存在');
         }
         // 使用订单查询接口
         $orderQuery = new \OrderQuery_pub();
         // 设置必填参数
-        $orderQuery->setParameter('out_trade_no', $trade_info['ordercode']);
+        $orderQuery->setParameter('out_trade_no', $tradeInfo['ordercode']);
         // 获取订单查询结果
         if (!$orderQueryResult = $orderQuery->getResult()) {
             $this->error('查询失败');

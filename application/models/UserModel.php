@@ -68,13 +68,13 @@ class UserModel extends Crud {
             return error('请输入6-32位密码');
         }
 
-        $user_info = $this->getUserInfo($post['uid']);
-        if ($user_info['errorcode'] !== 0) {
-            return $user_info;
+        $userInfo = $this->getUserInfo($post['uid']);
+        if ($userInfo['errorcode'] !== 0) {
+            return $userInfo;
         }
-        $user_info = $user_info['data'];
+        $userInfo = $userInfo['data'];
 
-        if ($user_info['ispw']) {
+        if ($userInfo['ispw']) {
             return error('你已设置过密码');
         }
 
@@ -116,26 +116,26 @@ class UserModel extends Crud {
     public function getUserInfo ($uid) {
         $uid = intval($uid);
 
-        $user_info = $this->getDb('chemiv2')
+        $userInfo = $this->getDb('chemiv2')
             ->table('chemi_member')
             ->field('member_id, member_name, member_passwd, member_sex, member_avatar, nickname, available_predeposit')
             ->where('member_state = 1 and member_id = ?')
             ->bindValue([$uid])
             ->find();
-        if (!$user_info) {
+        if (!$userInfo) {
             return error('用户不存在或已禁用！');
         }
 
         $result = [
-            'uid' => $user_info['member_id'],
-            'telephone' => $user_info['member_name'],
-            'avatar' => $user_info['member_avatar'] ? ('/mobile/data/upload/shop/mobile/avatar/' . $user_info['member_avatar']) : '',
-            'nickname' => strval($user_info['nickname']),
-            'sex' => strval($user_info['member_sex']),
-            'money' => floatval($user_info['available_predeposit']) * 100,
-            'ispw' => $user_info['member_passwd'] ? 1 : 0
+            'uid' => $userInfo['member_id'],
+            'telephone' => $userInfo['member_name'],
+            'avatar' => $userInfo['member_avatar'] ? ('/mobile/data/upload/shop/mobile/avatar/' . $userInfo['member_avatar']) : '',
+            'nickname' => strval($userInfo['nickname']),
+            'sex' => strval($userInfo['member_sex']),
+            'money' => floatval($userInfo['available_predeposit']) * 100,
+            'ispw' => $userInfo['member_passwd'] ? 1 : 0
         ];
-        unset($user_info);
+        unset($userInfo);
 
         return success($result);
     }
@@ -190,7 +190,7 @@ class UserModel extends Crud {
         }
 
         // 查询手机号是否存在
-        $user_info = DB::getInstance('chemiv2')
+        $userInfo = DB::getInstance('chemiv2')
             ->table('chemi_member')
             ->field('member_id, member_name, member_passwd')
             ->where('member_name = ?')
@@ -205,10 +205,10 @@ class UserModel extends Crud {
             }
             if ($post['password']) {
                 // 密码验证
-                if (!$user_info) {
+                if (!$userInfo) {
                     return error('用户名或密码错误！');
                 }
-                if ($user_info['member_passwd'] != md5(md5($post['password']))) {
+                if ($userInfo['member_passwd'] != md5(md5($post['password']))) {
                     return error('用户名或密码错误！');
                 }
             }
@@ -220,7 +220,7 @@ class UserModel extends Crud {
             }
         }
 
-        if (!$user_info) {
+        if (!$userInfo) {
             // 注册新用户
             if (!$uid = DB::getInstance('chemiv2')->transaction(function  ($db) use( $post) {
                 if (!$db->insert('chemi_member', [
@@ -248,7 +248,7 @@ class UserModel extends Crud {
             })) {
                 return error('创建用户失败！');
             }
-            $user_info = [
+            $userInfo = [
                 'member_id' => $uid,
                 'member_name' => $post['telephone']
             ];
@@ -256,7 +256,7 @@ class UserModel extends Crud {
             // 已有用户直接绑定
             if (!DB::getInstance()->insert('__tablepre__loginbinding', [
                 'platform' => $post['platform'],
-                'uid' => $user_info['member_id'],
+                'uid' => $userInfo['member_id'],
                 'type' => $post['type'],
                 'authcode' => $post['authcode'],
                 'nickname' => $post['nickname'],
@@ -267,7 +267,7 @@ class UserModel extends Crud {
             }
         }
 
-        return $this->getUserInfo($user_info['member_id']);
+        return $this->getUserInfo($userInfo['member_id']);
     }
 
     /**
@@ -309,14 +309,14 @@ class UserModel extends Crud {
             return error('该笔交易已提交');
         }
 
-        $user_info = $this->getUserInfo($userid);
-        if ($user_info['errorcode'] !== 0) {
-            return $user_info;
+        $userInfo = $this->getUserInfo($userid);
+        if ($userInfo['errorcode'] !== 0) {
+            return $userInfo;
         }
-        $user_info = $user_info['data'];
+        $userInfo = $userInfo['data'];
 
         // 验证余额
-        if ($post['money'] > $user_info['money']) {
+        if ($post['money'] > $userInfo['money']) {
             return error('用户余额不足');
         }
 
@@ -328,7 +328,7 @@ class UserModel extends Crud {
         $data['business_ordersn'] = date('YmdHis').(rand()%10).(rand()%10).(rand()%10).(rand()%10).(rand()%10);
         $data['business_type'] = 100 + $post['platform']; // 新定义支付场景，商城消费
         $data['discount_id'] = 0;
-        $data['member_id'] = $user_info['uid'];
+        $data['member_id'] = $userInfo['uid'];
         $data['pay_type'] = 1; // 支付方式，车币支付
         $data['consume_amount'] = $post['money'] / 100; // 消费金额
         $data['pay_amount'] = 0;
@@ -343,14 +343,14 @@ class UserModel extends Crud {
             return error('创建消费流水单失败');
         }
 
-        $res = DB::getInstance('chemiv2')->transaction(function  ($db) use($user_info, $post, $data) {
+        $res = DB::getInstance('chemiv2')->transaction(function  ($db) use($userInfo, $post, $data) {
 
             // 更新用户余额
-            if (!$db->update('chemi_member', ['available_predeposit' => '{!available_predeposit-'.$data['consume_amount'].'}'], 'member_id = ' . $user_info['uid'] . ' and available_predeposit >= ' . $data['consume_amount'] . ' and available_predeposit = ' . ($user_info['money'] / 100))) {
+            if (!$db->update('chemi_member', ['available_predeposit' => '{!available_predeposit-'.$data['consume_amount'].'}'], 'member_id = ' . $userInfo['uid'] . ' and available_predeposit >= ' . $data['consume_amount'] . ' and available_predeposit = ' . ($userInfo['money'] / 100))) {
                 return false;
             }
 
-            return DB::getInstance('chemiaccount')->transaction(function  ($db_1) use($user_info, $post, $data) {
+            return DB::getInstance('chemiaccount')->transaction(function  ($db_1) use($userInfo, $post, $data) {
                 // 更新消费流水单
                 if (!$db_1->update('t_chemi_account_consume_flow', ['consume_state' => 2], 'business_ordersn = "'.$data['business_ordersn'].'"')) {
                     return false;
@@ -362,10 +362,10 @@ class UserModel extends Crud {
                 $param['business_ordersn'] = $data['business_ordersn'];
                 $param['business_type'] = $data['business_type']; // 充值
                 $param['flow_type'] = 2; // 1加车币，2减车币
-                $param['member_id'] = $user_info['uid'];
+                $param['member_id'] = $userInfo['uid'];
                 $param['flow_amount'] = $data['consume_amount']; // 变动金额
                 $param['flow_state'] = 2; // 1申请中，2成功，3失败
-                $param['member_balance'] = $user_info['money'] / 100 - $data['consume_amount']; // 变动后用户余额
+                $param['member_balance'] = $userInfo['money'] / 100 - $data['consume_amount']; // 变动后用户余额
                 $param['present_ordersn'] = '';
                 $param['attr_exd_a'] = $post['remark'];
                 $param['attr_exd_c'] = $post['trade_no'];
@@ -433,18 +433,18 @@ class UserModel extends Crud {
             return error('该笔交易已提交');
         }
 
-        $user_info = $this->getUserInfo($userid);
-        if ($user_info['errorcode'] !== 0) {
-            return $user_info;
+        $userInfo = $this->getUserInfo($userid);
+        if ($userInfo['errorcode'] !== 0) {
+            return $userInfo;
         }
-        $user_info = $user_info['data'];
+        $userInfo = $userInfo['data'];
 
-        $res = DB::getInstance('chemiv2')->transaction(function  ($db) use($user_info, $post) {
+        $res = DB::getInstance('chemiv2')->transaction(function  ($db) use($userInfo, $post) {
             // 生成充值订单
             $data = [];
             $data['pdr_sn'] = date('YmdHis').(rand()%10).(rand()%10).(rand()%10).(rand()%10).(rand()%10);
-            $data['pdr_member_id'] = $user_info['uid'];
-            $data['pdr_member_name'] = $user_info['telephone'];
+            $data['pdr_member_id'] = $userInfo['uid'];
+            $data['pdr_member_name'] = $userInfo['telephone'];
             $data['pdr_amount'] = $post['money'] / 100;
             $data['pdr_payment_code'] = 100 + $post['platform']; // 新定义111为商城充值
             $data['pdr_payment_state'] = '1'; // 充值成功
@@ -455,11 +455,11 @@ class UserModel extends Crud {
             }
 
             // 更新用户余额
-            if (!$db->update('chemi_member', ['available_predeposit' => '{!available_predeposit+'.$data['pdr_amount'].'}'], 'member_id = ' . $user_info['uid'] . ' and available_predeposit = ' . ($user_info['money'] / 100))) {
+            if (!$db->update('chemi_member', ['available_predeposit' => '{!available_predeposit+'.$data['pdr_amount'].'}'], 'member_id = ' . $userInfo['uid'] . ' and available_predeposit = ' . ($userInfo['money'] / 100))) {
                 return false;
             }
 
-            return DB::getInstance('chemiaccount')->transaction(function  ($db_1) use($user_info, $post, $data) {
+            return DB::getInstance('chemiaccount')->transaction(function  ($db_1) use($userInfo, $post, $data) {
                 // 写入支付流水
                 // 原系统先插入t_chemi_account_pay_flow表，成功后再删除然后插入t_chemi_account_pay_flow_log
                 // 这里直接插入t_chemi_account_pay_flow_log
@@ -470,7 +470,7 @@ class UserModel extends Crud {
                 $param['pay_type'] = 100 + $post['platform']; // 商城充值
                 $param['pay_amount'] = $data['pdr_amount'];
                 $param['pay_state'] = 2; // 1：申请中，2：成功，3：失败
-                $param['member_id'] = $user_info['uid'];
+                $param['member_id'] = $userInfo['uid'];
                 $param['pay_dt'] = date('Y-m-d H:i:s', TIMESTAMP);
                 $param['update_dt'] = date('Y-m-d H:i:s', TIMESTAMP);
                 $param['insert_dt'] = date('Y-m-d H:i:s', TIMESTAMP);
@@ -486,10 +486,10 @@ class UserModel extends Crud {
                 $param['business_ordersn'] = $data['pdr_sn'];
                 $param['business_type'] = 9; // 充值
                 $param['flow_type'] = 1; // 1加车币，0减车币
-                $param['member_id'] = $user_info['uid'];
+                $param['member_id'] = $userInfo['uid'];
                 $param['flow_amount'] = $data['pdr_amount'];
                 $param['flow_state'] = 2; // 1申请中，2成功，3失败
-                $param['member_balance'] = $user_info['money'] / 100 + $data['pdr_amount']; // 变动后用户余额
+                $param['member_balance'] = $userInfo['money'] / 100 + $data['pdr_amount']; // 变动后用户余额
                 $param['present_ordersn'] = '';
                 $param['attr_exd_a'] = $post['remark'];
                 $param['attr_exd_c'] = $post['trade_no'];
@@ -558,15 +558,15 @@ class UserModel extends Crud {
 
         $code = (rand() % 10) . (rand() % 10) . (rand() % 10) . (rand() % 10) . (rand() % 10) . (rand() % 10);
 
-        $result_sms = $this->getDb()
+        $resultSms = $this->getDb()
             ->table('__tablepre__smscode')
             ->field('id,sendtime,hour_fc,day_fc')
             ->where('tel = ?')
             ->bindValue($post['telephone'])
             ->find();
 
-        if (!$result_sms) {
-            $result_sms = [
+        if (!$resultSms) {
+            $resultSms = [
                 'tel' => $post['telephone']
             ];
             if (!$this->getDb()->insert('__tablepre__smscode', [
@@ -576,7 +576,7 @@ class UserModel extends Crud {
             ])) {
                 return error('发送失败');
             }
-            $result_sms['id'] = $this->getDb()->getlastid();
+            $resultSms['id'] = $this->getDb()->getlastid();
         }
 
         $params = [
@@ -587,21 +587,21 @@ class UserModel extends Crud {
             'day_fc' => 1
         ];
 
-        if ($result_sms['sendtime']) {
+        if ($resultSms['sendtime']) {
             // 限制发送频率
-            if ($result_sms['sendtime'] + 10 > TIMESTAMP) {
+            if ($resultSms['sendtime'] + 10 > TIMESTAMP) {
                 return error('验证码已发送,请稍后再试');
             }
-            if (date('YmdH', $result_sms['sendtime']) == date('YmdH', TIMESTAMP)) {
+            if (date('YmdH', $resultSms['sendtime']) == date('YmdH', TIMESTAMP)) {
                 // 触发时级流控
-                if ($result_sms['hour_fc'] >= getSysConfig('hour_fc')) {
+                if ($resultSms['hour_fc'] >= getSysConfig('hour_fc')) {
                     return error('本时段发送次数已达上限');
                 }
                 $params['hour_fc'] = '{!hour_fc+1}';
             }
-            if (date('Ymd', $result_sms['sendtime']) == date('Ymd', TIMESTAMP)) {
+            if (date('Ymd', $resultSms['sendtime']) == date('Ymd', TIMESTAMP)) {
                 // 触发天级流控
-                if ($result_sms['day_fc'] >= getSysConfig('day_fc')) {
+                if ($resultSms['day_fc'] >= getSysConfig('day_fc')) {
                     return error('今日发送次数已达上限');
                 }
                 $params['day_fc'] = '{!day_fc+1}';
@@ -609,7 +609,7 @@ class UserModel extends Crud {
         }
 
         if (!$this->getDb()->update('__tablepre__smscode', $params, [
-            'id = ' . $result_sms['id'],
+            'id = ' . $resultSms['id'],
             'hour_fc <= ' . getSysConfig('hour_fc'),
             'day_fc <= ' . getSysConfig('day_fc')
         ])) {
@@ -653,7 +653,7 @@ class UserModel extends Crud {
     public function setloginstatus ($uid, $scode, $opt = [], $expire = 0)
     {
         if (!$uid) {
-            return error(0);
+            return error('no session!');
         }
         $update = [
             'userid' => $uid,
@@ -666,11 +666,13 @@ class UserModel extends Crud {
         ];
         !empty($opt) && $update = array_merge($update, $opt);
         if (!$this->getDb()->norepeat('__tablepre__session', $update)) {
-            return error('Session Error!');
+            return error('session error!');
         }
         $token = rawurlencode(authcode("$uid\t$scode\t{$update['clienttype']}", 'ENCODE'));
         set_cookie('token', $token, $expire);
-        return success($token);
+        return success([
+            'token' => $token
+        ]);
     }
 
     /**
@@ -710,9 +712,9 @@ class UserModel extends Crud {
         }
 
         // 未认证的在 chemi_member_car_auth 表，已认证的在 chemi_member_car_auth_log 表
-        $auth_car = [];
+        $authCar = [];
         foreach ($cars as $k => $v) {
-            $auth_car[$v['is_confirm']][] = $v['license_number'];
+            $authCar[$v['is_confirm']][] = $v['license_number'];
         }
 
         // 获取车辆行驶证
@@ -724,22 +726,22 @@ class UserModel extends Crud {
         // vehicle_time 发证日期
 
         $cards = [];
-        if (isset($auth_car[1])) {
+        if (isset($authCar[1])) {
             $cards = $this->getDb('chemiv2')
                 ->table('chemi_member_car_auth')
                 ->field('license_number,brand_number,frame_number,engine_number,register_time,car_name,vehicle_time')
                 ->where([
                     'member_id' => $uid,
-                    'license_number' => ['in', $auth_car[1]]
+                    'license_number' => ['in', $authCar[1]]
                 ])->select();
         }
-        if (isset($auth_car[2])) {
+        if (isset($authCar[2])) {
             $cards = array_merge($cards, $this->getDb('chemiv2')
                 ->table('chemi_member_car_auth_log')
                 ->field('license_number,brand_number,frame_number,engine_number,register_time,car_name,vehicle_time')
                 ->where([
                     'member_id' => $uid,
-                    'license_number' => ['in', $auth_car[2]]
+                    'license_number' => ['in', $authCar[2]]
                 ])->select());
         }
 
@@ -806,12 +808,12 @@ class UserModel extends Crud {
             ->find();
 
         // 已认证通过的就不再认证
-        $is_confirm = 1;
+        $isConfirm = 1;
         if ($lastAuth) {
             if ($lastAuth['auth_state'] == 2) {
-                $is_confirm = 2; // 已认证
+                $isConfirm = 2; // 已认证
             } else {
-                $is_confirm = 1; // 未认证
+                $isConfirm = 1; // 未认证
             }
         }
 
@@ -819,7 +821,7 @@ class UserModel extends Crud {
             'member_id' => $uid,
             'license_id' => $post['licenseId'],
             'license_number' => $post['license_number'],
-            'is_confirm' => $is_confirm
+            'is_confirm' => $isConfirm
         ])) {
             return error('认证失败');
         }
@@ -839,7 +841,7 @@ class UserModel extends Crud {
         $post['engine_number'] = trim($post['engine_number']); //发动机号
         $post['register_dt'] = trim($post['register_dt']); //注册日期
 
-        if (!$car_info = $this->getDb('chemiv2')
+        if (!$carInfo = $this->getDb('chemiv2')
             ->table('chemi_member_car')
             ->field('car_id,license_number,is_confirm')
             ->where([
@@ -849,11 +851,11 @@ class UserModel extends Crud {
             return error('该车辆不存在');
         }
 
-        if ($car_info['is_confirm'] == 2) {
+        if ($carInfo['is_confirm'] == 2) {
             return error('该车辆已认证通过');
         }
 
-        if ($car_info['license_number'] != $post['license_number']) {
+        if ($carInfo['license_number'] != $post['license_number']) {
             return error('车牌号匹配错误（与待认证的车牌号不一致）');
         }
 
@@ -913,7 +915,7 @@ class UserModel extends Crud {
             }
         }
 
-        $voucher_list = $this->getDb('chemiv2')
+        $voucherList = $this->getDb('chemiv2')
             ->table('chemi_voucher')
             ->field('voucher_id,voucher_type,voucher_title,voucher_price,voucher_price_type,voucher_start_date,voucher_end_date,voucher_limit,voucher_state')
             ->where($condition)
@@ -927,13 +929,13 @@ class UserModel extends Crud {
         // voucher_price_type 1=满减 2=立减 3=折扣满减 4=折扣立减
         // voucher_limit 消费满多少可以使用
 
-        foreach ($voucher_list as $k => $v) {
-            $voucher_list[$k]['voucher_state'] = ($v['voucher_state'] == 1 || $v['voucher_state'] == 2) ? $v['voucher_state'] : 3;
-            $voucher_list[$k]['voucher_start_date'] = $v['voucher_start_date'] ? date('Y-m-d H:i:s', $v['voucher_start_date']) : '';
-            $voucher_list[$k]['voucher_end_date'] = $v['voucher_start_date'] ? date('Y-m-d H:i:s', $v['voucher_end_date']) : '';
+        foreach ($voucherList as $k => $v) {
+            $voucherList[$k]['voucher_state'] = ($v['voucher_state'] == 1 || $v['voucher_state'] == 2) ? $v['voucher_state'] : 3;
+            $voucherList[$k]['voucher_start_date'] = $v['voucher_start_date'] ? date('Y-m-d H:i:s', $v['voucher_start_date']) : '';
+            $voucherList[$k]['voucher_end_date'] = $v['voucher_start_date'] ? date('Y-m-d H:i:s', $v['voucher_end_date']) : '';
         }
 
-        return success($voucher_list);
+        return success($voucherList);
     }
 
     /**
@@ -999,7 +1001,7 @@ class UserModel extends Crud {
      */
     public function getVoucherPrice ($condition, $total_price = 0) {
 
-        if (!$voucher_info = $this->getDb('chemiv2')
+        if (!$voucherInfo = $this->getDb('chemiv2')
             ->table('chemi_voucher')
             ->field('voucher_id,voucher_price,voucher_price_type,voucher_start_date,voucher_end_date,voucher_limit,voucher_state')
             ->where($condition)
@@ -1007,29 +1009,29 @@ class UserModel extends Crud {
             return error('该优惠劵不存在');
         }
 
-        if ($voucher_info['voucher_state'] != 1) {
+        if ($voucherInfo['voucher_state'] != 1) {
             return error('该优惠劵已使用或无效');
         }
-        if (TIMESTAMP < $voucher_info['voucher_start_date']) {
+        if (TIMESTAMP < $voucherInfo['voucher_start_date']) {
             return error('该优惠劵未到使用时间');
         }
-        if (TIMESTAMP > $voucher_info['voucher_end_date']) {
+        if (TIMESTAMP > $voucherInfo['voucher_end_date']) {
             return error('该优惠劵已过期');
         }
 
-        $info['voucher_price'] = $voucher_info['voucher_price'] * 100;
+        $info['voucher_price'] = $voucherInfo['voucher_price'] * 100;
 
         // voucher_price_type 1=满减 2=立减 3=折扣满减 4=折扣立减
         // voucher_limit 消费满多少可以使用
 
-        if ($voucher_info['voucher_price_type'] == 1) {
+        if ($voucherInfo['voucher_price_type'] == 1) {
             // 满减
-            if ($voucher_info['voucher_limit'] > $total_price / 100) {
-                return error('满 ' . $voucher_info['voucher_limit'] . ' 元，立减 ' . $voucher_info['voucher_price'] . ' 元');
+            if ($voucherInfo['voucher_limit'] > $total_price / 100) {
+                return error('满 ' . $voucherInfo['voucher_limit'] . ' 元，立减 ' . $voucherInfo['voucher_price'] . ' 元');
             }
             return success($info);
         }
-        if ($voucher_info['voucher_price_type'] == 2) {
+        if ($voucherInfo['voucher_price_type'] == 2) {
             // 立减
             return success($info);
         }

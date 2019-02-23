@@ -19,17 +19,17 @@ class BaoxianModel extends Crud {
             return error('参数错误');
         }
 
-        $user_model = new \models\UserModel();
+        $userModel = new \models\UserModel();
 
         // 获取用户
-        if (!$user_info = $user_model->getUserInfoCondition([
+        if (!$userInfo = $userModel->getUserInfoCondition([
             'member_id'=> $post['member_id']
         ])) {
             return error('用户或密码错误');
         }
 
         // 验证车秘token
-        if (!$user_model->checkCmToken([
+        if (!$userModel->checkCmToken([
             'member_id'=> $post['member_id'],
             'token' => $post['key']
         ])) {
@@ -40,24 +40,24 @@ class BaoxianModel extends Crud {
         $post['nopw'] = 1; // 不验证密码
         $post['platform'] = 4; // 固定平台代码
         $post['type'] = 'bx';
-        $post['authcode'] = md5('bx' . $user_info['member_id']); // 取不易识别的值
-        $post['telephone'] =  $user_info['member_name'];
-        $user_info = $user_model->loginBinding($post);
-        if ($user_info['errorcode'] !== 0) {
-            return $user_info;
+        $post['authcode'] = md5('bx' . $userInfo['member_id']); // 取不易识别的值
+        $post['telephone'] =  $userInfo['member_name'];
+        $userInfo = $userModel->loginBinding($post);
+        if ($userInfo['errorcode'] !== 0) {
+            return $userInfo;
         }
-        $user_info = $user_info['data'];
+        $userInfo = $userInfo['data'];
 
         // 登录成功
-        $loginret = $user_model->setloginstatus($user_info['uid'], uniqid(), [
+        $loginret = $userModel->setloginstatus($userInfo['uid'], uniqid(), [
             'clienttype' => 'cm'
         ]);
         if ($loginret['errorcode'] !== 0) {
             return $loginret;
         }
-        $user_info['token'] = $loginret['data'];
+        $userInfo['token'] = $loginret['data']['token'];
 
-        return success($user_info);
+        return success($userInfo);
     }
 
     /**
@@ -76,41 +76,41 @@ class BaoxianModel extends Crud {
         }
 
         // 加载模型
-        $user_model = new \models\UserModel();
+        $userModel = new \models\UserModel();
 
         // 获取用户
-        $user_info = $user_model->getUserInfoCondition([
+        $userInfo = $userModel->getUserInfoCondition([
             'member_name'=> $post['telephone']
         ], 'member_id, member_name, member_passwd');
 
         if ($post['password']) {
             // 密码验证
-            if (!$user_info) {
+            if (!$userInfo) {
                 return error('用户名或密码错误！');
             }
-            if ($user_info['member_passwd'] != md5(md5($post['password']))) {
+            if ($userInfo['member_passwd'] != md5(md5($post['password']))) {
                 return error('用户名或密码错误！');
             }
         }
         if ($post['msgcode']) {
             // 短信验证
-            if (!$user_model->checkSmsCode($post['telephone'], $post['msgcode'])) {
+            if (!$userModel->checkSmsCode($post['telephone'], $post['msgcode'])) {
                 return error('验证码错误！');
             }
         }
 
         // 注册新用户
-        if (empty($user_info)) {
-            $uid = $user_model->regCm($post);
+        if (empty($userInfo)) {
+            $uid = $userModel->regCm($post);
             if (!$uid) {
                 return error('注册失败');
             }
-            $user_info['member_id'] = $uid;
+            $userInfo['member_id'] = $uid;
         }
 
         // 限制重复绑定微信
         if ($post['__authcode']) {
-            if ($this->getWxOpenid($user_info['member_id'])) {
+            if ($this->getWxOpenid($userInfo['member_id'])) {
                 return error('该手机号已绑定，请先解绑或填写其他手机号');
             }
         }
@@ -118,24 +118,24 @@ class BaoxianModel extends Crud {
         // 执行绑定
         $post['platform'] = 4; // 固定平台代码
         $post['type'] = 'bx';
-        $post['authcode'] = md5('bx' . $user_info['member_id']); // 取不易识别的值
-        $user_info = $user_model->loginBinding($post);
-        if ($user_info['errorcode'] !== 0) {
-            return $user_info;
+        $post['authcode'] = md5('bx' . $userInfo['member_id']); // 取不易识别的值
+        $userInfo = $userModel->loginBinding($post);
+        if ($userInfo['errorcode'] !== 0) {
+            return $userInfo;
         }
-        $user_info = $user_info['data'];
+        $userInfo = $userInfo['data'];
 
         // 登录成功
-        $loginret = $user_model->setloginstatus($user_info['uid'], uniqid());
+        $loginret = $userModel->setloginstatus($userInfo['uid'], uniqid());
         if ($loginret['errorcode'] !== 0) {
             return $loginret;
         }
-        $user_info['token'] = $loginret['message'];
+        $userInfo['token'] = $loginret['data']['token'];
 
         // 绑定微信
-        $this->bindingLogin($post['__authcode'], $user_info['uid']);
+        $this->bindingLogin($post['__authcode'], $userInfo['uid']);
 
-        return success($user_info);
+        return success($userInfo);
     }
 
     /**
@@ -146,14 +146,14 @@ class BaoxianModel extends Crud {
             return [];
         }
 
-        $ret = $this->getDb()
+        $result = $this->getDb()
             ->table('baoxian_login')
             ->field('uid')
             ->where('authcode = ?')
             ->bindValue($post['authcode'])
             ->find();
 
-        if (!$ret) {
+        if (!$result) {
             // 创建空绑定
             if (!$this->getDb()->insert('baoxian_login', [
                 'uid' => 0,
@@ -167,13 +167,13 @@ class BaoxianModel extends Crud {
         } else {
             // 登录
             $userModel = new UserModel();
-            $loginret = $userModel->setloginstatus($ret['uid'], uniqid());
+            $loginret = $userModel->setloginstatus($result['uid'], uniqid());
             if ($loginret['errorcode'] !== 0) {
                 return [];
             }
         }
 
-        return $ret;
+        return $result;
     }
 
     /**
@@ -351,15 +351,15 @@ class BaoxianModel extends Crud {
 
         // 优惠劵
         if ($post['voucher_id']) {
-            $voucher_info = $userModel->getVoucherPrice([
+            $voucherInfo = $userModel->getVoucherPrice([
                 'voucher_type' => 2,
                 'voucher_owner_id' => $uid,
                 'voucher_id' => $post['voucher_id']
             ], $post['money']);
-            if ($voucher_info['errorcode'] !== 0) {
-                return $voucher_info;
+            if ($voucherInfo['errorcode'] !== 0) {
+                return $voucherInfo;
             }
-            $voucher_price = $voucher_info['data']['voucher_price']; // 折扣金额
+            $voucher_price = $voucherInfo['data']['voucher_price']; // 折扣金额
             $totalPrice = $totalPrice - $voucher_price;
             $totalPrice = $totalPrice < 0 ? 0 : $totalPrice; // 抵扣金额可能比支付金额大，导致金额为负
         }
@@ -373,7 +373,7 @@ class BaoxianModel extends Crud {
         }
 
         // 订单号
-        $ordercode = $this->generateOrderCode();
+        $orderCode = $this->generateOrderCode();
 
         // 防止重复扣费
         if ($lastTradeInfo = $this->getDb()->table('__tablepre__payments')
@@ -387,10 +387,10 @@ class BaoxianModel extends Crud {
             ])
             ->limit(1)
             ->find()) {
+            // 支付方式改变或超时后更新订单号
             if ($lastTradeInfo['payway'] != $post['payway'] || strtotime($lastTradeInfo['createtime']) < TIMESTAMP - 600) {
-                // 支付方式改变或10分钟后更新订单号
                 if (false === $this->getDb()->update('__tablepre__payments', [
-                        'ordercode' => $ordercode,
+                        'ordercode' => $orderCode,
                         'createtime' => date('Y-m-d H:i:s', TIMESTAMP)
                     ], 'id = ' . $lastTradeInfo['id'])) {
                     return error('更新订单失败');
@@ -401,6 +401,7 @@ class BaoxianModel extends Crud {
             ]);
         }
 
+        // 新增交易单
         if (!$this->getDb()->insert('__tablepre__payments', [
             'type' => 'bx',
             'uses' => '汽车保险',
@@ -408,13 +409,15 @@ class BaoxianModel extends Crud {
             'param_a' => $post['voucher_id'],
             'pay' => $totalPrice,
             'money' => $post['money'],
-            'ordercode' => $ordercode,
+            'payway' => $post['payway'] == 'cbpay' ? $post['payway'] : '',
+            'ordercode' => $orderCode,
             'createtime' => date('Y-m-d H:i:s', TIMESTAMP),
             'mark' => concat($post['CityCode'], ',', $post['Source'], ',', $post['LicenseNo'])
         ])) {
             return error('交易失败');
         }
 
+        // 获取新增交易单ID
         $cardId = $this->getDb()->getlastid();
 
         // 创建保险订单
@@ -429,48 +432,49 @@ class BaoxianModel extends Crud {
             ];
             // 生成签名
             setSign($params);
-            $baoxian_order = https_request($this->api_url . '/createOrder', $params);
+            $orderResult = https_request($this->api_url . '/createOrder', $params);
         } catch (\Exception $e) {
             $this->getDb()->delete('__tablepre__payments', 'id = ' . $cardId);
             return error($e->getMessage());
         }
-        if ($baoxian_order['errorcode'] !== 0) {
+        if ($orderResult['errorcode'] !== 0) {
             $this->getDb()->delete('__tablepre__payments', 'id = ' . $cardId);
-            return $baoxian_order;
+            return $orderResult;
         }
 
         // 更新保险订单ID
         if (!$this->getDb()->update('__tablepre__payments', [
-            'param_id' => $baoxian_order['data']['orderid']
+            'param_id' => $orderResult['data']['orderid']
         ], ['id' => $cardId])) {
             return error('更新保险订单失败');
         }
 
         if ($totalPrice === 0) {
             // 免支付金额（抵扣金额大于支付金额）
-            $ret = $this->handleCardSuc($cardId);
-            if ($ret['errorcode'] !== 0) {
-                return $ret;
+            $result = $this->handleCardSuc($cardId);
+            if ($result['errorcode'] !== 0) {
+                return $result;
             }
         } else {
             // 车币支付
             if ($post['payway'] == 'cbpay') {
-                $ret = $userModel->consume([
+                // 支付车币
+                $result = $userModel->consume([
                     'platform' => 4,
                     'authcode' => md5('bx' . $uid),
-                    'trade_no' => $ordercode,
+                    'trade_no' => $orderCode,
                     'money' => $totalPrice,
                     'remark' => '支付车险'
                 ]);
-                if ($ret['errorcode'] !== 0) {
+                if ($result['errorcode'] !== 0) {
                     // 回滚交易表
                     $this->getDb()->delete('__tablepre__payments', 'id = ' . $cardId);
-                    return $ret;
+                    return $result;
                 }
-                // 余额消费成功
-                $ret = $this->handleCardSuc($cardId);
-                if ($ret['errorcode'] !== 0) {
-                    return $ret;
+                // 车币消费成功
+                $result = $this->handleCardSuc($cardId);
+                if ($result['errorcode'] !== 0) {
+                    return $result;
                 }
             }
         }
@@ -482,31 +486,37 @@ class BaoxianModel extends Crud {
 
     /**
      * 交易成功的后续处理
+     * @param $cardId 交易单ID
+     * @param $tradeParam 交易单更新数据
      * @return array
      */
-    public function handleCardSuc ($cardid)
-    {
-        if (!$trade_info = $this->getDb()->table('__tablepre__payments')
-            ->field('id,trade_id,param_id,param_a,pay,money')
-            ->where(['id' => $cardid])
+    public function handleCardSuc ($cardId, $tradeParam = []) {
+
+        if (!$tradeInfo = $this->getDb()->table('__tablepre__payments')
+            ->field('id,trade_id,param_id,param_a,pay,money,ordercode')
+            ->where(['id' => $cardId])
             ->limit(1)
             ->find()) {
             return error('交易单不存在');
         }
 
-        if (!$this->getDb()->update('__tablepre__payments', [
+        // 更新交易单状态
+        $tradeParam = array_merge($tradeParam, [
             'paytime' => date('Y-m-d H:i:s', TIMESTAMP),
             'status' => 1
-        ], ['id' => $cardid, 'status' => 0])) {
-            return error('交易失败，请重试');
+        ]);
+        if (!$this->getDb()->update('__tablepre__payments', $tradeParam, [
+            'id' => $cardId, 'status' => 0
+        ])) {
+            return error('更新交易失败');
         }
 
         // model
         $userModel = new \models\UserModel();
 
         // 使用优惠劵
-        if ($trade_info['param_a']) {
-            if (!$userModel->useVoucherInfo($trade_info['param_a'], $trade_info['money'] - $trade_info['pay'])) {
+        if ($tradeInfo['param_a']) {
+            if (!$userModel->useVoucherInfo($tradeInfo['param_a'], $tradeInfo['money'] - $tradeInfo['pay'])) {
                 return error('优惠劵已使用或无效');
             }
         }
@@ -514,18 +524,18 @@ class BaoxianModel extends Crud {
         // 通知保险订单
         try {
             $params = [
-                'orderid' => $trade_info['param_id'],
-                'uid' => $trade_info['trade_id'],
-                'pay' => $trade_info['money']
+                'orderid' => $tradeInfo['param_id'],
+                'uid' => $tradeInfo['trade_id'],
+                'pay' => $tradeInfo['money']
             ];
             // 生成签名
             setSign($params);
-            $baoxian_order = https_request($this->api_url . '/notifyOrder', $params);
+            $orderResult = https_request($this->api_url . '/notifyOrder', $params);
         } catch (\Exception $e) {
             return error($e->getMessage());
         }
-        if ($baoxian_order['errorcode'] !== 0) {
-            return $baoxian_order;
+        if ($orderResult['errorcode'] !== 0) {
+            return $orderResult;
         }
 
         // 优惠方案
@@ -534,17 +544,17 @@ class BaoxianModel extends Crud {
         // park_rate 停车劵金额（元）
         // maintain_rate 洗车保养劵金额（元）
         // insurance_rate 保险劵金额（元）
-        $baoxian_order = $baoxian_order['data'];
+        $orderResult = $orderResult['data'];
 
         // APP优惠劵方案
-        if (isset($baoxian_order['app_coupon'])) {
+        if (isset($orderResult['app_coupon'])) {
             $coupons = [];
-            $coupons[] = ['title' => '车秘-通用红包', 'type' => 0, 'price' => $baoxian_order['app_coupon']['common_rate']];
-            $coupons[] = ['title' => '车秘-保险专属红包', 'type' => 2, 'price' => $baoxian_order['app_coupon']['insurance_rate']];
-            $coupons[] = ['title' => '车秘-停车专属红包', 'type' => 3, 'price' => $baoxian_order['app_coupon']['park_rate']];
-            $coupons[] = ['title' => '车秘-洗车保养专属红包', 'type' => 4, 'price' => $baoxian_order['app_coupon']['maintain_rate']];
+            $coupons[] = ['title' => '车秘-通用红包', 'type' => 0, 'price' => $orderResult['app_coupon']['common_rate']];
+            $coupons[] = ['title' => '车秘-保险专属红包', 'type' => 2, 'price' => $orderResult['app_coupon']['insurance_rate']];
+            $coupons[] = ['title' => '车秘-停车专属红包', 'type' => 3, 'price' => $orderResult['app_coupon']['park_rate']];
+            $coupons[] = ['title' => '车秘-洗车保养专属红包', 'type' => 4, 'price' => $orderResult['app_coupon']['maintain_rate']];
             // 赠送优惠劵
-            $userModel->grantBaoxianCoupon($trade_info['trade_id'], $coupons);
+            $userModel->grantBaoxianCoupon($tradeInfo['trade_id'], $coupons);
         }
 
         return success('OK');

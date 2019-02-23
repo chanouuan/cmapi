@@ -20,14 +20,14 @@ class User extends \ActionPDO {
     public function extend () {
         $userModel = new \models\UserModel();
         unset($_POST['nopw']);
-        $ret = $userModel->loginBinding($_POST);
-        if ($ret['errorcode'] !== 0) {
-            return $ret;
+        $result = $userModel->loginBinding($_POST);
+        if ($result['errorcode'] !== 0) {
+            return $result;
         }
-        $ret['data']['platform'] = $this->_G['header']['platform'];
-        $ret['data']['timestamp'] = microtime_float();
-        $ret['data']['sign'] = $this->setSign($ret['data']);
-        return $ret;
+        $result['data']['platform'] = $this->_G['header']['platform'];
+        $result['data']['timestamp'] = microtime_float();
+        $result['data']['sign'] = $this->setSign($result['data']);
+        return $result;
     }
 
     /**
@@ -43,14 +43,14 @@ class User extends \ActionPDO {
      */
     public function info () {
         $userModel = new \models\UserModel();
-        $ret = $userModel->getUserInfo($_POST['uid']);
-        if ($ret['errorcode'] !== 0) {
-            return $ret;
+        $result = $userModel->getUserInfo($_POST['uid']);
+        if ($result['errorcode'] !== 0) {
+            return $result;
         }
-        $ret['data']['platform'] = $this->_G['header']['platform'];
-        $ret['data']['timestamp'] = microtime_float();
-        $ret['data']['sign'] = $this->setSign($ret['data']);
-        return $ret;
+        $result['data']['platform'] = $this->_G['header']['platform'];
+        $result['data']['timestamp'] = microtime_float();
+        $result['data']['sign'] = $this->setSign($result['data']);
+        return $result;
     }
 
     /**

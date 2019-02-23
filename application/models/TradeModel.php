@@ -37,28 +37,31 @@ class TradeModel extends Crud {
      */
     public function payQuery ($uid, $tradeid)
     {
-        $tradeid = intval($tradeid);
-        if (!$trade_info = $this->getDb()
+        if (!$tradeInfo = $this->getDb()
             ->field('id,pay,payway,mchid,status')
             ->table('__tablepre__payments')
-            ->where('id = ' . $tradeid . ' and trade_id = ' . $uid)
+            ->where('id = ' . intval($tradeid) . ' and trade_id = ' . $uid)
             ->find()) {
             return error('参数错误');
         }
 
-        if ($trade_info['status'] == 1) {
+        if ($tradeInfo['status'] == 1) {
             return success('支付成功');
-        } elseif ($trade_info['status'] != 0) {
+        } elseif ($tradeInfo['status'] != 0) {
             return error('不是待支付订单');
         }
 
-        if (!$trade_info['payway']) {
+        if (!$tradeInfo['payway']) {
             return error('还未支付');
+        }
+        if ($tradeInfo['payway'] == 'cbpay') {
+            // 车币支付，直接支付成功
+            return $this->paySuccess($tradeInfo['payway'], $tradeInfo['ordercode']);
         }
 
         // 查询订单
         try {
-            $result = https_request(gurl($trade_info['payway'] . '/query', 'ajax=1&tradeid=' . $trade_info['id']));
+            $result = https_request(gurl($tradeInfo['payway'] . '/query', 'ajax=1&tradeid=' . $tradeInfo['id']));
         } catch (\Exception $e) {
             return error($e->getMessage());
         }
@@ -69,12 +72,12 @@ class TradeModel extends Crud {
         if ($result['pay_success'] !== 'SUCCESS') {
             return error($result['trade_status']);
         }
-        if ($result['mchid'] != $trade_info['mchid'] || $result['total_fee'] != $trade_info['pay']) {
+        if ($result['mchid'] != $tradeInfo['mchid'] || $result['total_fee'] != $tradeInfo['pay']) {
             return error('支付验证失败');
         }
 
         // 支付成功
-        return $this->paySuccess($trade_info['payway'], $result['out_trade_no'], $result['trade_no'], $result['mchid'], $result['trade_type'], $result['trade_status']);
+        return $this->paySuccess($tradeInfo['payway'], $result['out_trade_no'], $result['trade_no'], $result['mchid'], $result['trade_type'], $result['trade_status']);
     }
 
     /**
@@ -87,13 +90,13 @@ class TradeModel extends Crud {
      * @param string $trade_status 支付状态
      * @return bool
      */
-    public function paySuccess ($payway, $out_trade_no, $trade_no, $mchid, $trade_type, $trade_status = '')
+    public function paySuccess ($payway, $out_trade_no, $trade_no = '', $mchid = '', $trade_type = '', $trade_status = '')
     {
-        if (!$trade_info = $this->get(null, 'status = 0 and ordercode = "' . $out_trade_no . '"', 'id,type,trade_id,param_id,pay,money,status')) {
+        if (!$tradeInfo = $this->get(null, 'status = 0 and ordercode = "' . $out_trade_no . '"', 'id,type,trade_id,param_id,pay,money,status')) {
             return error($out_trade_no . '未找到');
         }
 
-        $_trade = [
+        $tradeParam = [
             'payway' => strtolower($payway),
             'status' => 1,
             'trade_no' => $trade_no,
@@ -103,43 +106,20 @@ class TradeModel extends Crud {
             'trade_status' => $trade_status
         ];
 
-        if ($trade_info['type'] == 'xc') {
+        $model = null;
+        if ($tradeInfo['type'] == 'xc') {
             // 洗车机支付成功
-            if (!$this->getDb()->update('__tablepre__payments', $_trade, 'status = 0 and id = ' . $trade_info['id'])) {
-                return error('交易更新失败');
-            }
-
-            $userModel = new \models\UserModel();
-            $xicheModel = new \models\XicheModel();
-
-            // 更新设备使用中
-            $xicheModel->updateDevUse($trade_info['id'], $trade_info['param_id']);
-
-            // 获取设备
-            $device_info = $xicheModel->getDeviceById($trade_info['param_id']);
-
-            // 保存订单到洗车机
-            $ret = $xicheModel->XiCheCOrder($device_info['devcode'], $out_trade_no, $trade_info['money']);
-            if ($ret['errorcode'] !== 0) {
-                // 记录日志
-                $xicheModel->log('COrder', [
-                    'name' => concat('用户成功支付', round_dollar($trade_info['pay']), '元,保存订单到洗车机异常'),
-                    'uid' => $trade_info['trade_id'],
-                    'orderno' => $out_trade_no,
-                    'devcode' => $device_info['devcode'],
-                    'content' => [
-                        'trade' => $trade_info,
-                        'result' => $ret
-                    ]
-                ]);
-            }
-
-        } else {
-
-            return error($out_trade_no . '未知交易类型');
+            $model = new \models\XicheModel();
+        } elseif ($tradeInfo['type'] == 'bx') {
+            // 保险支付成功
+            $model = new \models\BaoxianModel();
         }
 
-        return success('支付成功');
+        if ($model) {
+            return $model->handleCardSuc($tradeInfo['id'], $tradeParam);
+        }
+
+        return success('OK');
     }
 
 }

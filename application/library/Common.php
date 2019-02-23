@@ -122,9 +122,9 @@ function getSysConfig ($key = null, $target = 'config')
 function getConfig ($app = null, $name = null)
 {
     if (false === F('config')) {
-        $ret = \library\DB::getInstance()->table('__tablepre__config')->field('app,name,value,type')->select();
+        $result = \library\DB::getInstance()->table('__tablepre__config')->field('app,name,value,type')->select();
         $config = array();
-        foreach ($ret as $k => $v) {
+        foreach ($result as $k => $v) {
             if ($v['type'] == 'textarea') {
                 $v['value'] = htmlspecialchars_decode($v['value'], ENT_QUOTES);
             } elseif ($v['type'] == 'number') {

@@ -54,21 +54,21 @@ class XicheModel extends Crud {
         }
 
         // 获取设备
-        if (!$device_info = $this->getDeviceByCode($DevCode)) {
+        if (!$deviceInfo = $this->getDeviceByCode($DevCode)) {
             return error('设备不存在');
         }
 
         // 验证订单
-        if (!$trade_info = $this->getDb()->table('__tablepre__payments')->field('id, param_a')->where('ordercode = ? and param_id = ? and status = 1')->bindValue($OrderNo, $device_info['id'])->find()) {
+        if (!$tradeInfo = $this->getDb()->table('__tablepre__payments')->field('id, param_a')->where('ordercode = ? and param_id = ? and status = 1')->bindValue($OrderNo, $deviceInfo['id'])->find()) {
             return error('该订单不存在或已失效');
         }
 
         // 更新启动时间
-        if (!$trade_info['param_a']) {
+        if (!$tradeInfo['param_a']) {
 
             if (!$this->getDb()->update('__tablepre__payments', [
                 'param_a' => TIMESTAMP
-            ], 'id = ' . $trade_info['id'])) {
+            ], 'id = ' . $tradeInfo['id'])) {
                 return error('更新订单失败');
             }
         }
@@ -93,24 +93,24 @@ class XicheModel extends Crud {
         }
 
         // 获取设备
-        if (!$device_info = $this->getDeviceByCode($DevCode)) {
+        if (!$deviceInfo = $this->getDeviceByCode($DevCode)) {
             return error('设备不存在');
         }
 
         // 验证订单
-        if (!$trade_info = $this->getDb()->table('__tablepre__payments')->field('id, trade_id, param_a, param_b, money')->where('ordercode = ? and param_id = ? and status = 1')->bindValue($OrderNo, $device_info['id'])->find()) {
+        if (!$tradeInfo = $this->getDb()->table('__tablepre__payments')->field('id, trade_id, param_a, param_b, money')->where('ordercode = ? and param_id = ? and status = 1')->bindValue($OrderNo, $deviceInfo['id'])->find()) {
             return error('该订单不存在或已失效');
         }
 
         // 验证金额
-        if ($trade_info['money'] < $Fee) {
+        if ($tradeInfo['money'] < $Fee) {
             return error('退还金额大于付款金额');
         }
 
         // 更新结束时间
-        if (!$trade_info['param_b']) {
+        if (!$tradeInfo['param_b']) {
 
-            if (false === $this->updateDevUse(0, $device_info['id'])) {
+            if (false === $this->updateDevUse(0, $deviceInfo['id'])) {
                 return error('更新设备失败');
             }
 
@@ -120,38 +120,38 @@ class XicheModel extends Crud {
                 'refundpay' => $Fee,
                 'refundtime' => date('Y-m-d H:i:s', TIMESTAMP)
             ];
-            if (!$trade_info['param_a']) {
+            if (!$tradeInfo['param_a']) {
                 // 如果订单没有启动时间，就用设备的更新时间
-                $param['param_a'] = strtotime($device_info['updated_at']);
+                $param['param_a'] = strtotime($deviceInfo['updated_at']);
             }
 
-            if (!$this->getDb()->update('__tablepre__payments', $param, 'id = ' . $trade_info['id'] . ' and refundtime is null')) {
+            if (!$this->getDb()->update('__tablepre__payments', $param, 'id = ' . $tradeInfo['id'] . ' and refundtime is null')) {
                 return error('更新订单失败');
             }
 
             // 退费为车币
             if ($Fee > 0) {
                 $userModel = new UserModel();
-                $ret = $userModel->recharge([
+                $result = $userModel->recharge([
                     'platform' => 3,
-                    'authcode' => md5('xc' . $trade_info['trade_id']),
+                    'authcode' => md5('xc' . $tradeInfo['trade_id']),
                     'trade_no' => $param['refundcode'],
                     'money' => $Fee,
                     'remark' => '自助洗车退款'
                 ]);
-                if ($ret['errorcode'] !== 0) {
+                if ($result['errorcode'] !== 0) {
                     // 日志
                     $this->log('recharge', [
                         'name' => concat('洗车结束,订单可退费(', round_dollar($Fee), '元),账户充值(', round_dollar($Fee), '元)异常'),
-                        'uid' => $trade_info['trade_id'],
+                        'uid' => $tradeInfo['trade_id'],
                         'orderno' => $OrderNo,
-                        'devcode' => $device_info['devcode'],
+                        'devcode' => $deviceInfo['devcode'],
                         'content' => [
                             'post' => $param,
-                            'result' => $ret
+                            'result' => $result
                         ]
                     ]);
-                    return $ret;
+                    return $result;
                 }
             }
         }
@@ -177,20 +177,20 @@ class XicheModel extends Crud {
         }
 
         // 限制机器上报频率
-        $cache_val = \library\Cache::getInstance(['type' => 'file'])->get(concat('ReportStatus', $DevCode));
-        if ($cache_val) {
-            if ($cache_val == concat($IsOnline, $UseState)) {
+        $cacheVal = \library\Cache::getInstance(['type' => 'file'])->get(concat('ReportStatus', $DevCode));
+        if ($cacheVal) {
+            if ($cacheVal == concat($IsOnline, $UseState)) {
                 return success('上报频率过快');
             }
         }
         \library\Cache::getInstance(['type' => 'file'])->set(concat('ReportStatus', $DevCode), concat($IsOnline, $UseState), 60);
 
-        $device_info = $this->getDeviceByCode($DevCode);
-        if ($device_info) {
+        $deviceInfo = $this->getDeviceByCode($DevCode);
+        if ($deviceInfo) {
             // 更新设备
-            if ($device_info['isonline'] != $IsOnline || $device_info['usestate'] != $UseState) {
-                if (false === $this->updateDevUse(0, $device_info['id'], [
-                        'usetime' => ($UseState === 0 || $UseState === 4) ? 0 : $device_info['usetime'],
+            if ($deviceInfo['isonline'] != $IsOnline || $deviceInfo['usestate'] != $UseState) {
+                if (false === $this->updateDevUse(0, $deviceInfo['id'], [
+                        'usetime' => ($UseState === 0 || $UseState === 4) ? 0 : $deviceInfo['usetime'],
                         'usestate' => $UseState,
                         'isonline' => $IsOnline
                     ])) {
@@ -200,42 +200,42 @@ class XicheModel extends Crud {
         } else {
             // 获取设备信息
             try {
-                $device_info = https_request('http://xicheba.net/chemi/API/Handler/DeviceOne', [
+                $deviceInfo = https_request('http://xicheba.net/chemi/API/Handler/DeviceOne', [
                     'apiKey' => getConfig('xc', 'apikey'),
                     'DevCode' => $DevCode
                 ]);
             } catch (\Exception $e) {
                 return error($e->getMessage());
             }
-            if (!$device_info['result']) {
-                return error($device_info['messages']);
+            if (!$deviceInfo['result']) {
+                return error($deviceInfo['messages']);
             }
-            $device_info = $device_info['data'];
+            $deviceInfo = $deviceInfo['data'];
 
             // 获取设置参数
             try {
-                $device_param = https_request('http://xicheba.net/chemi/API/Handler/DevParam', [
+                $deviceParam = https_request('http://xicheba.net/chemi/API/Handler/DevParam', [
                     'apiKey' => getConfig('xc', 'apikey'),
-                    'AreaId' => $device_info['AreaId']
+                    'AreaId' => $deviceInfo['AreaId']
                 ]);
             } catch (\Exception $e) {
                 return error($e->getMessage());
             }
-            if (!$device_param['result']) {
-                return error($device_param['messages']);
+            if (!$deviceParam['result']) {
+                return error($deviceParam['messages']);
             }
-            $device_param = $device_param['data'];
+            $deviceParam = $deviceParam['data'];
 
             if (!$this->getDb()->insert('__tablepre__xiche_device', [
                     'devcode' => $DevCode,
-                    'isonline' => $device_info['IsOnline'],
-                    'usestate' => $device_info['UseState'],
+                    'isonline' => $deviceInfo['IsOnline'],
+                    'usestate' => $deviceInfo['UseState'],
                     'created_at' => date('Y-m-d H:i:s', TIMESTAMP),
                     'updated_at' => date('Y-m-d H:i:s', TIMESTAMP),
-                    'areaid' => $device_param['AreaID'],
-                    'areaname' => $device_param['AreaName'],
-                    'price' => $device_param['Price'] * 100,
-                    'parameters' => json_unicode_encode($device_param)
+                    'areaid' => $deviceParam['AreaID'],
+                    'areaname' => $deviceParam['AreaName'],
+                    'price' => $deviceParam['Price'] * 100,
+                    'parameters' => json_unicode_encode($deviceParam)
                 ])) {
                 return error('添加设备失败');
             }
@@ -249,20 +249,20 @@ class XicheModel extends Crud {
      */
     public function getDevIsUse ($DevCode) {
         try {
-            $device_info = https_request('http://xicheba.net/chemi/API/Handler/DeviceOne', [
+            $deviceInfo = https_request('http://xicheba.net/chemi/API/Handler/DeviceOne', [
                 'apiKey' => getConfig('xc', 'apikey'),
                 'DevCode' => $DevCode
             ]);
         } catch (\Exception $e) {
             return error($e->getMessage());
         }
-        if (!$device_info['result']) {
-            return error($device_info['messages']);
+        if (!$deviceInfo['result']) {
+            return error($deviceInfo['messages']);
         }
-        $device_info = $device_info['data'];
+        $deviceInfo = $deviceInfo['data'];
         return success([
-            intval($device_info['UseState']),
-            intval($device_info['IsOnline'])
+            intval($deviceInfo['UseState']),
+            intval($deviceInfo['IsOnline'])
         ]);
     }
 
@@ -312,32 +312,32 @@ class XicheModel extends Crud {
             return error('设备效验失败');
         }
 
-        if (!$device_info = $this->getDeviceByCode($devcode)) {
+        if (!$deviceInfo = $this->getDeviceByCode($devcode)) {
             return error('设备不存在');
         }
 
         // 如果发生异常，机器状态未能通知到服务端
         // 验证设备状态，判断是否重置为未使用
-        if ($device_info['usetime']) {
+        if ($deviceInfo['usetime']) {
             // 一段时间验证一次
-            if (strtotime($device_info['updated_at']) < TIMESTAMP - 30) {
+            if (strtotime($deviceInfo['updated_at']) < TIMESTAMP - 30) {
                 // 获取设备状态
-                $ret = $this->getDevIsUse($device_info['devcode']);
-                if ($ret['errorcode'] === 0) {
+                $result = $this->getDevIsUse($deviceInfo['devcode']);
+                if ($result['errorcode'] === 0) {
                     $param = [
-                        'usetime' => ($ret['data'][0] === 0 || $ret['data'][0] === 4) ? 0 : $device_info['usetime'],
-                        'usestate' => $ret['data'][0],
-                        'isonline' => $ret['data'][1],
+                        'usetime' => ($result['data'][0] === 0 || $result['data'][0] === 4) ? 0 : $deviceInfo['usetime'],
+                        'usestate' => $result['data'][0],
+                        'isonline' => $result['data'][1],
                     ];
                     // 状态为空闲
-                    if ($this->updateDevUse(0, $device_info['id'], $param)) {
-                        $device_info = array_merge($device_info, $param);
+                    if ($this->updateDevUse(0, $deviceInfo['id'], $param)) {
+                        $deviceInfo = array_merge($deviceInfo, $param);
                     }
                 }
             }
         }
 
-        return success($device_info);
+        return success($deviceInfo);
     }
 
     /**
@@ -351,17 +351,17 @@ class XicheModel extends Crud {
             return error('参数错误');
         }
 
-        $user_model = new \models\UserModel();
+        $userModel = new \models\UserModel();
 
         // 获取用户
-        if (!$user_info = $user_model->getUserInfoCondition([
+        if (!$userInfo = $userModel->getUserInfoCondition([
             'member_id'=> $post['member_id']
         ])) {
             return error('用户或密码错误');
         }
 
         // 验证车秘token
-        if (!$user_model->checkCmToken([
+        if (!$userModel->checkCmToken([
             'member_id'=> $post['member_id'],
             'token' => $post['key']
         ])) {
@@ -372,24 +372,24 @@ class XicheModel extends Crud {
         $post['nopw'] = 1; // 不验证密码
         $post['platform'] = 3; // 固定平台代码
         $post['type'] = 'xc';
-        $post['authcode'] = md5('xc' . $user_info['member_id']); // 取不易识别的值
-        $post['telephone'] =  $user_info['member_name'];
-        $user_info = $user_model->loginBinding($post);
-        if ($user_info['errorcode'] !== 0) {
-            return $user_info;
+        $post['authcode'] = md5('xc' . $userInfo['member_id']); // 取不易识别的值
+        $post['telephone'] =  $userInfo['member_name'];
+        $userInfo = $userModel->loginBinding($post);
+        if ($userInfo['errorcode'] !== 0) {
+            return $userInfo;
         }
-        $user_info = $user_info['data'];
+        $userInfo = $userInfo['data'];
 
         // 登录成功
-        $loginret = $user_model->setloginstatus($user_info['uid'], uniqid(), [
+        $loginret = $userModel->setloginstatus($userInfo['uid'], uniqid(), [
             'clienttype' => 'cm'
         ]);
         if ($loginret['errorcode'] !== 0) {
             return $loginret;
         }
-        $user_info['token'] = $loginret['data'];
+        $userInfo['token'] = $loginret['data']['token'];
 
-        return success($user_info);
+        return success($userInfo);
     }
 
     /**
@@ -408,41 +408,41 @@ class XicheModel extends Crud {
         }
 
         // 加载模型
-        $user_model = new \models\UserModel();
+        $userModel = new \models\UserModel();
 
         // 获取用户
-        $user_info = $user_model->getUserInfoCondition([
+        $userInfo = $userModel->getUserInfoCondition([
             'member_name'=> $post['telephone']
         ], 'member_id, member_name, member_passwd');
 
         if ($post['password']) {
             // 密码验证
-            if (!$user_info) {
+            if (!$userInfo) {
                 return error('用户名或密码错误！');
             }
-            if ($user_info['member_passwd'] != md5(md5($post['password']))) {
+            if ($userInfo['member_passwd'] != md5(md5($post['password']))) {
                 return error('用户名或密码错误！');
             }
         }
         if ($post['msgcode']) {
             // 短信验证
-            if (!$user_model->checkSmsCode($post['telephone'], $post['msgcode'])) {
+            if (!$userModel->checkSmsCode($post['telephone'], $post['msgcode'])) {
                 return error('验证码错误！');
             }
         }
 
         // 注册新用户
-        if (empty($user_info)) {
-            $uid = $user_model->regCm($post);
+        if (empty($userInfo)) {
+            $uid = $userModel->regCm($post);
             if (!$uid) {
                 return error('注册失败');
             }
-            $user_info['member_id'] = $uid;
+            $userInfo['member_id'] = $uid;
         }
 
         // 限制重复绑定微信
         if ($post['__authcode']) {
-            if ($this->getWxOpenid($user_info['member_id'])) {
+            if ($this->getWxOpenid($userInfo['member_id'])) {
                 return error('该手机号已绑定，请先解绑或填写其他手机号');
             }
         }
@@ -450,24 +450,24 @@ class XicheModel extends Crud {
         // 执行绑定
         $post['platform'] = 3; // 固定平台代码
         $post['type'] = 'xc';
-        $post['authcode'] = md5('xc' . $user_info['member_id']); // 取不易识别的值
-        $user_info = $user_model->loginBinding($post);
-        if ($user_info['errorcode'] !== 0) {
-            return $user_info;
+        $post['authcode'] = md5('xc' . $userInfo['member_id']); // 取不易识别的值
+        $userInfo = $userModel->loginBinding($post);
+        if ($userInfo['errorcode'] !== 0) {
+            return $userInfo;
         }
-        $user_info = $user_info['data'];
+        $userInfo = $userInfo['data'];
 
         // 登录成功
-        $loginret = $user_model->setloginstatus($user_info['uid'], uniqid());
+        $loginret = $userModel->setloginstatus($userInfo['uid'], uniqid());
         if ($loginret['errorcode'] !== 0) {
             return $loginret;
         }
-        $user_info['token'] = $loginret['message'];
+        $userInfo['token'] = $loginret['data']['token'];
 
         // 绑定微信
-        $this->bindingLogin($post['__authcode'], $user_info['uid']);
+        $this->bindingLogin($post['__authcode'], $userInfo['uid']);
 
-        return success($user_info);
+        return success($userInfo);
     }
 
     /**
@@ -501,9 +501,9 @@ class XicheModel extends Crud {
         }
 
         // 限制多人同时进入
-        $cache_val = \library\Cache::getInstance(['type' => 'file'])->get('devcode' . $deviceInfo['devcode']);
-        if ($cache_val) {
-            if ($cache_val != $uid) {
+        $cacheVal = \library\Cache::getInstance(['type' => 'file'])->get('devcode' . $deviceInfo['devcode']);
+        if ($cacheVal) {
+            if ($cacheVal != $uid) {
                 return error('此设备其他人正在使用中，请稍后再试！');
             }
         }
@@ -529,19 +529,25 @@ class XicheModel extends Crud {
             $totalPrice = $deviceInfo['price'];
         }
 
-        // 订单号
-        $ordercode = $this->generateOrderCode();
+        // 生成订单号
+        $orderCode = $this->generateOrderCode();
 
         // 防止重复扣费
         if ($lastTradeInfo = $this->getDb()->table('__tablepre__payments')
             ->field('id,createtime,payway')
-            ->where('trade_id = ' . $uid . ' and pay = ' . $totalPrice . ' and money = ' . $deviceInfo['price'] . ' and param_id = "' . $deviceInfo['id'] . '" and status = 0')
+            ->where([
+                'status' => 0,
+                'trade_id' => $uid,
+                'param_id' => $deviceInfo['id'],
+                'pay' => $totalPrice,
+                'money' => $deviceInfo['price']
+            ])
             ->limit(1)
             ->find()) {
+            // 支付方式改变或超时后更新订单号
             if ($lastTradeInfo['payway'] != $payway || strtotime($lastTradeInfo['createtime']) < TIMESTAMP - 600) {
-                // 支付方式改变或 10 分钟后更新订单号
                 if (false === $this->getDb()->update('__tablepre__payments', [
-                        'ordercode' => $ordercode,
+                        'ordercode' => $orderCode,
                         'createtime' => date('Y-m-d H:i:s', TIMESTAMP)
                     ], 'id = ' . $lastTradeInfo['id'])) {
                     return error('更新订单失败');
@@ -552,6 +558,7 @@ class XicheModel extends Crud {
             ]);
         }
 
+        // 新增交易单
         if (!$this->getDb()->insert('__tablepre__payments', [
             'type' => 'xc',
             'uses' => concat('自助洗车-', $deviceInfo['areaname']),
@@ -559,58 +566,93 @@ class XicheModel extends Crud {
             'param_id' => $deviceInfo['id'],
             'pay' => $totalPrice,
             'money' => $deviceInfo['price'],
-            'ordercode' => $ordercode,
+            'payway' => $payway == 'cbpay' ? $payway : '',
+            'ordercode' => $orderCode,
             'createtime' => date('Y-m-d H:i:s', TIMESTAMP)
         ])) {
             return error('交易失败');
         }
 
+        // 获取新增交易单ID
         $cardId = $this->getDb()->getlastid();
 
-        // 余额大于支付金额，直接扣除账户余额，支付成功
-        if ($totalPrice === 0) {
-            $ret = $userModel->consume([
+        // 车币支付，直接扣除账户余额，支付成功
+        if ($payway == 'cbpay') {
+            // 支付车币
+            $result = $userModel->consume([
                 'platform' => 3,
                 'authcode' => md5('xc' . $uid),
-                'trade_no' => $ordercode,
+                'trade_no' => $orderCode,
                 'money' => $deviceInfo['price'],
                 'remark' => '支付自助洗车费'
             ]);
-            if ($ret['errorcode'] !== 0) {
-                // 回滚交易表
+            if ($result['errorcode'] !== 0) {
+                // 支付失败，回滚交易表
                 $this->getDb()->delete('__tablepre__payments', 'id = ' . $cardId);
-                return $ret;
+                return $result;
             }
-            // 余额消费成功
-            if (!$this->getDb()->update('__tablepre__payments', [
-                'paytime' => date('Y-m-d H:i:s', TIMESTAMP),
-                'status' => 1
-            ], 'id = ' . $cardId)) {
-                return error('交易失败，请重试');
-            }
-            // 更新设备使用中
-            if (!$this->updateDevUse($cardId, $deviceInfo['id'])) {
-                return error('更新设备失败，请重试');
-            }
-            // 保存订单到洗车机
-            $ret = $this->XiCheCOrder($deviceInfo['devcode'], $ordercode, $deviceInfo['price']);
-            if ($ret['errorcode'] !== 0) {
-                // 记录日志
-                $this->log('COrder', [
-                    'name' => concat('账户成功扣费', round_dollar($deviceInfo['price']), '元,保存订单到洗车机异常'),
-                    'uid' => $uid,
-                    'orderno' => $ordercode,
-                    'devcode' => $deviceInfo['devcode'],
-                    'content' => [
-                        'result' => $ret
-                    ]
-                ]);
+            // 车币消费成功
+            $result = $this->handleCardSuc($cardId);
+            if ($result['errorcode'] !== 0) {
+                return $result;
             }
         }
 
         return success([
             'tradeid' => $cardId
         ]);
+    }
+
+    /**
+     * 交易成功的后续处理
+     * @param $cardId 交易单ID
+     * @param $tradeParam 交易单更新数据
+     * @return array
+     */
+    public function handleCardSuc ($cardId, $tradeParam = []) {
+
+        if (!$tradeInfo = $this->getDb()->table('__tablepre__payments')
+            ->field('id,trade_id,param_id,param_a,pay,money,ordercode')
+            ->where(['id' => $cardId])
+            ->limit(1)
+            ->find()) {
+            return error('交易单不存在');
+        }
+
+        // 更新交易单状态
+        $tradeParam = array_merge($tradeParam, [
+            'paytime' => date('Y-m-d H:i:s', TIMESTAMP),
+            'status' => 1
+        ]);
+        if (!$this->getDb()->update('__tablepre__payments', $tradeParam, [
+            'id' => $cardId, 'status' => 0
+        ])) {
+            return error('更新交易失败');
+        }
+
+        // 更新设备使用中
+        $this->updateDevUse($tradeInfo['id'], $tradeInfo['param_id']);
+
+        // 获取设备
+        $deviceInfo = $this->getDeviceById($tradeInfo['param_id']);
+
+        // 保存订单到洗车机
+        $result = $this->XiCheCOrder($deviceInfo['devcode'], $tradeInfo['ordercode'], $tradeInfo['money']);
+        if ($result['errorcode'] !== 0) {
+            // 记录日志
+            $this->log('COrder', [
+                'name' => concat('用户支付', round_dollar($tradeInfo['money']), '元,保存订单到洗车机异常'),
+                'uid' => $tradeInfo['trade_id'],
+                'orderno' => $tradeInfo['ordercode'],
+                'devcode' => $deviceInfo['devcode'],
+                'content' => [
+                    'trade' => $tradeInfo,
+                    'result' => $result
+                ]
+            ]);
+        }
+
+        return success('OK');
     }
 
     /**
@@ -621,14 +663,14 @@ class XicheModel extends Crud {
             return [];
         }
 
-        $ret = $this->getDb()
+        $result = $this->getDb()
             ->table('__tablepre__xiche_login')
             ->field('uid')
             ->where('authcode = ?')
             ->bindValue($post['authcode'])
             ->find();
 
-        if (!$ret) {
+        if (!$result) {
             // 创建空绑定
             if (!$this->getDb()->insert('__tablepre__xiche_login', [
                 'uid' => 0,
@@ -642,13 +684,13 @@ class XicheModel extends Crud {
         } else {
             // 登录
             $userModel = new UserModel();
-            $loginret = $userModel->setloginstatus($ret['uid'], uniqid());
+            $loginret = $userModel->setloginstatus($result['uid'], uniqid());
             if ($loginret['errorcode'] !== 0) {
                 return [];
             }
         }
 
-        return $ret;
+        return $result;
     }
 
     /**
@@ -722,17 +764,17 @@ class XicheModel extends Crud {
      * 获取保存到洗车机的错误日志
      */
     public function getErrorLog ($order_no, $type = 'COrder') {
-        $log_info = $this->getDb()
+        $logInfo = $this->getDb()
             ->table('__tablepre__xiche_log')
             ->field('id,devcode')
             ->where('orderno = ? and type = ? and updated_at is null')
             ->bindValue($order_no, $type)
             ->find();
-        if (!$log_info) {
+        if (!$logInfo) {
             return null;
         }
 
-        return $log_info;
+        return $logInfo;
     }
 
     /**

@@ -135,6 +135,7 @@ class DbMysql extends Db {
     /**
      * 解析__TableName__为TablePre_TableName
      * @param $sql sql语句
+     * @return string
      */
     private function parseTableName ($query)
     {
@@ -286,15 +287,15 @@ class DbMysql extends Db {
         if (!$this->beginTrans()) {
             return false;
         }
-        $ret = $callback($this);
-        if (false !== $ret) {
+        $result = $callback($this);
+        if (false !== $result) {
             if (!$this->commitTrans()) {
                 return false;
             }
         } else {
             $this->rollBackTrans();
         }
-        return $ret;
+        return $result;
     }
 
     /**
@@ -310,15 +311,15 @@ class DbMysql extends Db {
      */
     private function error ($errorInfo = null)
     {
-        $error_info = $errorInfo ? $errorInfo : $this->_db->errorInfo();
-        if ($error_info[0] != '00000') {
-            $last_error = [
+        $errorInfo = $errorInfo ? $errorInfo : $this->_db->errorInfo();
+        if ($errorInfo[0] != '00000') {
+            $lastError = [
                 end($this->_fetchSql),
-                implode(',', $error_info)
+                implode(',', $errorInfo)
             ];
-            $this->_errorInfo[] = $last_error[0];
-            $this->_errorInfo[] = $last_error[1];
-            return $last_error;
+            $this->_errorInfo[] = $lastError[0];
+            $this->_errorInfo[] = $lastError[1];
+            return $lastError;
         }
         return null;
     }

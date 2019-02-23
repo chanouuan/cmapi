@@ -35,16 +35,16 @@ class XicheManageModel extends Crud {
      */
     public function getDevArea () {
         try {
-            $area_list = https_request('http://xicheba.net/chemi/API/Handler/GetAreaList', [
+            $areaList = https_request('http://xicheba.net/chemi/API/Handler/GetAreaList', [
                 'apiKey' => getConfig('xc', 'apikey')
             ]);
         } catch (\Exception $e) {
             return error($e->getMessage());
         }
-        if (!$area_list['result']) {
-            return error($area_list['messages']);
+        if (!$areaList['result']) {
+            return error($areaList['messages']);
         }
-        return success($area_list['data']);
+        return success($areaList['data']);
     }
 
     /**
@@ -58,40 +58,40 @@ class XicheManageModel extends Crud {
 
         // 获取设备列表
         try {
-            $device_list = https_request('http://xicheba.net/chemi/API/Handler/DevList', [
+            $deviceList = https_request('http://xicheba.net/chemi/API/Handler/DevList', [
                 'apiKey' => getConfig('xc', 'apikey')
             ]);
         } catch (\Exception $e) {
             return error($e->getMessage());
         }
-        if (!$device_list['result']) {
-            return error($device_list['messages']);
+        if (!$deviceList['result']) {
+            return error($deviceList['messages']);
         }
-        $device_list = $device_list['data'];
+        $deviceList = $deviceList['data'];
 
-        $device_list = array_filter($device_list, function($v) use($AreaId){
+        $deviceList = array_filter($deviceList, function($v) use($AreaId){
             return $v['AreaId'] == $AreaId;
         });
 
         // 获取设备参数
         try {
-            $device_param = https_request('http://xicheba.net/chemi/API/Handler/DevParam', [
+            $deviceParam = https_request('http://xicheba.net/chemi/API/Handler/DevParam', [
                 'apiKey' => getConfig('xc', 'apikey'),
                 'AreaId' => $AreaId
             ]);
         } catch (\Exception $e) {
             return error($e->getMessage());
         }
-        if (!$device_param['result']) {
-            return error($device_param['messages']);
+        if (!$deviceParam['result']) {
+            return error($deviceParam['messages']);
         }
-        $device_param = $device_param['data'];
+        $deviceParam = $deviceParam['data'];
 
-        foreach ($device_list as $k => $v) {
-            $device_list[$k]['AreaName'] = $device_param['AreaName'];
-            $device_list[$k]['Price'] = $device_param['Price'];
+        foreach ($deviceList as $k => $v) {
+            $deviceList[$k]['AreaName'] = $deviceParam['AreaName'];
+            $deviceList[$k]['Price'] = $deviceParam['Price'];
         }
-        return success($device_list);
+        return success($deviceList);
     }
 
     /**
@@ -134,40 +134,40 @@ class XicheManageModel extends Crud {
 
         // 获取设备信息
         try {
-            $device_info = https_request('http://xicheba.net/chemi/API/Handler/DeviceOne', [
+            $deviceInfo = https_request('http://xicheba.net/chemi/API/Handler/DeviceOne', [
                 'apiKey' => getConfig('xc', 'apikey'),
                 'DevCode' => $post['devcode']
             ]);
         } catch (\Exception $e) {
             return error($e->getMessage());
         }
-        if (!$device_info['result']) {
-            return error($device_info['messages']);
+        if (!$deviceInfo['result']) {
+            return error($deviceInfo['messages']);
         }
-        $device_info = $device_info['data'];
+        $deviceInfo = $deviceInfo['data'];
 
         // 获取设备参数
         try {
-            $device_param = https_request('http://xicheba.net/chemi/API/Handler/DevParam', [
+            $deviceParam = https_request('http://xicheba.net/chemi/API/Handler/DevParam', [
                 'apiKey' => getConfig('xc', 'apikey'),
-                'AreaId' => $device_info['AreaId']
+                'AreaId' => $deviceInfo['AreaId']
             ]);
         } catch (\Exception $e) {
             return error($e->getMessage());
         }
-        if (!$device_param['result']) {
-            return error($device_param['messages']);
+        if (!$deviceParam['result']) {
+            return error($deviceParam['messages']);
         }
-        $device_param = $device_param['data'];
+        $deviceParam = $deviceParam['data'];
 
         if (!$this->getDb()->update('__tablepre__xiche_device', [
-            'isonline' => $device_info['IsOnline'],
-            'usestate' => $device_info['UseState'],
+            'isonline' => $deviceInfo['IsOnline'],
+            'usestate' => $deviceInfo['UseState'],
             'updated_at' => date('Y-m-d H:i:s', TIMESTAMP),
-            'areaid' => $device_param['AreaID'],
-            'areaname' => $device_param['AreaName'],
-            'price' => $device_param['Price'] * 100,
-            'parameters' => json_unicode_encode($device_param)
+            'areaid' => $deviceParam['AreaID'],
+            'areaname' => $deviceParam['AreaName'],
+            'price' => $deviceParam['Price'] * 100,
+            'parameters' => json_unicode_encode($deviceParam)
         ], ['devcode' => $post['devcode']])) {
             return error('同步设备参数失败');
         }
@@ -192,42 +192,42 @@ class XicheManageModel extends Crud {
 
         // 获取设备信息
         try {
-            $device_info = https_request('http://xicheba.net/chemi/API/Handler/DeviceOne', [
+            $deviceInfo = https_request('http://xicheba.net/chemi/API/Handler/DeviceOne', [
                 'apiKey' => getConfig('xc', 'apikey'),
                 'DevCode' => $post['devcode']
             ]);
         } catch (\Exception $e) {
             return error($e->getMessage());
         }
-        if (!$device_info['result']) {
-            return error($device_info['messages']);
+        if (!$deviceInfo['result']) {
+            return error($deviceInfo['messages']);
         }
-        $device_info = $device_info['data'];
+        $deviceInfo = $deviceInfo['data'];
 
         // 获取设备参数
         try {
-            $device_param = https_request('http://xicheba.net/chemi/API/Handler/DevParam', [
+            $deviceParam = https_request('http://xicheba.net/chemi/API/Handler/DevParam', [
                 'apiKey' => getConfig('xc', 'apikey'),
-                'AreaId' => $device_info['AreaId']
+                'AreaId' => $deviceInfo['AreaId']
             ]);
         } catch (\Exception $e) {
             return error($e->getMessage());
         }
-        if (!$device_param['result']) {
-            return error($device_param['messages']);
+        if (!$deviceParam['result']) {
+            return error($deviceParam['messages']);
         }
-        $device_param = $device_param['data'];
+        $deviceParam = $deviceParam['data'];
 
         if (!$this->getDb()->insert('__tablepre__xiche_device', [
             'devcode' => $post['devcode'],
-            'isonline' => $device_info['IsOnline'],
-            'usestate' => $device_info['UseState'],
+            'isonline' => $deviceInfo['IsOnline'],
+            'usestate' => $deviceInfo['UseState'],
             'created_at' => date('Y-m-d H:i:s', TIMESTAMP),
             'updated_at' => date('Y-m-d H:i:s', TIMESTAMP),
-            'areaid' => $device_param['AreaID'],
-            'areaname' => $device_param['AreaName'],
-            'price' => $device_param['Price'] * 100,
-            'parameters' => json_unicode_encode($device_param)
+            'areaid' => $deviceParam['AreaID'],
+            'areaname' => $deviceParam['AreaName'],
+            'price' => $deviceParam['Price'] * 100,
+            'parameters' => json_unicode_encode($deviceParam)
         ])) {
             return error('添加设备失败');
         }

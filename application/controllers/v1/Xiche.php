@@ -11,8 +11,8 @@ class Xiche extends \ActionPDO {
      */
     public function ReportStatus () {
         $model = new XicheModel();
-        $ret = $model->ReportStatus();
-        if ($ret['errorcode'] !== 0) {
+        $result = $model->ReportStatus();
+        if ($result['errorcode'] !== 0) {
             // 日志
             $model->log($this->_action, [
                 'name' => '洗车机状态上报异常(ReportStatus)',
@@ -20,12 +20,12 @@ class Xiche extends \ActionPDO {
                 'content' => [
                     'get' => $_GET,
                     'post' => $_POST,
-                    'result' => $ret
+                    'result' => $result
                 ]
             ]);
-            $this->showMessage($ret['message']);
+            $this->showMessage($result['message']);
         }
-        $this->showMessage($ret['message'], true, $ret['data']);
+        $this->showMessage($result['message'], true, $result['data']);
     }
 
     /**
@@ -33,8 +33,8 @@ class Xiche extends \ActionPDO {
      */
     public function BeginService () {
         $model = new XicheModel();
-        $ret = $model->BeginService();
-        if ($ret['errorcode'] !== 0) {
+        $result = $model->BeginService();
+        if ($result['errorcode'] !== 0) {
             // 日志
             $model->log($this->_action, [
                 'name' => '机器启动通知异常(BeginService)',
@@ -43,12 +43,12 @@ class Xiche extends \ActionPDO {
                 'content' => [
                     'get' => $_GET,
                     'post' => $_POST,
-                    'result' => $ret
+                    'result' => $result
                 ]
             ]);
-            $this->showMessage($ret['message']);
+            $this->showMessage($result['message']);
         }
-        $this->showMessage($ret['message'], true, $ret['data']);
+        $this->showMessage($result['message'], true, $result['data']);
     }
 
     /**
@@ -56,8 +56,8 @@ class Xiche extends \ActionPDO {
      */
     public function FinishService () {
         $model = new XicheModel();
-        $ret = $model->FinishService();
-        if ($ret['errorcode'] !== 0) {
+        $result = $model->FinishService();
+        if ($result['errorcode'] !== 0) {
             // 日志
             $model->log($this->_action, [
                 'name' => '洗车结束通知异常(FinishService)',
@@ -66,12 +66,12 @@ class Xiche extends \ActionPDO {
                 'content' => [
                     'get' => $_GET,
                     'post' => $_POST,
-                    'result' => $ret
+                    'result' => $result
                 ]
             ]);
-            $this->showMessage($ret['message']);
+            $this->showMessage($result['message']);
         }
-        $this->showMessage($ret['message'], true, $ret['data']);
+        $this->showMessage($result['message'], true, $result['data']);
     }
 
     /**
@@ -114,9 +114,9 @@ class Xiche extends \ActionPDO {
             }
         }
 
-        $ret = $model->checkDevcode(getgpc('devcode'));
-        if ($ret['errorcode'] !== 0) {
-            $this->error($ret['message'], null);
+        $result = $model->checkDevcode(getgpc('devcode'));
+        if ($result['errorcode'] !== 0) {
+            $this->error($result['message'], null);
         }
 
         // vue
@@ -295,12 +295,12 @@ class Xiche extends \ActionPDO {
             $info['dev_status'] = '启动成功'; // 设备启动状态
             if ($log) {
                 // 重新发起请求
-                $ret = $xicheModel->XiCheCOrder($log['devcode'], $info['ordercode'], $info['money']);
-                if ($ret['errorcode'] === 0) {
+                $result = $xicheModel->XiCheCOrder($log['devcode'], $info['ordercode'], $info['money']);
+                if ($result['errorcode'] === 0) {
                     // 请求成功
                     $xicheModel->updateErrorLog($log['id']);
                 } else {
-                    $info['dev_status'] = concat('<span style="color:#E64340;">', $ret['data']['result'], '<br/>设备启动异常，请点击连接设备</span>');
+                    $info['dev_status'] = concat('<span style="color:#E64340;">', $result['data']['result'], '<br/>设备启动异常，请点击连接设备</span>');
                 }
             }
         }

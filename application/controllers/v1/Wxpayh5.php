@@ -36,10 +36,10 @@ class Wxpayh5 extends \ActionPDO {
 
         $model = new TradeModel();
 
-        if (!$trade_info = $model->get($tradeid, 'status = 0', 'type,trade_id,pay,ordercode,uses')) {
+        if (!$tradeInfo = $model->get($tradeid, 'status = 0', 'type,trade_id,pay,ordercode,uses')) {
             $this->error('交易单不存在');
         }
-        if ($trade_info['pay'] <= 0) {
+        if ($tradeInfo['pay'] <= 0) {
             $this->error('交易金额错误');
         }
 
@@ -51,15 +51,15 @@ class Wxpayh5 extends \ActionPDO {
 
         // 使用统一支付接口，获取prepay_id
         $unifiedOrder = new \UnifiedOrder_pub();
-        $unifiedOrder->setParameter('body', $trade_info['uses']);
-        $unifiedOrder->setParameter('out_trade_no', $trade_info['ordercode']);
-        $unifiedOrder->setParameter('total_fee', $trade_info['pay']);
+        $unifiedOrder->setParameter('body', $tradeInfo['uses']);
+        $unifiedOrder->setParameter('out_trade_no', $tradeInfo['ordercode']);
+        $unifiedOrder->setParameter('total_fee', $tradeInfo['pay']);
         $unifiedOrder->setParameter('notify_url', NOTIFY_URL);
         $unifiedOrder->setParameter('trade_type', 'MWEB');
         $unifiedOrder->setParameter('scene_info', json_encode([
             'h5_info' => [
                 'type' => 'Wap',
-                'wap_url' => APPLICATION_URL,
+                'wap_url' => $_SERVER['REQUEST_SCHEME'], '://', $_SERVER['HTTP_HOST'],
                 'wap_name' => '自助洗车'
             ]
         ]));
@@ -140,13 +140,13 @@ class Wxpayh5 extends \ActionPDO {
     {
         $tradeid = intval(getgpc('tradeid'));
         $model = new TradeModel();
-        if (!$trade_info = $model->get($tradeid, 'payway = "' . strtolower($this->_module) . '"', 'ordercode')) {
+        if (!$tradeInfo = $model->get($tradeid, 'payway = "' . strtolower($this->_module) . '"', 'ordercode')) {
             $this->error('交易单不存在');
         }
         // 使用订单查询接口
         $orderQuery = new \OrderQuery_pub();
         // 设置必填参数
-        $orderQuery->setParameter('out_trade_no', $trade_info['ordercode']);
+        $orderQuery->setParameter('out_trade_no', $tradeInfo['ordercode']);
         // 获取订单查询结果
         if (!$orderQueryResult = $orderQuery->getResult()) {
             $this->error('查询失败');

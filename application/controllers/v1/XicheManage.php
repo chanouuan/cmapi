@@ -23,12 +23,12 @@ class XicheManage extends \ActionPDO {
     }
 
     public function index () {
-        $user_list = (new \models\UserModel())->getUserByBinding([
+        $userList = (new \models\UserModel())->getUserByBinding([
             'platform = 3',
             'uid = ' . $this->_G['user']['uid']
         ]);
-        if ($user_list) {
-            $this->_G['user']['telephone'] = $user_list[0]['tel'];
+        if ($userList) {
+            $this->_G['user']['telephone'] = $userList[0]['tel'];
         }
         return [
             'user_info' => $this->_G['user']
@@ -50,9 +50,9 @@ class XicheManage extends \ActionPDO {
             return (new XicheManageModel())->deviceUpdate($_POST);
         }
 
-        $device_info = (new XicheManageModel())->getDeviceByCode(getgpc('devcode'));
+        $deviceInfo = (new XicheManageModel())->getDeviceByCode(getgpc('devcode'));
 
-        return compact('device_info');
+        return ['device_info' => $deviceInfo];
     }
 
     /**
@@ -63,13 +63,13 @@ class XicheManage extends \ActionPDO {
             return (new XicheManageModel())->deviceAdd($_POST);
         }
 
-        $area_list = (new XicheManageModel())->getDevArea();
-        if ($area_list['errorcode'] !== 0) {
-            $this->error($area_list['message']);
+        $areaList = (new XicheManageModel())->getDevArea();
+        if ($areaList['errorcode'] !== 0) {
+            $this->error($areaList['message']);
         }
-        $area_list = $area_list['data'];
+        $areaList = $areaList['data'];
 
-        return compact('area_list');
+        return ['area_list' => $areaList];
     }
 
     /**
@@ -84,12 +84,12 @@ class XicheManage extends \ActionPDO {
      */
     public function deviceParamInfo () {
         $modle = new XicheManageModel();
-        if (!$dev_info = $modle->getDeviceById(getgpc('id'))) {
+        if (!$devInfo = $modle->getDeviceById(getgpc('id'))) {
             return error('参数错误');
         }
 
         $this->render('XicheManage/view.html', [
-            'parameters' => print_r(json_decode($dev_info['parameters'],true),true)
+            'parameters' => print_r(json_decode($devInfo['parameters'],true),true)
         ]);
     }
 
@@ -134,18 +134,18 @@ class XicheManage extends \ActionPDO {
         $userModel = new \models\UserModel();
 
         if ($_GET['telephone']) {
-            $user_list = $userModel->getUserByBinding([
+            $userList = $userModel->getUserByBinding([
                 'platform = 3',
                 'tel = "' . addslashes($_GET['telephone']) . '"'
             ]);
-            if ($user_list) {
-                $condition[] = 'trade_id = ' . $user_list[0]['uid'];
+            if ($userList) {
+                $condition[] = 'trade_id = ' . $userList[0]['uid'];
             }
         }
         if ($_GET['devcode']) {
-            $device_info = $modle->getDeviceByCode($_GET['devcode']);
-            if ($device_info) {
-                $condition[] = 'param_id = ' . $device_info['id'];
+            $deviceInfo = $modle->getDeviceByCode($_GET['devcode']);
+            if ($deviceInfo) {
+                $condition[] = 'param_id = ' . $deviceInfo['id'];
             }
         }
 
@@ -158,16 +158,16 @@ class XicheManage extends \ActionPDO {
                 0 => '未支付',
                 1 => '已付款'
             ];
-            $dev_list = $modle->getDeviceById(array_column($list, 'param_id'));
-            $dev_list = array_column($dev_list, 'devcode', 'id');
-            $user_list = $userModel->getUserByBinding([
+            $devList = $modle->getDeviceById(array_column($list, 'param_id'));
+            $devList = array_column($devList, 'devcode', 'id');
+            $userList = $userModel->getUserByBinding([
                 'platform = 3',
                 'uid in (' . implode(',', array_column($list, 'trade_id')) . ')'
             ]);
-            $user_list = array_column($user_list, 'tel', 'uid');
+            $userList = array_column($userList, 'tel', 'uid');
             foreach ($list as $k => $v) {
-                $list[$k]['devcode'] = isset($dev_list[$v['param_id']]) ? $dev_list[$v['param_id']] : '';
-                $list[$k]['uname'] = isset($user_list[$v['trade_id']]) ? $user_list[$v['trade_id']] : '';
+                $list[$k]['devcode'] = isset($devList[$v['param_id']]) ? $devList[$v['param_id']] : '';
+                $list[$k]['uname'] = isset($userList[$v['trade_id']]) ? $userList[$v['trade_id']] : '';
                 $list[$k]['paystatus'] = $paystatus[$v['status']];
                 $list[$k]['param_a'] = $v['param_a'] ? date('Y-m-d H:i:s', $v['param_a']) : '';
                 $list[$k]['param_b'] = $v['param_b'] ? date('Y-m-d H:i:s', $v['param_b']) : '';
@@ -187,12 +187,12 @@ class XicheManage extends \ActionPDO {
      */
     public function logInfo () {
         $modle = new XicheManageModel();
-        if (!$log_info = $modle->getLogInfo(getgpc('id'))) {
+        if (!$logInfo = $modle->getLogInfo(getgpc('id'))) {
             return error('参数错误');
         }
 
         $this->render('XicheManage/view.html', [
-            'parameters' => print_r(json_decode($log_info['content'],true),true)
+            'parameters' => print_r(json_decode($logInfo['content'],true),true)
         ]);
     }
 

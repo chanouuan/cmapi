@@ -479,14 +479,14 @@ class CacheRedis extends Cache {
         list ($hash, $key) = $this->getHash($key);
         try {
             if ($expire > 0) {
-                $ret = $this->getDrive($hash)->setex($key, $expire, $value);
+                $result = $this->getDrive($hash)->setex($key, $expire, $value);
             } else {
-                $ret = $this->getDrive($hash)->set($key, $value);
+                $result = $this->getDrive($hash)->set($key, $value);
             }
         } catch (\RedisException $e) {
             return false;
         }
-        return $ret;
+        return $result;
     }
 
     /**
@@ -548,20 +548,20 @@ class CacheRedis extends Cache {
                 'zset', 
                 'hash'
         );
-        $ret = array();
+        $result = array();
         foreach ($this->options['server'] as $k => $v) {
             $_drive = $this->getDrive($v, true);
             try {
                 $val = $_drive->keys('*');
                 foreach ($val as $kk => $vv) {
-                    $ret[$v][$type[$_drive->type($vv)]][] = $vv;
+                    $result[$v][$type[$_drive->type($vv)]][] = $vv;
                 }
             } catch (\RedisException $e) {
-                $ret[$v] = $e->getMessage();
+                $result[$v] = $e->getMessage();
                 continue;
             }
         }
-        return $ret;
+        return $result;
     }
 
 }

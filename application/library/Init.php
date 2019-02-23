@@ -182,7 +182,7 @@ abstract class ActionPDO {
             return null;
         }
 
-        $doc_list = [];
+        $docList = [];
         foreach ($reflection->getMethods() as $k => $v) {
             if ($v->class !== 'ActionPDO') {
                 $method_doc = $reflection->getMethod($v->name)->getDocComment();
@@ -198,7 +198,7 @@ abstract class ActionPDO {
                             $doc[$key][] = $vv;
                         }
                     }
-                    $doc_list[] = $doc;
+                    $docList[] = $doc;
                 }
             }
 
@@ -211,7 +211,7 @@ abstract class ActionPDO {
             '@return' => '返回',
         ];
         $rs = [];
-        foreach ($doc_list as $k => $v) {
+        foreach ($docList as $k => $v) {
             foreach ($v as $kk => $vv) {
                 $title = isset($doc_name[$kk]) ? $doc_name[$kk] : $kk;
                 $rs[] = '<h2>' . $title . '</h2>';
