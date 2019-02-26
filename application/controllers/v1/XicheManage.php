@@ -149,7 +149,7 @@ class XicheManage extends \ActionPDO {
             }
         }
         if ($_GET['ordercode']) {
-            $condition[] = 'ordercode = "' . addslashes($_GET['ordercode']) . '"';
+            $condition[] = 'ordercode like "' . addslashes($_GET['ordercode']) . '%"';
         }
 
         $count = $modle->getCount('payments', $condition);
