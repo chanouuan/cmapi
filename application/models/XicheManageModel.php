@@ -9,12 +9,12 @@ class XicheManageModel extends Crud {
     /**
      * 获取设备列表
      */
-    public function getList ($table, $condition, $limit) {
+    public function getList ($table, $condition, $limit, $order = 'id desc') {
         return $this->getDb()
             ->table('__tablepre__' . $table)
             ->field('*')
             ->where($condition)
-            ->order('id desc')
+            ->order($order)
             ->limit($limit)
             ->select();
     }

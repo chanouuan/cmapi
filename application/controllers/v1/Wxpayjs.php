@@ -6,7 +6,6 @@
 namespace controllers;
 
 use models\TradeModel;
-use models\XicheModel;
 
 class Wxpayjs extends \ActionPDO {
 
@@ -51,7 +50,11 @@ class Wxpayjs extends \ActionPDO {
         ]);
 
         // 获取openid
-        $openid = (new XicheModel())->getWxOpenid($tradeInfo['trade_id']);
+        if ($tradeInfo['type'] == 'xc') {
+            $openid = (new \models\XicheModel())->getWxOpenid($tradeInfo['trade_id']);
+        } else if ($tradeInfo['type'] == 'bx') {
+            $openid = (new \models\BaoxianModel())->getWxOpenid($tradeInfo['trade_id']);
+        }
 
         // 使用统一支付接口，获取prepay_id
         $unifiedOrder = new \UnifiedOrder_pub();

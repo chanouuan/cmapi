@@ -115,17 +115,19 @@ class XicheModel extends Crud {
             }
 
             $param = [
-                'param_b' => TIMESTAMP,
-                'refundcode' => $this->generateOrderCode(),
-                'refundpay' => $Fee,
-                'refundtime' => date('Y-m-d H:i:s', TIMESTAMP)
+                'param_b' => TIMESTAMP
             ];
             if (!$tradeInfo['param_a']) {
                 // 如果订单没有启动时间，就用设备的更新时间
                 $param['param_a'] = strtotime($deviceInfo['updated_at']);
             }
+            if ($Fee > 0) {
+                $param['refundcode'] = $this->generateOrderCode();
+                $param['refundpay'] = $Fee;
+                $param['refundtime'] = date('Y-m-d H:i:s', TIMESTAMP);
+            }
 
-            if (!$this->getDb()->update('__tablepre__payments', $param, 'id = ' . $tradeInfo['id'] . ' and refundtime is null')) {
+            if (!$this->getDb()->update('__tablepre__payments', $param, 'id = ' . $tradeInfo['id'] . ' and param_b is null')) {
                 return error('更新订单失败');
             }
 

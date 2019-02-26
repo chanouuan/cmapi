@@ -3,7 +3,6 @@
 namespace controllers;
 
 use models\BaoxianModel;
-use models\XicheModel;
 use models\UserModel;
 
 /**
@@ -67,6 +66,16 @@ class Baoxian extends \ActionPDO {
     }
 
     /**
+     * 查询支付结果
+     */
+    public function payQuery () {
+        if (empty($this->_G['user'])) {
+            $this->error('用户校验失败', null);
+        }
+        return (new \models\TradeModel())->payQuery($this->_G['user']['uid'], getgpc('tradeid'));
+    }
+
+    /**
      * 获取车秘用户车辆信息
      */
     public function getUserCars () {
@@ -110,34 +119,31 @@ class Baoxian extends \ActionPDO {
     /**
      * 获取用户车辆信息和去年投保信息
      */
-    public function getreinfo()
-    {
+    public function getReinfo() {
         if (empty($this->_G['user'])) {
             $this->error('用户校验失败');
         }
-        return (new BaoxianModel())->getreinfo($this->_G['user']['uid'], $_POST);
+        return (new BaoxianModel())->getReinfo($this->_G['user']['uid'], $_POST);
     }
 
     /**
      * 请求报价/核保信息
      */
-    public function PostPrecisePrice()
-    {
+    public function postPrecisePrice() {
         if (empty($this->_G['user'])) {
             $this->error('用户校验失败');
         }
-        return (new BaoxianModel())->PostPrecisePrice($this->_G['user']['uid'], $_POST);
+        return (new BaoxianModel())->postPrecisePrice($this->_G['user']['uid'], $_POST);
     }
 
     /**
      * 获取车辆报价信息
      */
-    public function GetPrecisePrice()
-    {
+    public function getPrecisePrice() {
         if (empty($this->_G['user'])) {
             $this->error('用户校验失败');
         }
-        return (new BaoxianModel())->GetPrecisePrice($this->_G['user']['uid'], $_POST);
+        return (new BaoxianModel())->getPrecisePrice($this->_G['user']['uid'], $_POST);
     }
 
     /**
@@ -147,12 +153,6 @@ class Baoxian extends \ActionPDO {
         if (empty($this->_G['user'])) {
             $this->error('用户校验失败');
         }
-
-//        $_POST['money'] = 100;
-//        $_POST['voucher_id'] = 41524;
-//        $_POST['payway'] = 'cbpay';
-//        $_POST['LicenseNo'] = '贵A11111';
-//        $_POST['Source'] = 2;
         return (new BaoxianModel())->createCard($this->_G['user']['uid'], $_POST);
     }
 

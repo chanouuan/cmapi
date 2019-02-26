@@ -231,12 +231,11 @@ class BaoxianModel extends Crud {
     /**
      * 获取用户车辆信息和去年投保信息
      */
-    public function getreinfo($uid, $post)
-    {
+    public function getReinfo($uid, $post) {
         // 生成签名
         setSign($post);
         try {
-            $result = https_request($this->api_url . '/getreinfo', $post);
+            $result = https_request($this->api_url . '/getReinfo', $post);
         } catch (\Exception $e) {
             $this->error($e->getMessage());
         }
@@ -285,12 +284,12 @@ class BaoxianModel extends Crud {
      * @param HolderIdCard 投保人证件号
      * @return array {"2":"平安","4":"人保"}
      */
-    public function PostPrecisePrice($uid, $post)
+    public function postPrecisePrice($uid, $post)
     {
         // 生成签名
         setSign($post);
         try {
-            $result = https_request($this->api_url . '/PostPrecisePrice', $post);
+            $result = https_request($this->api_url . '/postPrecisePrice', $post);
         } catch (\Exception $e) {
             $this->error($e->getMessage());
         }
@@ -304,12 +303,12 @@ class BaoxianModel extends Crud {
      * @param Source 保司
      * @return array
      */
-    public function GetPrecisePrice($uid, $post)
+    public function getPrecisePrice($uid, $post)
     {
         // 生成签名
         setSign($post);
         try {
-            $result = https_request($this->api_url . '/GetPrecisePrice', $post);
+            $result = https_request($this->api_url . '/getPrecisePrice', $post);
         } catch (\Exception $e) {
             $this->error($e->getMessage());
         }
@@ -493,7 +492,7 @@ class BaoxianModel extends Crud {
     public function handleCardSuc ($cardId, $tradeParam = []) {
 
         if (!$tradeInfo = $this->getDb()->table('__tablepre__payments')
-            ->field('id,trade_id,param_id,param_a,pay,money,ordercode')
+            ->field('id,trade_id,param_id,param_a,pay,money,ordercode,payway')
             ->where(['id' => $cardId])
             ->limit(1)
             ->find()) {
@@ -526,7 +525,8 @@ class BaoxianModel extends Crud {
             $params = [
                 'orderid' => $tradeInfo['param_id'],
                 'uid' => $tradeInfo['trade_id'],
-                'pay' => $tradeInfo['money']
+                'pay' => $tradeInfo['money'],
+                'payway' => $tradeInfo['payway']
             ];
             // 生成签名
             setSign($params);
