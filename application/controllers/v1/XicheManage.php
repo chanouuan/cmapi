@@ -148,6 +148,9 @@ class XicheManage extends \ActionPDO {
                 $condition[] = 'param_id = ' . $deviceInfo['id'];
             }
         }
+        if ($_GET['ordercode']) {
+            $condition[] = 'ordercode = "' . addslashes($_GET['ordercode']) . '"';
+        }
 
         $count = $modle->getCount('payments', $condition);
         $pagesize = getPageParams($_GET['page'], $count);
