@@ -13,20 +13,59 @@ class BaoxianModel extends Crud {
      * 获取保险信息
      * @return array
      */
-    public function bxConfig () {
-        if (!$bxConfig = Cache::getInstance()->get('bxconfig')) {
+    public function getInsuranceConfig () {
+        if (!$insuranceConfig = Cache::getInstance()->get('InsuranceConfig')) {
             try {
-                $result = https_request($this->api_url . '/config');
+                $result = https_request($this->api_url . '/getInsuranceConfig');
             } catch (\Exception $e) {
                 return [];
             }
-            if ($result['errorcode'] !== 0) {
+            if ($result['errNo'] !== 0) {
                 return [];
             }
-            $bxConfig = $result['result'];
-            Cache::getInstance()->set('bxconfig', $bxConfig, 3600);
+            $insuranceConfig = $result['result'];
+            Cache::getInstance()->set('InsuranceConfig', $insuranceConfig, 3600);
         }
-        return $bxConfig;
+        return $insuranceConfig;
+    }
+
+    /**
+     * 获取投保城市
+     * @return array
+     */
+    public function getInsuranceCity () {
+        if (!$insuranceCity = Cache::getInstance()->get('InsuranceCity')) {
+            try {
+                $result = https_request($this->api_url . '/getInsuranceCity');
+            } catch (\Exception $e) {
+                return [];
+            }
+            if ($result['errNo'] !== 0) {
+                return [];
+            }
+            $insuranceCity = $result['result'];
+            Cache::getInstance()->set('InsuranceCity', $insuranceCity, 3600);
+        }
+        return $insuranceCity;
+    }
+
+    /**
+     * 获取险种
+     */
+    public function getInsuranceClass () {
+        if (!$insuranceClass = Cache::getInstance()->get('InsuranceClass')) {
+            try {
+                $result = https_request($this->api_url . '/getInsuranceClass');
+            } catch (\Exception $e) {
+                return [];
+            }
+            if ($result['errNo'] !== 0) {
+                return [];
+            }
+            $insuranceClass = $result['result'];
+            Cache::getInstance()->set('InsuranceClass', $insuranceClass, 3600);
+        }
+        return $insuranceClass;
     }
 
     /**
@@ -259,7 +298,7 @@ class BaoxianModel extends Crud {
             } catch (\Exception $e) {
                 return [];
             }
-            if ($result['errorcode'] !== 0) {
+            if ($result['errNo'] !== 0) {
                 return [];
             }
             $companyList = $result['result'];
@@ -402,7 +441,7 @@ class BaoxianModel extends Crud {
      * @param money 报价金额(元)
      * @param voucher_id 优惠劵
      * @param payway 支付方式 cbpay(车币) wxpay(微信)
-     * @return
+     * @return string
      */
     public function createCard ($uid, $post) {
 
@@ -484,7 +523,7 @@ class BaoxianModel extends Crud {
             'type' => 'bx',
             'uses' => '汽车保险',
             'trade_id' => $uid,
-            'param_a' => $post['voucher_id'],
+            'voucher_id' => $post['voucher_id'],
             'pay' => $totalPrice,
             'money' => $post['money'],
             'payway' => $post['payway'] == 'cbpay' ? $post['payway'] : '',
@@ -515,7 +554,7 @@ class BaoxianModel extends Crud {
             $this->getDb()->delete('__tablepre__payments', 'id = ' . $cardId);
             return error($e->getMessage());
         }
-        if ($orderResult['errorcode'] !== 0) {
+        if ($orderResult['errNo'] !== 0) {
             $this->getDb()->delete('__tablepre__payments', 'id = ' . $cardId);
             return $orderResult;
         }
@@ -571,7 +610,7 @@ class BaoxianModel extends Crud {
     public function handleCardSuc ($cardId, $tradeParam = []) {
 
         if (!$tradeInfo = $this->getDb()->table('__tablepre__payments')
-            ->field('id,trade_id,param_id,param_a,pay,money,ordercode,payway')
+            ->field('id,trade_id,param_id,voucher_id,pay,money,ordercode,payway')
             ->where(['id' => $cardId])
             ->limit(1)
             ->find()) {
@@ -593,8 +632,8 @@ class BaoxianModel extends Crud {
         $userModel = new \models\UserModel();
 
         // 使用优惠劵
-        if ($tradeInfo['param_a']) {
-            if (!$userModel->useVoucherInfo($tradeInfo['param_a'], $tradeInfo['money'] - $tradeInfo['pay'])) {
+        if ($tradeInfo['voucher_id']) {
+            if (!$userModel->useVoucherInfo($tradeInfo['voucher_id'], $tradeInfo['money'] - $tradeInfo['pay'])) {
                 return error('优惠劵已使用或无效');
             }
         }
@@ -613,7 +652,7 @@ class BaoxianModel extends Crud {
         } catch (\Exception $e) {
             return error($e->getMessage());
         }
-        if ($orderResult['errorcode'] !== 0) {
+        if ($orderResult['errNo'] !== 0) {
             return $orderResult;
         }
 

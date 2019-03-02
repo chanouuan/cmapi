@@ -25,13 +25,24 @@ class Baoxian extends \ActionPDO {
             ['id' => 1, 'title' => '标题1', 'url' => 'http://baidu.com']
         ];
         $model = new BaoxianModel();
-        $configList = $model->bxConfig();
-        // 投保城市
-        $citys = $configList['City'];
         // 合作保险公司
         $companies = $model->getCompanyList();
 
-        return success(compact('wheel', 'news', 'citys', 'companies'));
+        return success(compact('wheel', 'news', 'companies'));
+    }
+
+    /**
+     * 获取投保城市
+     */
+    public function getInsuranceCity () {
+        return success((new BaoxianModel())->getInsuranceCity());
+    }
+
+    /**
+     * 获取险种
+     */
+    public function getInsuranceClass () {
+        return success((new BaoxianModel())->getInsuranceClass());
     }
 
     /**
@@ -79,14 +90,12 @@ class Baoxian extends \ActionPDO {
      */
     public function getAuthCode () {
         if (empty($this->_G['user'])) {
-            $this->error('用户校验失败', null);
+            return error('用户校验失败');
         }
         if (!$authcode = (new BaoxianModel())->getAuthCode($this->_G['user']['uid'], 'wx')) {
-            $this->error('尚未绑定账号', null);
+            return error('尚未绑定账号');
         }
-        return [
-            'authcode' => $authcode
-        ];
+        return compact('authcode');
     }
 
     /**
@@ -94,17 +103,17 @@ class Baoxian extends \ActionPDO {
      */
     public function payQuery () {
         if (empty($this->_G['user'])) {
-            $this->error('用户校验失败', null);
+            return error('用户校验失败');
         }
         return (new \models\TradeModel())->payQuery($this->_G['user']['uid'], getgpc('tradeid'));
     }
 
     /**
-     * 获取车秘用户车辆信息
+     * 获取车秘用户车辆列表
      */
     public function getUserCars () {
         if (empty($this->_G['user'])) {
-            $this->error('用户校验失败');
+            return error('用户校验失败');
         }
         return (new UserModel())->getUserCars($this->_G['user']['uid']);
     }
@@ -114,7 +123,7 @@ class Baoxian extends \ActionPDO {
      */
     public function addUserCar () {
         if (empty($this->_G['user'])) {
-            $this->error('用户校验失败');
+            return error('用户校验失败');
         }
         return (new UserModel())->addUserCar($this->_G['user']['uid'], $_POST);
     }
@@ -124,7 +133,7 @@ class Baoxian extends \ActionPDO {
      */
     public function authUserCar () {
         if (empty($this->_G['user'])) {
-            $this->error('用户校验失败');
+            return error('用户校验失败');
         }
         return (new UserModel())->authUserCar($this->_G['user']['uid'], $_POST);
     }
@@ -134,7 +143,7 @@ class Baoxian extends \ActionPDO {
      */
     public function getCouponList () {
         if (empty($this->_G['user'])) {
-            $this->error('用户校验失败');
+            return error('用户校验失败');
         }
         $_POST['voucher_type'] = [0, 2]; // 通用，保险
         return (new UserModel())->getCouponList($this->_G['user']['uid'], $_POST);
@@ -145,7 +154,7 @@ class Baoxian extends \ActionPDO {
      */
     public function getReinfo() {
         if (empty($this->_G['user'])) {
-            $this->error('用户校验失败');
+            return error('用户校验失败');
         }
         return (new BaoxianModel())->getReinfo($this->_G['user']['uid'], $_POST);
     }
@@ -155,7 +164,7 @@ class Baoxian extends \ActionPDO {
      */
     public function postPrecisePrice() {
         if (empty($this->_G['user'])) {
-            $this->error('用户校验失败');
+            return error('用户校验失败');
         }
         return (new BaoxianModel())->postPrecisePrice($this->_G['user']['uid'], $_POST);
     }
@@ -165,7 +174,7 @@ class Baoxian extends \ActionPDO {
      */
     public function getPrecisePrice() {
         if (empty($this->_G['user'])) {
-            $this->error('用户校验失败');
+            return error('用户校验失败');
         }
         return (new BaoxianModel())->getPrecisePrice($this->_G['user']['uid'], $_POST);
     }
@@ -175,7 +184,7 @@ class Baoxian extends \ActionPDO {
      */
     public function postStockInfo () {
         if (empty($this->_G['user'])) {
-            $this->error('用户校验失败');
+            return error('用户校验失败');
         }
         return (new BaoxianModel())->postStockInfo($this->_G['user']['uid'], $_POST);
     }
@@ -185,7 +194,7 @@ class Baoxian extends \ActionPDO {
      */
     public function createCard () {
         if (empty($this->_G['user'])) {
-            $this->error('用户校验失败');
+            return error('用户校验失败');
         }
         return (new BaoxianModel())->createCard($this->_G['user']['uid'], $_POST);
     }
