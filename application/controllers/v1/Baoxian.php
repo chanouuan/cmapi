@@ -11,6 +11,30 @@ use models\UserModel;
 class Baoxian extends \ActionPDO {
 
     /**
+     * 首页显示
+     */
+    public function index () {
+        // 轮播图
+        $wheel = [
+            ['id' => 1, 'title' => '标题1', 'thumb' => 'http://h.hiphotos.baidu.com/image/pic/item/eaf81a4c510fd9f9f0427a96282dd42a2934a4f3.jpg', 'url' => 'http://baidu.com'],
+            ['id' => 2, 'title' => '标题2', 'thumb' => 'http://h.hiphotos.baidu.com/image/pic/item/eaf81a4c510fd9f9f0427a96282dd42a2934a4f3.jpg', 'url' => 'http://baidu.com'],
+            ['id' => 3, 'title' => '标题3', 'thumb' => 'http://h.hiphotos.baidu.com/image/pic/item/eaf81a4c510fd9f9f0427a96282dd42a2934a4f3.jpg', 'url' => 'http://baidu.com']
+        ];
+        // 快讯
+        $news = [
+            ['id' => 1, 'title' => '标题1', 'url' => 'http://baidu.com']
+        ];
+        $model = new BaoxianModel();
+        $configList = $model->bxConfig();
+        // 投保城市
+        $citys = $configList['City'];
+        // 合作保险公司
+        $companies = $model->getCompanyList();
+
+        return success(compact('wheel', 'news', 'citys', 'companies'));
+    }
+
+    /**
      * 登录
      */
     public function login () {
@@ -144,6 +168,16 @@ class Baoxian extends \ActionPDO {
             $this->error('用户校验失败');
         }
         return (new BaoxianModel())->getPrecisePrice($this->_G['user']['uid'], $_POST);
+    }
+
+    /**
+     * 提交个人补充信息
+     */
+    public function postStockInfo () {
+        if (empty($this->_G['user'])) {
+            $this->error('用户校验失败');
+        }
+        return (new BaoxianModel())->postStockInfo($this->_G['user']['uid'], $_POST);
     }
 
     /**

@@ -3,10 +3,31 @@
 namespace models;
 
 use library\Crud;
+use library\Cache;
 
 class BaoxianModel extends Crud {
 
     protected $api_url = 'http://baoxian.test/api';
+
+    /**
+     * 获取保险信息
+     * @return array
+     */
+    public function bxConfig () {
+        if (!$bxConfig = Cache::getInstance()->get('bxconfig')) {
+            try {
+                $result = https_request($this->api_url . '/config');
+            } catch (\Exception $e) {
+                return [];
+            }
+            if ($result['errorcode'] !== 0) {
+                return [];
+            }
+            $bxConfig = $result['data'];
+            Cache::getInstance()->set('bxconfig', $bxConfig, 3600);
+        }
+        return $bxConfig;
+    }
 
     /**
      * 车秘APP登录
@@ -229,7 +250,29 @@ class BaoxianModel extends Crud {
     }
 
     /**
+     * 获取保险公司
+     */
+    public function getCompanyList () {
+        if (!$companyList = Cache::getInstance()->get('bxcompany')) {
+            try {
+                $result = https_request($this->api_url . '/getCompanyList');
+            } catch (\Exception $e) {
+                return [];
+            }
+            if ($result['errorcode'] !== 0) {
+                return [];
+            }
+            $companyList = $result['data'];
+            Cache::getInstance()->set('bxcompany', $companyList, 3600);
+        }
+        return $companyList;
+    }
+
+    /**
      * 获取用户车辆信息和去年投保信息
+     * @param LicenseNo 车牌号
+     * @param CityCode 投保城市代码
+     * @return array
      */
     public function getReinfo($uid, $post) {
         // 生成签名
@@ -309,6 +352,42 @@ class BaoxianModel extends Crud {
         setSign($post);
         try {
             $result = https_request($this->api_url . '/getPrecisePrice', $post);
+        } catch (\Exception $e) {
+            $this->error($e->getMessage());
+        }
+        return $result;
+    }
+
+    /**
+     * 提交个人补充信息
+     * @param CityCode 城市代码
+     * @param LicenseNo 车牌号
+     * @param CarOwnersName 车主姓名
+     * @param OwnerIdCardType 车主证件类型
+     * @param IdCard 车主证件号
+     * @param OwnerAddress 车主联系地址
+     * @param InsuredToOwner 被保险人是否同车主 0否 1是
+     * @param InsuredPeople 被保人类型 1个人 2团体
+     * @param InsuredName 被保险人姓名
+     * @param InsuredIdCard 被保险人证件号
+     * @param InsuredIdType 被保险人证件类型
+     * @param InsuredMobile 被保险人手机号
+     * @param HolderToOwner 投保人是否同车主 0否 1是
+     * @param HolderToInsured 投保人是否同被保人 0否 1是
+     * @param HolderPeople 投保人类型 1个人 2团体
+     * @param HolderName 投保人姓名
+     * @param HolderIdCard 投保人证件号
+     * @param HolderIdType 投保人证件类型
+     * @param HolderMobile 投保人手机号
+     * @param MailAddress 保单邮寄地址
+     * @param ElectronicAddress 电子保单地址
+     * @return array
+     */
+    public function postStockInfo ($uid, $post) {
+        // 生成签名
+        setSign($post);
+        try {
+            $result = https_request($this->api_url . '/postStockInfo', $post);
         } catch (\Exception $e) {
             $this->error($e->getMessage());
         }

@@ -568,9 +568,10 @@ function success ($data, $message = '', $errorcode = 0)
         $message = !is_array($data) ? $data : $message;
     }
     return [
-            'errorcode' => $errorcode, 
-            'message' => $message, 
-            'data' => is_array($data) ? $data : []
+            'errorcode' => $errorcode,
+            'errNo' => $errorcode,
+            'message' => $message,
+            'result' => is_array($data) ? $data : []
     ];
 }
 
@@ -580,9 +581,10 @@ function error ($data, $message = '', $errorcode = -1)
         $message = !is_array($data) ? $data : $message;
     }
     return [
-            'errorcode' => $errorcode, 
+            'errorcode' => $errorcode,
+            'errNo' => $errorcode,
             'message' => $message, 
-            'data' =>  is_array($data) ? $data : []
+            'result' =>  is_array($data) ? $data : []
     ];
 }
 
