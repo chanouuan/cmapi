@@ -85,7 +85,7 @@
                             return layer.msg(list.message);
                         }
                         var html = [];
-                        list.data.forEach(function(n,i){
+                        list.result.forEach(function(n,i){
                             html.push('<tr><td><input value="'+n['DeviceCode']+'" name="devcode" type="radio"></td><td>'+n['DeviceCode']+'</td><td>'+n['AreaName']+'</td><td>'+n['Price']+'元</td><td>'+(n['IsOnline']?'在线':'离线')+'</td></tr>');
                         });
                         $('#devcode-list').html(html.join(''));

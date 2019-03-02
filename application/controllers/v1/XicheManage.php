@@ -67,7 +67,7 @@ class XicheManage extends \ActionPDO {
         if ($areaList['errorcode'] !== 0) {
             $this->error($areaList['message']);
         }
-        $areaList = $areaList['data'];
+        $areaList = $areaList['result'];
 
         return ['area_list' => $areaList];
     }

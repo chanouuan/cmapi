@@ -72,7 +72,7 @@ class UserModel extends Crud {
         if ($userInfo['errorcode'] !== 0) {
             return $userInfo;
         }
-        $userInfo = $userInfo['data'];
+        $userInfo = $userInfo['result'];
 
         if ($userInfo['ispw']) {
             return error('你已设置过密码');
@@ -313,7 +313,7 @@ class UserModel extends Crud {
         if ($userInfo['errorcode'] !== 0) {
             return $userInfo;
         }
-        $userInfo = $userInfo['data'];
+        $userInfo = $userInfo['result'];
 
         // 验证余额
         if ($post['money'] > $userInfo['money']) {
@@ -437,7 +437,7 @@ class UserModel extends Crud {
         if ($userInfo['errorcode'] !== 0) {
             return $userInfo;
         }
-        $userInfo = $userInfo['data'];
+        $userInfo = $userInfo['result'];
 
         $res = DB::getInstance('chemiv2')->transaction(function  ($db) use($userInfo, $post) {
             // 生成充值订单

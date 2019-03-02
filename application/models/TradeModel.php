@@ -68,7 +68,7 @@ class TradeModel extends Crud {
         if ($result['errorcode'] !== 0) {
             return error($result['message']);
         }
-        $result = $result['data'];
+        $result = $result['result'];
         if ($result['pay_success'] !== 'SUCCESS') {
             return error($result['trade_status']);
         }

@@ -50,7 +50,7 @@ class Baoxian extends \ActionPDO {
             if (empty($this->_G['user'])) {
                 $userInfo = $model->cmLogin($_GET);
                 if ($userInfo['errorcode'] === 0) {
-                    $this->_G['user'] = $userInfo['data'];
+                    $this->_G['user'] = $userInfo['result'];
                 }
             }
         }
@@ -62,14 +62,14 @@ class Baoxian extends \ActionPDO {
                 $jssdk = new \library\JSSDK($wxConfig['appid'], $wxConfig['appsecret']);
                 $userInfo = $jssdk->connectAuth(gurl('baoxian/login', burl()), 'snsapi_base', false);
                 if ($userInfo['errorcode'] === 0) {
-                    $this->_G['user'] = $model->checkLogin($userInfo['data']);
+                    $this->_G['user'] = $model->checkLogin($userInfo['result']);
                 }
             }
         }
 
         // vue
         $this->showVuePage('', [
-            'authcode' => (isset($userInfo) && isset($userInfo['data']['authcode'])) ? $userInfo['data']['authcode'] : '',
+            'authcode' => (isset($userInfo) && isset($userInfo['result']['authcode'])) ? $userInfo['result']['authcode'] : '',
             'token' => $this->_G['user'] ? $_COOKIE['token'] : ''
         ]);
     }

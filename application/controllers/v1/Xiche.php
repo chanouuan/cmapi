@@ -25,7 +25,7 @@ class Xiche extends \ActionPDO {
             ]);
             $this->showMessage($result['message']);
         }
-        $this->showMessage($result['message'], true, $result['data']);
+        $this->showMessage($result['message'], true, $result['result']);
     }
 
     /**
@@ -48,7 +48,7 @@ class Xiche extends \ActionPDO {
             ]);
             $this->showMessage($result['message']);
         }
-        $this->showMessage($result['message'], true, $result['data']);
+        $this->showMessage($result['message'], true, $result['result']);
     }
 
     /**
@@ -71,7 +71,7 @@ class Xiche extends \ActionPDO {
             ]);
             $this->showMessage($result['message']);
         }
-        $this->showMessage($result['message'], true, $result['data']);
+        $this->showMessage($result['message'], true, $result['result']);
     }
 
     /**
@@ -97,7 +97,7 @@ class Xiche extends \ActionPDO {
             if (empty($this->_G['user'])) {
                 $userInfo = $model->cmLogin($_GET);
                 if ($userInfo['errorcode'] === 0) {
-                    $this->_G['user'] = $userInfo['data'];
+                    $this->_G['user'] = $userInfo['result'];
                 }
             }
         }
@@ -109,7 +109,7 @@ class Xiche extends \ActionPDO {
                 $jssdk = new \library\JSSDK($wxConfig['appid'], $wxConfig['appsecret']);
                 $userInfo = $jssdk->connectAuth(gurl('xiche/login', burl()), 'snsapi_base', false);
                 if ($userInfo['errorcode'] === 0) {
-                    $this->_G['user'] = $model->checkLogin($userInfo['data']);
+                    $this->_G['user'] = $model->checkLogin($userInfo['result']);
                 }
             }
         }
@@ -122,7 +122,7 @@ class Xiche extends \ActionPDO {
         // vue
         $this->showVuePage('', [
             'devcode' => getgpc('devcode'),
-            'authcode' => (isset($userInfo) && isset($userInfo['data']['authcode'])) ? $userInfo['data']['authcode'] : '',
+            'authcode' => (isset($userInfo) && isset($userInfo['result']['authcode'])) ? $userInfo['result']['authcode'] : '',
             'token' => $this->_G['user'] ? $_COOKIE['token'] : ''
         ]);
 
@@ -132,7 +132,7 @@ class Xiche extends \ActionPDO {
         }
 
         return [
-            'authcode' => (isset($userInfo) && isset($userInfo['data']['authcode'])) ? $userInfo['data']['authcode'] : ''
+            'authcode' => (isset($userInfo) && isset($userInfo['result']['authcode'])) ? $userInfo['result']['authcode'] : ''
         ];
     }
 
@@ -179,7 +179,7 @@ class Xiche extends \ActionPDO {
         if ($deviceInfo['errorcode'] !== 0) {
             $this->error($deviceInfo['message'], null);
         }
-        $deviceInfo = $deviceInfo['data'];
+        $deviceInfo = $deviceInfo['result'];
 
         // 获取设备参数
         $deviceParams = $model->getDeviceById($deviceInfo['id'], 'parameters');
@@ -217,7 +217,7 @@ class Xiche extends \ActionPDO {
         if ($userInfo['errorcode'] !== 0) {
             $this->error($userInfo['message'], null);
         }
-        $userInfo = $userInfo['data'];
+        $userInfo = $userInfo['result'];
 
         // 不加载jssdk
         if (CLIENT_TYPE == 'wx' && false) {
@@ -228,7 +228,7 @@ class Xiche extends \ActionPDO {
             if ($jssdk['errorcode'] !== 0) {
                 $jssdk = null;
             } else {
-                $jssdk = $jssdk['data'];
+                $jssdk = $jssdk['result'];
             }
         }
 
@@ -300,7 +300,7 @@ class Xiche extends \ActionPDO {
                     // 请求成功
                     $xicheModel->updateErrorLog($log['id']);
                 } else {
-                    $info['dev_status'] = concat('<span style="color:#E64340;">', $result['data']['result'], '<br/>设备启动异常，请点击连接设备</span>');
+                    $info['dev_status'] = concat('<span style="color:#E64340;">', $result['result']['result'], '<br/>设备启动异常，请点击连接设备</span>');
                 }
             }
         }

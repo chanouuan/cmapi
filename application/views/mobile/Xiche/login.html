@@ -111,7 +111,7 @@ $(function(){
                       loading.hide();
                 	  if(data && data.errorcode === 0){
                           weui.toast('登录成功',{duration:500,callback:function(){
-                              if(data.data.ispw == 1){
+                              if(data.result.ispw == 1){
                                   location.replace('<?=gurl('xiche/checkout',burl())?>');
                               }else{
                                   //location.replace('<?=gurl('xiche/setpw',burl())?>');

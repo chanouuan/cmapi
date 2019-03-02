@@ -72,6 +72,7 @@ class XicheManageModel extends Crud {
         $deviceList = array_filter($deviceList, function($v) use($AreaId){
             return $v['AreaId'] == $AreaId;
         });
+        $deviceList = array_values($deviceList);
 
         // 获取设备参数
         try {

@@ -100,7 +100,7 @@ class Controller {
         if (null !== $result) {
             if (is_array($result) ) {
                 if (isset($result['errorcode'])) {
-                    json($result['data'], $result['message'], $result['errorcode']);
+                    json($result['result'], $result['message'], $result['errorcode']);
                 }
                 if ($referer->isAjax()) {
                     json($result);

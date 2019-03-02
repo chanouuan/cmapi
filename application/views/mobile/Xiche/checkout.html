@@ -127,7 +127,7 @@ $(function(){
                 $.ajax({
                     type: 'POST',
                     url: '<?=gurl('xiche/payQuery')?>',
-                    data: {tradeid:card.data.tradeid},
+                    data: {tradeid:card.result.tradeid},
                     dataType: 'json',
                     timeout: 5000,
                     success: function(query){
@@ -135,7 +135,7 @@ $(function(){
                         if(query.errorcode == 0){
                             loading_el.hide();
                             weui.toast(query.message,{duration:1000,callback:function(){
-                                location.replace('<?=gurl('xiche/payItem',burl())?>&tradeid='+card.data.tradeid);
+                                location.replace('<?=gurl('xiche/payItem',burl())?>&tradeid='+card.result.tradeid);
                             }});
                             return false;
                         }
@@ -163,7 +163,7 @@ $(function(){
                         $.ajax({
                             type: 'POST',
                             url: '<?=gurl('wxpayjs/api')?>',
-                            data: {tradeid:card.data.tradeid},
+                            data: {tradeid:card.result.tradeid},
                             dataType: 'json',
                             timeout: 5000,
                             success: function(wxsdk){
@@ -174,11 +174,11 @@ $(function(){
                                     return weui.alert(wxsdk.message);
                                 }
                                 loading_el.hide();
-                                JSAPI.chooseWXPay_1(wxsdk.data,function(res){
+                                JSAPI.chooseWXPay_1(wxsdk.result,function(res){
                                     //4
                                     loading_el.hide();
                                     weui.toast('支付完成',{duration:2000,callback:function(){
-                                        location.replace('<?=gurl('xiche/payItem',burl())?>&tradeid='+card.data.tradeid);
+                                        location.replace('<?=gurl('xiche/payItem',burl())?>&tradeid='+card.result.tradeid);
                                     }});
                                 },function(res){
                                     loading_el.hide();

@@ -327,9 +327,9 @@ class XicheModel extends Crud {
                 $result = $this->getDevIsUse($deviceInfo['devcode']);
                 if ($result['errorcode'] === 0) {
                     $param = [
-                        'usetime' => ($result['data'][0] === 0 || $result['data'][0] === 4) ? 0 : $deviceInfo['usetime'],
-                        'usestate' => $result['data'][0],
-                        'isonline' => $result['data'][1],
+                        'usetime' => ($result['result'][0] === 0 || $result['result'][0] === 4) ? 0 : $deviceInfo['usetime'],
+                        'usestate' => $result['result'][0],
+                        'isonline' => $result['result'][1],
                     ];
                     // 状态为空闲
                     if ($this->updateDevUse(0, $deviceInfo['id'], $param)) {
@@ -380,7 +380,7 @@ class XicheModel extends Crud {
         if ($userInfo['errorcode'] !== 0) {
             return $userInfo;
         }
-        $userInfo = $userInfo['data'];
+        $userInfo = $userInfo['result'];
 
         // 登录成功
         $loginret = $userModel->setloginstatus($userInfo['uid'], uniqid(), [
@@ -389,7 +389,7 @@ class XicheModel extends Crud {
         if ($loginret['errorcode'] !== 0) {
             return $loginret;
         }
-        $userInfo['token'] = $loginret['data']['token'];
+        $userInfo['token'] = $loginret['result']['token'];
 
         return success($userInfo);
     }
@@ -457,14 +457,14 @@ class XicheModel extends Crud {
         if ($userInfo['errorcode'] !== 0) {
             return $userInfo;
         }
-        $userInfo = $userInfo['data'];
+        $userInfo = $userInfo['result'];
 
         // 登录成功
         $loginret = $userModel->setloginstatus($userInfo['uid'], uniqid());
         if ($loginret['errorcode'] !== 0) {
             return $loginret;
         }
-        $userInfo['token'] = $loginret['data']['token'];
+        $userInfo['token'] = $loginret['result']['token'];
 
         // 绑定微信
         $this->bindingLogin($post['__authcode'], $userInfo['uid']);
@@ -491,7 +491,7 @@ class XicheModel extends Crud {
         if ($deviceInfo['errorcode'] !== 0) {
             return $deviceInfo;
         }
-        $deviceInfo = $deviceInfo['data'];
+        $deviceInfo = $deviceInfo['result'];
         if ($deviceInfo['price'] <= 0) {
             return error('此设备消费金额未设置');
         }
@@ -517,7 +517,7 @@ class XicheModel extends Crud {
         if ($userInfo['errorcode'] !== 0) {
             return $userInfo;
         }
-        $userInfo = $userInfo['data'];
+        $userInfo = $userInfo['result'];
 
         // 支付方式
         if ($payway == 'cbpay') {

@@ -24,9 +24,9 @@ class User extends \ActionPDO {
         if ($result['errorcode'] !== 0) {
             return $result;
         }
-        $result['data']['platform'] = $this->_G['header']['platform'];
-        $result['data']['timestamp'] = microtime_float();
-        $result['data']['sign'] = $this->setSign($result['data']);
+        $result['result']['platform'] = $this->_G['header']['platform'];
+        $result['result']['timestamp'] = microtime_float();
+        $result['result']['sign'] = $this->setSign($result['result']);
         return $result;
     }
 
@@ -47,9 +47,9 @@ class User extends \ActionPDO {
         if ($result['errorcode'] !== 0) {
             return $result;
         }
-        $result['data']['platform'] = $this->_G['header']['platform'];
-        $result['data']['timestamp'] = microtime_float();
-        $result['data']['sign'] = $this->setSign($result['data']);
+        $result['result']['platform'] = $this->_G['header']['platform'];
+        $result['result']['timestamp'] = microtime_float();
+        $result['result']['sign'] = $this->setSign($result['result']);
         return $result;
     }
 

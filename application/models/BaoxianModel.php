@@ -23,7 +23,7 @@ class BaoxianModel extends Crud {
             if ($result['errorcode'] !== 0) {
                 return [];
             }
-            $bxConfig = $result['data'];
+            $bxConfig = $result['result'];
             Cache::getInstance()->set('bxconfig', $bxConfig, 3600);
         }
         return $bxConfig;
@@ -67,7 +67,7 @@ class BaoxianModel extends Crud {
         if ($userInfo['errorcode'] !== 0) {
             return $userInfo;
         }
-        $userInfo = $userInfo['data'];
+        $userInfo = $userInfo['result'];
 
         // 登录成功
         $loginret = $userModel->setloginstatus($userInfo['uid'], uniqid(), [
@@ -76,7 +76,7 @@ class BaoxianModel extends Crud {
         if ($loginret['errorcode'] !== 0) {
             return $loginret;
         }
-        $userInfo['token'] = $loginret['data']['token'];
+        $userInfo['token'] = $loginret['result']['token'];
 
         return success($userInfo);
     }
@@ -144,14 +144,14 @@ class BaoxianModel extends Crud {
         if ($userInfo['errorcode'] !== 0) {
             return $userInfo;
         }
-        $userInfo = $userInfo['data'];
+        $userInfo = $userInfo['result'];
 
         // 登录成功
         $loginret = $userModel->setloginstatus($userInfo['uid'], uniqid());
         if ($loginret['errorcode'] !== 0) {
             return $loginret;
         }
-        $userInfo['token'] = $loginret['data']['token'];
+        $userInfo['token'] = $loginret['result']['token'];
 
         // 绑定微信
         $this->bindingLogin($post['__authcode'], $userInfo['uid']);
@@ -262,7 +262,7 @@ class BaoxianModel extends Crud {
             if ($result['errorcode'] !== 0) {
                 return [];
             }
-            $companyList = $result['data'];
+            $companyList = $result['result'];
             Cache::getInstance()->set('bxcompany', $companyList, 3600);
         }
         return $companyList;
@@ -425,7 +425,7 @@ class BaoxianModel extends Crud {
         if ($userInfo['errorcode'] !== 0) {
             return $userInfo;
         }
-        $userInfo = $userInfo['data'];
+        $userInfo = $userInfo['result'];
 
         // 优惠劵
         if ($post['voucher_id']) {
@@ -437,7 +437,7 @@ class BaoxianModel extends Crud {
             if ($voucherInfo['errorcode'] !== 0) {
                 return $voucherInfo;
             }
-            $voucher_price = $voucherInfo['data']['voucher_price']; // 折扣金额
+            $voucher_price = $voucherInfo['result']['voucher_price']; // 折扣金额
             $totalPrice = $totalPrice - $voucher_price;
             $totalPrice = $totalPrice < 0 ? 0 : $totalPrice; // 抵扣金额可能比支付金额大，导致金额为负
         }
@@ -522,7 +522,7 @@ class BaoxianModel extends Crud {
 
         // 更新保险订单ID
         if (!$this->getDb()->update('__tablepre__payments', [
-            'param_id' => $orderResult['data']['orderid']
+            'param_id' => $orderResult['result']['orderid']
         ], ['id' => $cardId])) {
             return error('更新保险订单失败');
         }
@@ -623,7 +623,7 @@ class BaoxianModel extends Crud {
         // park_rate 停车劵金额（元）
         // maintain_rate 洗车保养劵金额（元）
         // insurance_rate 保险劵金额（元）
-        $orderResult = $orderResult['data'];
+        $orderResult = $orderResult['result'];
 
         // APP优惠劵方案
         if (isset($orderResult['app_coupon'])) {

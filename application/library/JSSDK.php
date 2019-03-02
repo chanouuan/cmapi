@@ -54,7 +54,7 @@ class JSSDK {
         if ($userToken['errorcode'] !== 0) {
             return $userToken;
         }
-        $userToken = $userToken['data'];
+        $userToken = $userToken['result'];
 
         // 获取微信用户信息
         $userInfo = [];
@@ -72,7 +72,7 @@ class JSSDK {
             }
         }
 
-        $userInfo = isset($userInfo['data']) ? $userInfo['data'] : [];
+        $userInfo = isset($userInfo['result']) ? $userInfo['result'] : [];
         $userInfo = array_merge($userToken, $userInfo);
         $userInfo['authcode'] = (isset($userInfo['unionid']) && $userInfo['unionid']) ? $userInfo['unionid'] : $userInfo['openid'];
         $userInfo['type'] = 'wx';
@@ -121,7 +121,7 @@ class JSSDK {
         if ($_access_token['errorcode'] !== 0) {
             return $_access_token;
         }
-        $accessToken = $_access_token['data']['access_token'];
+        $accessToken = $_access_token['result']['access_token'];
         try {
             $reponse = https_request('https://api.weixin.qq.com/cgi-bin/user/info?access_token=' . $accessToken . '&openid=' . $openid . '&lang=zh_CN');
         } catch (\Exception $e) {
@@ -139,7 +139,7 @@ class JSSDK {
         if ($_jsapiTicket['errorcode'] !== 0) {
             return $_jsapiTicket;
         }
-        $jsapiTicket = $_jsapiTicket['data']['jsapi_ticket'];
+        $jsapiTicket = $_jsapiTicket['result']['jsapi_ticket'];
         
         // 注意 URL 一定要动态获取，不能 hardcode.
         $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
@@ -173,7 +173,7 @@ class JSSDK {
             if ($_access_token['errorcode'] !== 0) {
                 return $_access_token;
             }
-            $accessToken = $_access_token['data']['access_token'];
+            $accessToken = $_access_token['result']['access_token'];
             try {
                 $reponse = https_request("https://api.weixin.qq.com/cgi-bin/ticket/getticket?type=jsapi&access_token=$accessToken");
             } catch (\Exception $e) {

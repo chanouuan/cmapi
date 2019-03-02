@@ -99,9 +99,9 @@
                         return weui.alert(data.message);
                     }
                     weui.toast('同步成功',{duration:500,callback:function(){
-                        for(var i in data.data){
+                        for(var i in data.result){
                             if($('#info_'+i).length){
-                                $('#info_'+i).html(data.data[i]);
+                                $('#info_'+i).html(data.result[i]);
                             }
                         }
                     }});
