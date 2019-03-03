@@ -59,6 +59,7 @@ class DbMysql extends Db {
         $vals = [];
         $parameters = [];
         foreach($content as $k => $v) {
+            $prepare = str_replace('.', '_', $k);
             if (is_array($v)) {
                 $vals[] = isset($v[2]) ? $v[2] : 'AND';
                 $vals[] = $k;
@@ -67,7 +68,7 @@ class DbMysql extends Db {
                     $v[1] = is_array($v[1]) ? $v[1] : explode(',', $v[1]);
                     $placeholder = [];
                     foreach ($v[1] as $kk => $vv) {
-                        $name = concat($k, $kk);
+                        $name = concat($prepare, $kk);
                         $placeholder[] = concat(':', $name);
                         $parameters[$name] = $vv;
                     }
@@ -76,7 +77,7 @@ class DbMysql extends Db {
                     if (is_array($v[1])) {
                         $placeholder = [];
                         foreach ($v[1] as $kk => $vv) {
-                            $name = concat($k, $kk);
+                            $name = concat($prepare, $kk);
                             $placeholder[] = concat(':', $name);
                             $parameters[$name] = $vv;
                         }
@@ -85,15 +86,15 @@ class DbMysql extends Db {
                         $vals[] = $v[1];
                     }
                 } else {
-                    $vals[] = concat(':', $k);
-                    $parameters[$k] = $v[1];
+                    $vals[] = concat(':', $prepare);
+                    $parameters[$prepare] = $v[1];
                 }
             } else {
                 $vals[] = 'AND';
                 $vals[] = $k;
                 $vals[] = '=';
-                $vals[] = concat(':', $k);
-                $parameters[$k] = $v;
+                $vals[] = concat(':', $prepare);
+                $parameters[$prepare] = $v;
             }
         }
 

@@ -116,7 +116,7 @@ function getSysConfig ($key = null, $target = 'config')
     if (!isset($key)) {
         return $sys_config[$target];
     }
-    return $sys_config[$target][$key];
+    return isset($sys_config[$target][$key]) ? $sys_config[$target][$key] : null;
 }
 
 function getConfig ($app = null, $name = null)
@@ -899,14 +899,31 @@ function checkSignPass($data)
     }
 
     // 验签
-    if (!isset($data['sig']) || setSign($data) != $data['sig']) {
+    $sig = $data['sig'];
+    if (empty($sig)) {
+        return error('签名为空');
+    }
+    setSign($data);
+    if ($sig != $data['sig']) {
         return error('签名错误');
     }
 
     // 时间效验
-    if (abs(TIMESTAMP - $data['time']) > getSysConfig('auth_expire_time')) {
+    $auth_expire_time = getSysConfig('auth_expire_time');
+    if ($auth_expire_time && abs(TIMESTAMP - $data['time']) > $auth_expire_time) {
         return error('签名过期');
     }
 
     return success('OK');
+}
+
+function validate_telephone ($telephone)
+{
+    if (empty($telephone)) {
+        return false;
+    }
+    if (!preg_match('/^1[0-9]{10}$/', $telephone)) {
+        return false;
+    }
+    return true;
 }

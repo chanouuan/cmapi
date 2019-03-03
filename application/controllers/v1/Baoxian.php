@@ -47,6 +47,15 @@ class Baoxian extends \ActionPDO {
 
     /**
      * 登录
+     * @param int $platform 平台代码
+     * @param string $type 登录渠道：wx、qq
+     * @param string $authcode 授权码 32 位
+     * @param string $nickname 用户昵称
+     * @param string $telephone 用户手机号
+     * @param string $msgcode 短信验证码
+     * @param string $password 车秘密码
+     * @param bool $nopw 是否免密登录
+     * @return array
      */
     public function login () {
         $model = new BaoxianModel();
