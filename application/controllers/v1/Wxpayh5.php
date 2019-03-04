@@ -60,7 +60,7 @@ class Wxpayh5 extends \ActionPDO {
             'h5_info' => [
                 'type' => 'Wap',
                 'wap_url' => $_SERVER['REQUEST_SCHEME'], '://', $_SERVER['HTTP_HOST'],
-                'wap_name' => '自助洗车'
+                'wap_name' => $tradeInfo['uses']
             ]
         ]));
         $prepay_id = $unifiedOrder->getPrepayId();

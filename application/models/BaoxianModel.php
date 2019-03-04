@@ -292,7 +292,7 @@ class BaoxianModel extends Crud {
      * 获取保险公司
      */
     public function getCompanyList () {
-        if (!$companyList = Cache::getInstance()->get('bxcompany')) {
+        if (!$companyList = Cache::getInstance()->get('InsuranceCompany')) {
             try {
                 $result = https_request($this->api_url . '/getCompanyList');
             } catch (\Exception $e) {
@@ -302,7 +302,7 @@ class BaoxianModel extends Crud {
                 return [];
             }
             $companyList = $result['result'];
-            Cache::getInstance()->set('bxcompany', $companyList, 3600);
+            Cache::getInstance()->set('InsuranceCompany', $companyList, 3600);
         }
         return $companyList;
     }

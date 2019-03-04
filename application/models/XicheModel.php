@@ -402,7 +402,7 @@ class XicheModel extends Crud {
         $post['msgcode'] = trim($post['msgcode']); // 短信验证码
         $post['password'] = trim($post['password']); // 用户密码
 
-        if (!preg_match('/^1[0-9]{10}$/', $post['telephone'])) {
+        if (!validate_telephone($post['telephone'])) {
             return error('手机号为空或格式不正确！');
         }
         if (!$post['password'] && !$post['msgcode']) {

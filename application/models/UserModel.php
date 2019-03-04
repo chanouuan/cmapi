@@ -158,6 +158,16 @@ class UserModel extends Crud {
 
     /**
      * 第三方平台绑定（手机号密码方式）
+     * @param int $platform 平台代码
+     * @param string $type 登录渠道：wx、qq
+     * @param string $authcode 授权码 32 位
+     * @param string $nickname 用户昵称
+     * @param string $telephone 用户手机号
+     * @param string $msgcode 短信验证码
+     * @param string $password 车秘密码
+     * @param bool $nopw 是否免密登录
+     * @return array
+     * @throws \Exception
      */
     public function loginBinding ($post) {
         $post['platform'] = intval($post['platform']);
@@ -177,7 +187,7 @@ class UserModel extends Crud {
         if (empty($post['authcode'])) {
             return error('参数错误：authcode不能为空！');
         }
-        if (!preg_match("/^1[0-9]{10}$/", $post['telephone'])) {
+        if (!validate_telephone($post['telephone'])) {
             return error('参数错误：telephone格式不正确！');
         }
 
@@ -552,7 +562,7 @@ class UserModel extends Crud {
      */
     public function sendSmsCode ($post)
     {
-        if (!preg_match("/^1[0-9]{10}$/", $post['telephone'])) {
+        if (!validate_telephone($post['telephone'])) {
             return error('手机号为空或格式错误');
         }
 
