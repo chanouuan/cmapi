@@ -18,7 +18,7 @@ class AdminModel extends Crud {
             return error('手机号不正确');
         }
 
-        if (!$this->checkloginfail($post['telephone'])) {
+        if (!$this->checkLoginFail($post['telephone'])) {
             return error('密码错误次数过多,请稍后重新登录');
         }
 
@@ -28,7 +28,7 @@ class AdminModel extends Crud {
         ], 'member_id,member_passwd');
 
         if ($userInfo['member_passwd'] != md5(md5($_POST['password']))) {
-            $count = $this->loginfail($post['telephone']);
+            $count = $this->loginFail($post['telephone']);
             return error($count > 0 ? ('用户名或密码错误,您还可以登录 ' . $count . ' 次！') : '密码错误次数过多，15分钟后重新登录！');
         }
 
