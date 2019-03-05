@@ -2,13 +2,14 @@
 
 namespace controllers;
 
+use ActionPDO;
 use models\BaoxianModel;
 use models\UserModel;
 
 /**
  * 保险
  */
-class Baoxian extends \ActionPDO {
+class Baoxian extends ActionPDO {
 
     /**
      * 首页显示
@@ -50,6 +51,7 @@ class Baoxian extends \ActionPDO {
      * @param string $telephone 用户手机号
      * @param string $msgcode 短信验证码
      * @param string $password 车秘密码
+     * @param string $__authcode 微信授权码
      * @return array
      */
     public function login () {
@@ -151,6 +153,16 @@ class Baoxian extends \ActionPDO {
         }
         $_POST['voucher_type'] = [0, 2]; // 通用，保险
         return (new UserModel())->getCouponList($this->_G['user']['uid'], $_POST);
+    }
+
+    /**
+     * 获取返还的优惠劵
+     */
+    public function getPrepareCoupon () {
+        if (empty($this->_G['user'])) {
+            return error('用户校验失败');
+        }
+        return (new BaoxianModel())->getPrepareCoupon($this->_G['user']['uid'], getgpc('tradeid'));
     }
 
     /**

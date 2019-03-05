@@ -949,9 +949,16 @@ class UserModel extends Crud {
     }
 
     /**
-     * 添加车秘用户保险优惠劵
+     * 生成保险优惠劵
      */
-    public function grantBaoxianCoupon ($uid, $coupons) {
+    public function buildCouponRate ($uid, $list) {
+        $coupons = [];
+        $defaultVal = [
+            'common_rate' => ['title' => '车秘-通用红包', 'type' => 0],
+            'insurance_rate' => ['title' => '车秘-保险专属红包', 'type' => 2],
+            'park_rate' => ['title' => '车秘-停车专属红包', 'type' => 3],
+            'maintain_rate' => ['title' => '车秘-洗车保养专属红包', 'type' => 4]
+        ];
 
         // voucher_type 1 门店 2 保险 3 停车
         // voucher_state 代金券状态(1-未用,2-已用,3-过期,4-收回,10锁定)
@@ -961,16 +968,15 @@ class UserModel extends Crud {
         // voucher_price_type 1=满减 2=立减 3=折扣满减 4=折扣立减
         // voucher_limit 消费满多少可以使用
 
-        $rows = [];
-        foreach ($coupons as $k => $v) {
-            if ($v['price'] <= 0) {
+        foreach ($list as $k => $v) {
+            if ($k == 'main' || $v <= 0) {
                 continue;
             }
-            $rows[] = [
-                'voucher_title' => $v['title'],
-                'voucher_desc' => $v['title'],
-                'voucher_type' => $v['type'],
-                'voucher_price' => $v['price'],
+            $coupons[] = [
+                'voucher_title' => isset($defaultVal[$k]) ? $defaultVal[$k]['title'] : ('优惠劵(' . $v . '元)'),
+                'voucher_desc' => isset($defaultVal[$k]) ? $defaultVal[$k]['title'] : ('优惠劵(' . $v . '元)'),
+                'voucher_type' => isset($defaultVal[$k]) ? $defaultVal[$k]['type'] : 0,
+                'voucher_price' => $v,
                 'voucher_price_type' => 1,
                 'voucher_start_date' => mktime(0, 0, 0, date('m', TIMESTAMP), date('d', TIMESTAMP), date('Y', TIMESTAMP)),
                 'voucher_end_date' => mktime(23, 59, 59, date('m', TIMESTAMP), date('d', TIMESTAMP), date('Y', TIMESTAMP) + 1),
@@ -980,6 +986,16 @@ class UserModel extends Crud {
                 'operator_id' => 0
             ];
         }
+
+        return $coupons;
+    }
+
+    /**
+     * 添加车秘用户保险优惠劵
+     */
+    public function grantBaoxianCoupon ($uid, $coupons) {
+
+        $rows = $this->buildCouponRate($uid, $coupons);
 
         if ($rows) {
             if (!$this->getDb('chemiv2')->insert('chemi_voucher', $rows)) {

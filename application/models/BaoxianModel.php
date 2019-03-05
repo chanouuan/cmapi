@@ -10,6 +10,49 @@ class BaoxianModel extends Crud {
     protected $api_url = 'http://baoxian.test/api';
 
     /**
+     * 获取返还的优惠劵
+     * @param $uid 用户ID
+     * @param $tradeid 交易单号
+     * @return array
+     */
+    public function getPrepareCoupon ($uid, $tradeid) {
+        // 获取订单号
+        if (!$tradeInfo = $this->getDb()
+            ->field('id,param_id')
+            ->table('__tablepre__payments')
+            ->where([
+                'id' => intval($tradeid), 'trade_id' => $uid
+            ])
+            ->find()) {
+            return error('交易单不存在');
+        }
+
+        // 获取返还优惠劵
+        try {
+            $result = https_request($this->api_url . '/getPrepareCoupon', ['orderid' => $tradeInfo['param_id']]);
+        } catch (\Exception $e) {
+            return error($e->getMessage());
+        }
+        if ($result['errNo'] !== 0) {
+            return error($result['message']);
+        }
+        $result = $result['result'];
+
+        // common_rate 通用劵金额（元）
+        // park_rate 停车劵金额（元）
+        // maintain_rate 洗车保养劵金额（元）
+        // insurance_rate 保险劵金额（元）
+
+        // APP优惠劵方案
+        $coupons = [];
+        if (isset($result['app_coupon'])) {
+            $coupons = (new UserModel())->buildCouponRate($uid, $result['app_coupon']);
+        }
+
+        return success($coupons);
+    }
+
+    /**
      * 获取保险信息
      * @return array
      */
@@ -128,7 +171,7 @@ class BaoxianModel extends Crud {
         $post['msgcode'] = trim($post['msgcode']); // 短信验证码
         $post['password'] = trim($post['password']); // 用户密码
 
-        if (!preg_match('/^1[0-9]{10}$/', $post['telephone'])) {
+        if (!validate_telephone($post['telephone'])) {
             return error('手机号为空或格式不正确！');
         }
         if (!$post['password'] && !$post['msgcode']) {
@@ -657,22 +700,12 @@ class BaoxianModel extends Crud {
         }
 
         // 优惠方案
-        // {"app_coupon":{"common_rate":0,"park_rate":0,"maintain_rate":0,"insurance_rate":0}}
-        // common_rate 通用劵金额
-        // park_rate 停车劵金额（元）
-        // maintain_rate 洗车保养劵金额（元）
-        // insurance_rate 保险劵金额（元）
         $orderResult = $orderResult['result'];
 
         // APP优惠劵方案
         if (isset($orderResult['app_coupon'])) {
-            $coupons = [];
-            $coupons[] = ['title' => '车秘-通用红包', 'type' => 0, 'price' => $orderResult['app_coupon']['common_rate']];
-            $coupons[] = ['title' => '车秘-保险专属红包', 'type' => 2, 'price' => $orderResult['app_coupon']['insurance_rate']];
-            $coupons[] = ['title' => '车秘-停车专属红包', 'type' => 3, 'price' => $orderResult['app_coupon']['park_rate']];
-            $coupons[] = ['title' => '车秘-洗车保养专属红包', 'type' => 4, 'price' => $orderResult['app_coupon']['maintain_rate']];
             // 赠送优惠劵
-            $userModel->grantBaoxianCoupon($tradeInfo['trade_id'], $coupons);
+            $userModel->grantBaoxianCoupon($tradeInfo['trade_id'], $orderResult['app_coupon']);
         }
 
         return success('OK');
