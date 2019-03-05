@@ -373,6 +373,8 @@ class ComposerAutoloader {
 
 ComposerAutoloader::getLoader();
 
+library\DebugLog::_init();
+
 library\Errors::register();
 
 $controller = new Controller();

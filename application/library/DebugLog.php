@@ -7,12 +7,19 @@ namespace library;
 
 class DebugLog {
 
+    private static $start_time = 0;
+    private static $start_mem = 0;
 
     private static $info = [];
     private static $error = [];
 
     private static $curl = [];
     private static $mysql = [];
+
+    public static function _init () {
+        self::$start_time = microtime_float();
+        self::$start_mem = memory_get_usage();
+    }
 
     public static function _error ($error) {
         if (!empty($error)) {
@@ -129,17 +136,23 @@ class DebugLog {
             self::_post();
         }
         if (DEBUG_LEVEL >= 1) {
-            self::_log(array_merge(self::$info, self::$curl, self::$mysql), 'debug', true, 'Ym_Ymd');
+            self::_log(array_merge(self::$info, self::$curl, self::$mysql), 'debug', true, 'Ym_Ymd', true, true);
         }
         if (self::$error) {
             self::_log(self::$error, 'error');
         }
     }
 
-    public static function _log ($message, $logfile = 'debug', $curdate = true, $rule = 'Ymd') {
+    public static function _log ($message, $logfile = 'debug', $curdate = true, $rule = 'Ymd', $delay = false, $mem = false) {
         $message = is_array($message) ? $message : [$message];
         if ($curdate) {
             array_splice($message, 0, 0, '[' . date('Y-m-d H:i:s', TIMESTAMP) . ']' );
+        }
+        if ($delay) {
+            $message[] = '[RunTime:' . round(microtime_float() - self::$start_time, 2) . 's]';
+        }
+        if ($mem) {
+            $message[] = '[Mem:' . round((memory_get_usage() - self::$start_mem) / 1024, 2) . 'k]';
         }
         $destination = concat(APPLICATION_PATH, DIRECTORY_SEPARATOR, 'log', DIRECTORY_SEPARATOR, str_replace('_', DIRECTORY_SEPARATOR, date($rule, TIMESTAMP)), '_', $logfile, '.log');
         mkdirm(dirname($destination));

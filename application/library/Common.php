@@ -609,7 +609,7 @@ function json_unicode_encode ($data, $default = '')
 
 function pheader ($location)
 {
-    header('Location: ' . $location, true, 301);
+    header('Location: ' . $location);
     exit(0);
 }
 
