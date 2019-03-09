@@ -68,6 +68,9 @@ class DebugLog {
         if (isset($_SERVER['HTTP_HOST'])) {
             self::$info[] = 'HTTP_HOST: ' . $_SERVER['HTTP_HOST'];
         }
+        if (isset($_SERVER['HTTP_ACCEPT'])) {
+            self::$info[] = 'HTTP_ACCEPT: ' . $_SERVER['HTTP_ACCEPT'];
+        }
         if (isset($_SERVER['HTTP_USER_AGENT'])) {
             self::$info[] = 'HTTP_USER_AGENT: ' . $_SERVER['HTTP_USER_AGENT'];
         }

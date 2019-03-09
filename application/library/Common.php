@@ -190,7 +190,7 @@ function pass_string ($str)
 function trim_space ($string)
 {
     return $string ? str_replace(array(
-            '　', 
+            '　',
             ' '
     ), '', trim($string)) : $string;
 }
@@ -270,7 +270,7 @@ function submitcheck ($formhash = null, $disposable = false)
     if (false === $disposable) return true;
     \library\DB::getInstance()->delete('__tablepre__hashcheck', 'dateline < ' . (TIMESTAMP - 3600));
     return \library\DB::getInstance()->insert('__tablepre__hashcheck', array(
-            'hash' => md5_mini($formhash), 
+            'hash' => md5_mini($formhash),
             'dateline' => TIMESTAMP
     ));
 }
@@ -583,7 +583,7 @@ function error ($data, $message = '', $errorcode = -1)
     return [
             'errorcode' => $errorcode,
             'errNo' => $errorcode,
-            'message' => $message, 
+            'message' => $message,
             'result' =>  is_array($data) ? $data : []
     ];
 }
@@ -736,9 +736,9 @@ function getImageInfo ($img)
     if ($imageInfo !== false) {
         $imageType = strtolower(substr(image_type_to_extension($imageInfo[2]), 1));
         $info = array(
-                'width' => $imageInfo[0], 
-                'height' => $imageInfo[1], 
-                'type' => $imageType, 
+                'width' => $imageInfo[0],
+                'height' => $imageInfo[1],
+                'type' => $imageType,
                 'mime' => $imageInfo['mime']
         );
         return $info;
@@ -926,4 +926,34 @@ function validate_telephone ($telephone)
         return false;
     }
     return true;
+}
+
+function only ($keys)
+{
+    $keys = is_array($keys) ? $keys : func_get_args();
+
+    $results = array_merge($_GET, $_POST);
+
+    foreach ($results as $k => $v) {
+        if (!in_array($k, $keys)) {
+            unset($results[$k]);
+        }
+    }
+
+    return $results;
+}
+
+function except ($keys)
+{
+    $keys = is_array($keys) ? $keys : func_get_args();
+
+    $results = array_merge($_GET, $_POST);
+
+    foreach ($results as $k => $v) {
+        if (in_array($k, $keys)) {
+            unset($results[$k]);
+        }
+    }
+
+    return $results;
 }

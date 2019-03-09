@@ -99,6 +99,18 @@ class UserModel extends Crud {
     }
 
     /**
+     * 获取车秘管理账号(搜索条件)
+     */
+    public function getAdminInfoCondition ($condition, $field = 'id, operator_id, user_login, user_pass') {
+        return $this->getDb('park')
+            ->table('chemi_stop_users')
+            ->field($field)
+            ->where($condition)
+            ->limit(1)
+            ->find();
+    }
+
+    /**
      * 验证车秘登录token
      */
     public function checkCmToken ($condition) {

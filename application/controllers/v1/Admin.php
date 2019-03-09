@@ -19,7 +19,7 @@ class Admin extends ActionPDO {
      * 管理员登录
      */
     public function login () {
-        return (new AdminModel())->login($_POST);
+        return (new AdminModel())->login(only('platform', 'username', 'password', '_token', 'source'));
     }
 
 }
