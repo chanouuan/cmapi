@@ -4,6 +4,7 @@ namespace controllers;
 
 use ActionPDO;
 use models\AdminModel;
+use models\UserModel;
 
 class Admin extends ActionPDO {
 
@@ -20,6 +21,13 @@ class Admin extends ActionPDO {
      */
     public function login () {
         return (new AdminModel())->login(only('platform', 'username', 'password', '_token', 'source'));
+    }
+
+    /**
+     * 获取用户信息
+     */
+    public function info () {
+        return (new UserModel())->getUserInfo(getgpc('uid'));;
     }
 
 }
