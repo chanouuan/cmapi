@@ -65,6 +65,38 @@ class AdminModel extends Crud {
     }
 
     /**
+     * 获取管理员信息
+     * @param uid 管理员ID
+     * @param source 来源 chemiuser 车秘普通用户 chemiadmin 车秘管理员
+     * @return array
+     */
+    public function info ($post) {
+
+        $post['uid'] = intval($post['uid']);
+        $post['source'] = get_real_val($post['source'], 'chemiuser');
+
+        $userModel = new UserModel();
+        if ($post['source'] == 'chemiuser') {
+            $userInfo = $userModel->getUserInfo($post['uid']);
+            if ($userInfo['errorcode'] !== 0) {
+                return $userInfo;
+            }
+            $userInfo = $userInfo['result'];
+        } else if ($post['source'] == 'chemiadmin') {
+            if (!$userInfo = $userModel->getAdminInfoCondition([
+                'id' => $post['uid'],
+                'user_status' => 1
+            ], 'id as uid,user_login as nickname')) {
+                return error('用户不存在或已禁用！');
+            }
+        } else {
+            return error('未知来源');
+        }
+
+        return success($userInfo);
+    }
+
+    /**
      * 车秘用户登录
      * @param $post
      * @return array
@@ -77,7 +109,7 @@ class AdminModel extends Crud {
         $userModel = new UserModel();
         if (!$userInfo = $userModel->getUserInfoCondition([
             'member_name' => $post['username']
-        ], 'member_id,member_name,member_passwd')) {
+        ], 'member_id,member_name,member_passwd,nickname')) {
             return error('用户名或密码错误');
         }
 
@@ -98,7 +130,7 @@ class AdminModel extends Crud {
 
         return success([
             'uid' => $userInfo['member_id'],
-            'nickname' => $userInfo['member_name']
+            'nickname' => get_real_val($userInfo['nickname'], $userInfo['member_name'])
         ]);
     }
 

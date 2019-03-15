@@ -27,7 +27,7 @@ class Admin extends ActionPDO {
      * 获取用户信息
      */
     public function info () {
-        return (new UserModel())->getUserInfo(getgpc('uid'));;
+        return (new AdminModel())->info(only('uid', 'source'));
     }
 
 }

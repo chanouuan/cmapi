@@ -142,7 +142,7 @@ class UserModel extends Crud {
             'uid' => $userInfo['member_id'],
             'telephone' => $userInfo['member_name'],
             'avatar' => $userInfo['member_avatar'] ? ('http://park.chemi.ren/mobile/data/upload/shop/mobile/avatar/' . $userInfo['member_avatar']) : '',
-            'nickname' => strval($userInfo['nickname']),
+            'nickname' => strval(get_real_val($userInfo['nickname'], $userInfo['member_name'])),
             'sex' => strval($userInfo['member_sex']),
             'money' => floatval($userInfo['available_predeposit']) * 100,
             'ispw' => $userInfo['member_passwd'] ? 1 : 0
