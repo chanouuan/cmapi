@@ -101,13 +101,47 @@ class UserModel extends Crud {
     /**
      * 获取车秘管理账号(搜索条件)
      */
-    public function getAdminInfoCondition ($condition, $field = 'id, operator_id, user_login, user_pass') {
+    public function getAdminInfoCondition ($condition, $field = 'id, operator_id, user_login, user_nicename, user_pass') {
         return $this->getDb('park')
             ->table('chemi_stop_users')
             ->field($field)
             ->where($condition)
             ->limit(1)
             ->find();
+    }
+
+    /**
+     * 获取车秘社区(搜索条件)
+     */
+    public function getCheMiCommunityCondition ($condition, $field = 'id, name, card_id') {
+        return $this->getDb('park')
+            ->table('chemi_stop_community')
+            ->field($field)
+            ->where($condition)
+            ->limit(1)
+            ->find();
+    }
+
+    /**
+     * 获取车秘社区所属停车场(搜索条件)
+     */
+    public function getCheMiCommunity2Condition ($condition, $field = 'id, stop_id') {
+        return $this->getDb('park')
+            ->table('chemi_stop_community2stop')
+            ->field($field)
+            ->where($condition)
+            ->select();
+    }
+
+    /**
+     * 获取车秘停车场(搜索条件)
+     */
+    public function getCheMiParkingCondition ($condition, $field = 'id, park_code, operator_id, stoping_name') {
+        return $this->getDb('park')
+            ->table('chemi_stop_stoping')
+            ->field($field)
+            ->where($condition)
+            ->select();
     }
 
     /**

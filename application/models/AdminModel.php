@@ -52,14 +52,14 @@ class AdminModel extends Crud {
             }
         } else if ($post['source'] == 'chemiadmin') {
             // 返回运营商
-            $permission = [
-                $userInfo['operator_id']
-            ];
+            $permission = [];
         }
 
         return success([
             'uid' => $userInfo['uid'],
             'nickname' => $userInfo['nickname'],
+            'parking' => isset($userInfo['parking']) ? $userInfo['parking'] : [],
+            'community' => isset($userInfo['community']) ? $userInfo['community'] : [],
             'permission' => $permission
         ]);
     }
@@ -119,7 +119,7 @@ class AdminModel extends Crud {
                 'member_id'=> $userInfo['member_id'],
                 'token' => $post['_token']
             ])) {
-                return error('用户效验失败');
+                return error('车秘用户效验失败');
             }
         } else {
             if ($userInfo['member_passwd'] != md5(md5($post['password']))) {
@@ -145,13 +145,14 @@ class AdminModel extends Crud {
             'user_login' => $post['username'],
             'user_status' => 1
         ])) {
-            return error('用户名或密码错误');
+            // 验证登录社区后台
+            return $this->chemiCommunityLogin($post);
         }
 
         if ($post['_token']) {
             // 验证车秘token
             if (md5($userInfo['user_pass']) != $post['_token']) {
-                return error('用户效验失败');
+                return error('停车场用户效验失败');
             }
         } else {
             // 验证密码
@@ -161,10 +162,57 @@ class AdminModel extends Crud {
             }
         }
 
+        // 获取停车场
+        $parking = $userModel->getCheMiParkingCondition($userInfo['operator_id'] ? ['operator_id' => $userInfo['operator_id']] : null);
+
         return success([
             'uid' => $userInfo['id'],
-            'nickname' => $userInfo['user_login'],
-            'operator_id' => intval($userInfo['operator_id'])
+            'nickname' => get_real_val($userInfo['user_nicename'], $userInfo['user_login']),
+            'parking' => $parking
+        ]);
+    }
+
+    /**
+     * 车秘社区后台登录
+     * @param $post
+     * @return array
+     */
+    public function chemiCommunityLogin ($post) {
+        $userModel = new UserModel();
+        if (!$userInfo = $userModel->getCheMiCommunityCondition([
+            'card_id' => $post['username']
+        ])) {
+            return error('用户名或密码错误');
+        }
+
+        // 密码为账号
+        $userInfo['user_pass'] = $userInfo['card_id'];
+
+        if ($post['_token']) {
+            // 验证车秘token
+            if (md5($userInfo['user_pass']) != $post['_token']) {
+                return error('社区用户效验失败');
+            }
+        } else {
+            // 验证密码
+            if ($userInfo['user_pass'] != $post['password']) {
+                $count = $this->loginFail($post['username']);
+                return error($count > 0 ? ('用户名或密码错误，您还可以登录 ' . $count . ' 次！') : '密码错误次数过多，15分钟后重新登录！');
+            }
+        }
+
+        // 获取所属停车场
+        $parking = $userModel->getCheMiCommunity2Condition(['community_id' => $userInfo['id']]);
+        if ($parking) {
+            $parking = array_column($parking, 'stop_id');
+            $parking = $userModel->getCheMiParkingCondition(['id' => ['in', $parking]]);
+        }
+
+        return success([
+            'uid' => $userInfo['id'],
+            'nickname' => $userInfo['name'],
+            'community' => [$userInfo],
+            'parking' => $parking
         ]);
     }
 
