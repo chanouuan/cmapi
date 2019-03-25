@@ -123,9 +123,20 @@ class UserModel extends Crud {
     }
 
     /**
+     * 获取车秘社区列表(搜索条件)
+     */
+    public function getCheMiCommunityListCondition ($condition, $field = 'id, name, card_id') {
+        return $this->getDb('park')
+            ->table('chemi_stop_community')
+            ->field($field)
+            ->where($condition)
+            ->select();
+    }
+
+    /**
      * 获取车秘社区所属停车场(搜索条件)
      */
-    public function getCheMiCommunity2Condition ($condition, $field = 'id, stop_id') {
+    public function getCheMiCommunity2Condition ($condition, $field = 'id, stop_id, community_id') {
         return $this->getDb('park')
             ->table('chemi_stop_community2stop')
             ->field($field)
@@ -136,7 +147,7 @@ class UserModel extends Crud {
     /**
      * 获取车秘停车场(搜索条件)
      */
-    public function getCheMiParkingCondition ($condition, $field = 'id, park_code, operator_id, stoping_name') {
+    public function getCheMiParkingCondition ($condition, $field = 'id, park_code, operator_id, stoping_name, stoping_longitude, stoping_latitude') {
         return $this->getDb('park')
             ->table('chemi_stop_stoping')
             ->field($field)

@@ -7,6 +7,22 @@ use library\Crud;
 class AdminModel extends Crud {
 
     /**
+     * 获取社区列表
+     */
+    public function getCommunityList ($post) {
+        // 停车场ID
+        $post['parking_id'] = intval($post['parking_id']);
+
+        $userModel = new UserModel();
+        if (!$community2 = $userModel->getCheMiCommunity2Condition(['stop_id' => $post['parking_id']])) {
+            return success([]);
+        }
+        return success($userModel->getCheMiCommunityListCondition([
+            'id' => ['in', array_column($community2, 'community_id')]
+        ]));
+    }
+
+    /**
      * 管理员登录
      * @param platform 平台代码 4 保险 5 共享
      * @param username 用户名
@@ -58,6 +74,7 @@ class AdminModel extends Crud {
         return success([
             'uid' => $userInfo['uid'],
             'nickname' => $userInfo['nickname'],
+            'datasource' => isset($userInfo['datasource']) ? $userInfo['datasource'] : '',
             'parking' => isset($userInfo['parking']) ? $userInfo['parking'] : [],
             'community' => isset($userInfo['community']) ? $userInfo['community'] : [],
             'permission' => $permission
@@ -165,9 +182,30 @@ class AdminModel extends Crud {
         // 获取停车场
         $parking = $userModel->getCheMiParkingCondition($userInfo['operator_id'] ? ['operator_id' => $userInfo['operator_id']] : null);
 
+        // 获取社区
+        if ($parking) {
+            $community2 = $userModel->getCheMiCommunity2Condition(['stop_id' => ['in', array_column($parking, 'id')]]);
+            if ($community2) {
+                $community = $userModel->getCheMiCommunityListCondition([
+                    'id' => ['in', array_column($community2, 'community_id')]
+                ]);
+                $list = [];
+                foreach ($community2 as $k => $v) {
+                    $list[$v['community_id']][] = $v['stop_id'];
+                }
+                foreach ($community as $k => $v) {
+                    if (isset($list[$v['id']])) {
+                        $community[$k]['parking'] = $list[$v['id']];
+                    }
+                }
+            }
+        }
+
         return success([
             'uid' => $userInfo['id'],
+            'datasource' => 'parking',
             'nickname' => get_real_val($userInfo['user_nicename'], $userInfo['user_login']),
+            'community' => isset($community) ? $community : [],
             'parking' => $parking
         ]);
     }
@@ -210,6 +248,7 @@ class AdminModel extends Crud {
 
         return success([
             'uid' => $userInfo['id'],
+            'datasource' => 'community',
             'nickname' => $userInfo['name'],
             'community' => [$userInfo],
             'parking' => $parking

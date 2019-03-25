@@ -30,4 +30,11 @@ class Admin extends ActionPDO {
         return (new AdminModel())->info(only('uid', 'source'));
     }
 
+    /**
+     * 获取社区列表
+     */
+    public function getCommunityList () {
+        return (new AdminModel())->getCommunityList(only('parking_id'));
+    }
+
 }
