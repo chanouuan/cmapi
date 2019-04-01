@@ -3,15 +3,19 @@
  * 微信JS支付
  */
 
-namespace controllers;
+namespace app\controllers;
 
-use models\TradeModel;
+use ActionPDO;
+use DebugLog;
+use app\models\TradeModel;
+use app\models\XicheModel;
+use app\models\BaoxianModel;
 
-class Wxpayjs extends \ActionPDO {
+class Wxpayjs extends ActionPDO {
 
     public function __init ()
     {
-        import_vendor('WxPayJs/WxPayPubHelper');
+        import_library('WxPayPubHelper');
         $wxConfig = getSysConfig('xiche', 'wx');
         define('APPID', $wxConfig['appid']);
         define('APPSECRET', $wxConfig['appsecret']);
@@ -51,9 +55,9 @@ class Wxpayjs extends \ActionPDO {
 
         // 获取openid
         if ($tradeInfo['type'] == 'xc') {
-            $openid = (new \models\XicheModel())->getWxOpenid($tradeInfo['trade_id']);
+            $openid = (new XicheModel())->getWxOpenid($tradeInfo['trade_id']);
         } else if ($tradeInfo['type'] == 'bx') {
-            $openid = (new \models\BaoxianModel())->getWxOpenid($tradeInfo['trade_id']);
+            $openid = (new BaoxianModel())->getWxOpenid($tradeInfo['trade_id']);
         }
 
         // 使用统一支付接口，获取prepay_id
@@ -133,7 +137,7 @@ class Wxpayjs extends \ActionPDO {
         if ($success) {
             echo $returnXml;
         } else {
-            \library\DebugLog::_log($error, 'payerror');
+            DebugLog::_log($error, 'payerror');
         }
         return null;
     }

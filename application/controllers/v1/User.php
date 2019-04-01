@@ -1,8 +1,13 @@
 <?php
 
-namespace controllers;
+namespace app\controllers;
 
-class User extends \ActionPDO {
+use ActionPDO;
+use app\models\UserModel;
+use app\library\Aes;
+use app\library\DB;
+
+class User extends ActionPDO {
 
     public function __init () {
         // echo $this->setSign(['clientapp'=>'ios','apiversion'=>1,'platform'=>2]);exit;
@@ -18,7 +23,7 @@ class User extends \ActionPDO {
      * 第三方授权绑定
      */
     public function extend () {
-        $userModel = new \models\UserModel();
+        $userModel = new UserModel();
         unset($_POST['nopw']);
         $result = $userModel->loginBinding($_POST);
         if ($result['errorcode'] !== 0) {
@@ -34,7 +39,7 @@ class User extends \ActionPDO {
      * 发送短信验证码
      */
     public function sendSms () {
-        $userModel = new \models\UserModel();
+        $userModel = new UserModel();
         return $userModel->sendSmsCode($_POST);
     }
 
@@ -42,7 +47,7 @@ class User extends \ActionPDO {
      * 获取用户信息
      */
     public function info () {
-        $userModel = new \models\UserModel();
+        $userModel = new UserModel();
         $result = $userModel->getUserInfo($_POST['uid']);
         if ($result['errorcode'] !== 0) {
             return $result;
@@ -57,7 +62,7 @@ class User extends \ActionPDO {
      * 用户消费
      */
     public function consume () {
-        $userModel = new \models\UserModel();
+        $userModel = new UserModel();
         return $userModel->consume($_POST);
     }
 
@@ -65,7 +70,7 @@ class User extends \ActionPDO {
      * 用户充值
      */
     public function recharge () {
-        $userModel = new \models\UserModel();
+        $userModel = new UserModel();
         return $userModel->recharge($_POST);
     }
 
@@ -85,7 +90,7 @@ class User extends \ActionPDO {
         // 2拼接字符串数据  &
         $string = http_build_query($data);
         // 3通过aes来加密
-        $string = \library\Aes::encrypt($string, $kv['aes_key'], $kv['aes_iv']);
+        $string = Aes::encrypt($string, $kv['aes_key'], $kv['aes_iv']);
 
         return $string;
     }
@@ -117,7 +122,7 @@ class User extends \ActionPDO {
         }
         $kv = $kv[$data['platform']];
 
-        $str = \library\Aes::decrypt($data['sign'], $kv['aes_key'], $kv['aes_iv']);
+        $str = Aes::decrypt($data['sign'], $kv['aes_key'], $kv['aes_iv']);
 
         if(empty($str)) {
             return error('授权码sign授权失败');
@@ -143,20 +148,20 @@ class User extends \ActionPDO {
         }
 
         // 唯一性判定
-        if (!\library\DB::getInstance()->insert('__tablepre__hashcheck', [
+        if (!DB::getInstance()->insert('__tablepre__hashcheck', [
             'hash' => md5_mini($data['sign']),
             'dateline' => TIMESTAMP
         ])) {
             return error('授权码sign已失效');
         }
-        \library\DB::getInstance()->delete('__tablepre__hashcheck', 'dateline < ' . (TIMESTAMP - getSysConfig('auth_expire_time') * 2));
+        DB::getInstance()->delete('__tablepre__hashcheck', 'dateline < ' . (TIMESTAMP - getSysConfig('auth_expire_time') * 2));
 
         return success('OK');
     }
 
     protected function getKv () {
         if (false === F('platform')) {
-            $rs = \library\DB::getInstance()->table('__tablepre__platform')->field('pfcode,aes_key,aes_iv')->where('status = 1')->select();
+            $rs = DB::getInstance()->table('__tablepre__platform')->field('pfcode,aes_key,aes_iv')->where('status = 1')->select();
             $rs = array_column($rs, null, 'pfcode');
             F('platform', $rs);
         }

@@ -1,11 +1,11 @@
 <?php
 
-namespace models;
+namespace app\models;
 
-use library\Crud;
-use library\LocationUtils;
-use library\Geohash;
-use library\Cache;
+use Crud;
+use app\library\LocationUtils;
+use app\library\Geohash;
+use app\library\Cache;
 
 class ParkWashModel extends Crud {
 
@@ -886,7 +886,7 @@ class ParkWashModel extends Crud {
         $status = [1, 0];
         $lon = 106.713478;
         $lat = 26.578343;
-        $geohash = new \library\Geohash();
+        $geohash = new Geohash();
         for ($i = 0; $i < 100000; $i ++) {
             $_lon = $lon + ($operator[array_rand($operator)] . (rand(1,100000) / 100000));
             $_lat = $lat + ($operator[array_rand($operator)] . (rand(1,100000) / 100000));
@@ -908,8 +908,8 @@ class ParkWashModel extends Crud {
                 'price' => rand(100, 10000)
             ];
         }
-        \library\DB::getInstance()->insert('parkwash_store', $data);
-        \library\DB::getInstance()->insert('parkwash_store_item', $item);
+        $this->getDb()->insert('parkwash_store', $data);
+        $this->getDb()->insert('parkwash_store_item', $item);
     }
 
 }

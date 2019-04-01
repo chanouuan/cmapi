@@ -1,6 +1,5 @@
 <?php
 
-set_time_limit(30);
 date_default_timezone_set('PRC');
 
 define('APPLICATION_PATH', dirname(__DIR__));
@@ -18,7 +17,11 @@ if (isset($_SERVER['HTTP_APIVERSION'])) {
     define('APIVERSION', 'v1');
 }
 
-include APPLICATION_PATH . '/application/library/Common.php';
-include APPLICATION_PATH . '/application/library/Init.php';
+$composerPath = APPLICATION_PATH . '/vendor/autoload.php';
+if (file_exists($composerPath)) {
+    require $composerPath;
+}
+require APPLICATION_PATH . '/application/library/Common.php';
+require APPLICATION_PATH . '/application/library/Init.php';
 
 $controller->run();

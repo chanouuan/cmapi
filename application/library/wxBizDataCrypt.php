@@ -6,7 +6,7 @@
  * @copyright Copyright (c) 1998-2014 Tencent Inc.
  */
 
-namespace library;
+namespace app\library;
 
 class WXBizDataCrypt
 {

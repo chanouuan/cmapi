@@ -1,8 +1,11 @@
 <?php
 
-namespace models;
+namespace app\models;
 
-use library\Crud;
+use Crud;
+use app\library\Cache;
+use app\library\Aes;
+use app\library\QRcode;
 
 class XicheModel extends Crud {
 
@@ -179,13 +182,13 @@ class XicheModel extends Crud {
         }
 
         // 限制机器上报频率
-        $cacheVal = \library\Cache::getInstance(['type' => 'file'])->get(concat('ReportStatus', $DevCode));
+        $cacheVal = Cache::getInstance(['type' => 'file'])->get(concat('ReportStatus', $DevCode));
         if ($cacheVal) {
             if ($cacheVal == concat($IsOnline, $UseState)) {
                 return success('上报频率过快');
             }
         }
-        \library\Cache::getInstance(['type' => 'file'])->set(concat('ReportStatus', $DevCode), concat($IsOnline, $UseState), 60);
+        Cache::getInstance(['type' => 'file'])->set(concat('ReportStatus', $DevCode), concat($IsOnline, $UseState), 60);
 
         $deviceInfo = $this->getDeviceByCode($DevCode);
         if ($deviceInfo) {
@@ -281,10 +284,10 @@ class XicheModel extends Crud {
             str_replace('index.php', '', $_SERVER['SCRIPT_NAME']),
         ];
 
-        $text[] = 'xiche/login?devcode=' . rawurlencode(\library\Aes::encrypt($devcode));
+        $text[] = 'xiche/login?devcode=' . rawurlencode(Aes::encrypt($devcode));
         $text = implode('', $text);
 
-        \library\QRcode::png($text, false, QR_ECLEVEL_L, 12, 2);
+        QRcode::png($text, false, QR_ECLEVEL_L, 12, 2);
         exit(0);
     }
 
@@ -309,7 +312,7 @@ class XicheModel extends Crud {
      */
     public function checkDevcode ($devcode) {
         // 验证设备编码
-        $devcode = \library\Aes::decrypt(rawurldecode($devcode));
+        $devcode = Aes::decrypt(rawurldecode($devcode));
         if (!preg_match('/^[0-9|a-z|A-Z]{14}$/', $devcode)) {
             return error('设备效验失败');
         }
@@ -353,7 +356,7 @@ class XicheModel extends Crud {
             return error('参数错误');
         }
 
-        $userModel = new \models\UserModel();
+        $userModel = new UserModel();
 
         // 获取用户
         if (!$userInfo = $userModel->getUserInfoCondition([
@@ -410,7 +413,7 @@ class XicheModel extends Crud {
         }
 
         // 加载模型
-        $userModel = new \models\UserModel();
+        $userModel = new UserModel();
 
         // 获取用户
         $userInfo = $userModel->getUserInfoCondition([
@@ -476,7 +479,7 @@ class XicheModel extends Crud {
      * 设置登录密码
      */
     public function setpw ($user, $post) {
-        return (new \models\UserModel())->setpw([
+        return (new UserModel())->setpw([
             'uid' => $user['uid'],
             'password' => $post['password']
         ]);
@@ -503,16 +506,16 @@ class XicheModel extends Crud {
         }
 
         // 限制多人同时进入
-        $cacheVal = \library\Cache::getInstance(['type' => 'file'])->get('devcode' . $deviceInfo['devcode']);
+        $cacheVal = Cache::getInstance(['type' => 'file'])->get('devcode' . $deviceInfo['devcode']);
         if ($cacheVal) {
             if ($cacheVal != $uid) {
                 return error('此设备其他人正在使用中，请稍后再试！');
             }
         }
-        \library\Cache::getInstance(['type' => 'file'])->set('devcode' . $deviceInfo['devcode'], $uid, 30);
+        Cache::getInstance(['type' => 'file'])->set('devcode' . $deviceInfo['devcode'], $uid, 30);
 
         // 账户信息
-        $userModel = new \models\UserModel();
+        $userModel = new UserModel();
         $userInfo = $userModel->getUserInfo($uid);
         if ($userInfo['errorcode'] !== 0) {
             return $userInfo;

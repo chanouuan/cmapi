@@ -1,10 +1,12 @@
 <?php
 
-namespace controllers;
+namespace app\controllers;
 
-use \models\XicheManageModel;
+use ActionPDO;
+use app\models\XicheManageModel;
+use app\models\UserModel;
 
-class XicheManage extends \ActionPDO {
+class XicheManage extends ActionPDO {
 
     public function __init ()
     {
@@ -24,7 +26,7 @@ class XicheManage extends \ActionPDO {
     }
 
     public function index () {
-        $userList = (new \models\UserModel())->getUserByBinding([
+        $userList = (new UserModel())->getUserByBinding([
             'platform = 3',
             'uid = ' . $this->_G['user']['uid']
         ]);
@@ -132,7 +134,7 @@ class XicheManage extends \ActionPDO {
             'type = "xc"'
         ];
         $modle = new XicheManageModel();
-        $userModel = new \models\UserModel();
+        $userModel = new UserModel();
 
         if ($_GET['telephone']) {
             $userList = $userModel->getUserByBinding([
@@ -278,7 +280,7 @@ class XicheManage extends \ActionPDO {
                 return error('验证码错误');
             }
 
-            $model =  new \models\UserModel();
+            $model =  new UserModel();
             $userInfo = $model->getUserInfoCondition([
                     'member_name'=> $_POST['telephone']
                 ], 'member_id,member_passwd');
@@ -303,7 +305,7 @@ class XicheManage extends \ActionPDO {
      * 登出
      */
     public function logout () {
-        (new \models\UserModel())->logout($this->_G['user']['uid']);
+        (new UserModel())->logout($this->_G['user']['uid']);
         $this->success('登出成功', gurl('xicheManage/login'), 0);
     }
 

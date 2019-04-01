@@ -1,10 +1,9 @@
 <?php
 
-namespace controllers;
+namespace app\controllers;
 
 use ActionPDO;
-use models\AdminModel;
-use models\UserModel;
+use app\models\AdminModel;
 
 class Admin extends ActionPDO {
 

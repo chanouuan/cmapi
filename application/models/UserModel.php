@@ -1,9 +1,9 @@
 <?php
 
-namespace models;
+namespace app\models;
 
-use library\Crud;
-use library\DB;
+use Crud;
+use app\library\DB;
 
 class UserModel extends Crud {
 

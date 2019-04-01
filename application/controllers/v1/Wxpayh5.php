@@ -3,15 +3,17 @@
  * 微信H5支付
  */
 
-namespace controllers;
+namespace app\controllers;
 
-use models\TradeModel;
+use ActionPDO;
+use DebugLog;
+use app\models\TradeModel;
 
-class Wxpayh5 extends \ActionPDO {
+class Wxpayh5 extends ActionPDO {
 
     public function __init ()
     {
-        import_vendor('WxPayJs/WxPayPubHelper');
+        import_library('WxPayPubHelper');
         $wxConfig = getSysConfig('xiche', 'wx');
         define('APPID', $wxConfig['appid']);
         define('APPSECRET', $wxConfig['appsecret']);
@@ -128,7 +130,7 @@ class Wxpayh5 extends \ActionPDO {
         if ($success) {
             echo $returnXml;
         } else {
-            \library\DebugLog::_log($error, 'payerror');
+            DebugLog::_log($error, 'payerror');
         }
         return null;
     }

@@ -1,10 +1,9 @@
 <?php
 /**
  * 缓存管理
- * @author Administrator
- *
+ * @author cyq
  */
-namespace library;
+namespace app\library;
 
 abstract class Cache {
 
@@ -29,7 +28,7 @@ abstract class Cache {
         if (!isset($options['type'])) {
             return NULL;
         }
-        $class = '\\library\\Cache' . ucfirst($options['type']);
+        $class = 'app\\library\\Cache' . ucfirst($options['type']);
         self::$_instance[$name] = new $class($options);
         return self::$_instance[$name];
     }
@@ -41,9 +40,9 @@ abstract class Cache {
 class CacheFile extends Cache {
 
     private $options = [
-            'expire' => 0, 
-            'prefix' => '', 
-            'path' => APPLICATION_PATH . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . 'file', 
+            'expire' => 0,
+            'prefix' => '',
+            'path' => APPLICATION_PATH . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . 'file',
             'data_compress' => true
     ];
 
@@ -225,7 +224,7 @@ class CacheFile extends Cache {
 class CacheRedis extends Cache {
 
     private $options = [
-            'database' => 0, 
+            'database' => 0,
             'server' => [
                     '127.0.0.1:6379'
             ]
@@ -279,7 +278,7 @@ class CacheRedis extends Cache {
             $key = substr($key, $pos + 1);
         }
         return [
-                $hash, 
+                $hash,
                 $key
         ];
     }
@@ -541,11 +540,11 @@ class CacheRedis extends Cache {
     function dump ()
     {
         $type = array(
-                'none', 
-                'string', 
-                'set', 
-                'list', 
-                'zset', 
+                'none',
+                'string',
+                'set',
+                'list',
+                'zset',
                 'hash'
         );
         $result = array();

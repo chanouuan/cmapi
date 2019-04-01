@@ -1,13 +1,13 @@
 <?php
 
-namespace controllers;
+namespace app\controllers;
 
 use ActionPDO;
-use library\JSSDK;
-use models\ParkWashModel;
-use models\XicheModel;
-use models\UserModel;
-use models\TradeModel;
+use app\library\JSSDK;
+use app\models\ParkWashModel;
+use app\models\XicheModel;
+use app\models\UserModel;
+use app\models\TradeModel;
 
 /**
  * 停车场洗车

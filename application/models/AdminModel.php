@@ -1,8 +1,8 @@
 <?php
 
-namespace models;
+namespace app\models;
 
-use library\Crud;
+use Crud;
 
 class AdminModel extends Crud {
 

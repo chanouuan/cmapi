@@ -2,16 +2,15 @@
 
 /**
  * 生成验证码
- * 类用法
  * $checkcode = new checkcode();
  * $checkcode->doimage();
  * //取得验证
  * $_SESSION['code']=$checkcode->get_code();
  */
-namespace library;
+namespace app\library;
 
 class Checkcode {
-    
+
     // 验证码的宽度
     public $width = 130;
     // 验证码的高
@@ -116,7 +115,7 @@ class Checkcode {
         $xpos = ($this->font_size * 2) + rand(-5, 5);
         $width = $this->width / 2.66 + rand(3, 10);
         $height = $this->font_size * 2.14;
-        
+
         if (rand(0, 100) % 2 == 0)
         {
             $start = rand(0, 66);
@@ -128,11 +127,11 @@ class Checkcode {
             $start = rand(180, 246);
             $ypos = $this->height / 2 + rand(10, 30);
         }
-        
+
         $end = $start + rand(75, 110);
-        
+
         imagearc($this->img, $xpos, $ypos, $width, $height, $start, $end, $this->font_color);
-        
+
         if (rand(1, 75) % 2 == 0)
         {
             $start = rand(45, 111);
@@ -144,9 +143,9 @@ class Checkcode {
             $start = rand(200, 250);
             $ypos = $this->height / 2 + rand(10, 30);
         }
-        
+
         $end = $start + rand(75, 100);
-        
+
         imagearc($this->img, $this->width * .75, $ypos, $width, $height, $start, $end, $this->font_color);
     }
 

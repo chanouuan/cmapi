@@ -3,12 +3,12 @@
  * 微信H5支付
  */
 
-namespace controllers;
+namespace app\controllers;
 
 class Wxpayh5bx extends Wxpayh5 {
 
     public function __init () {
-        import_vendor('WxPayJs/WxPayPubHelper');
+        import_library('WxPayPubHelper');
         $wxConfig = getSysConfig('xiche', 'wx');
         define('APPID', $wxConfig['appid']);
         define('APPSECRET', $wxConfig['appsecret']);

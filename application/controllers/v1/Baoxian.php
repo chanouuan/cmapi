@@ -1,10 +1,12 @@
 <?php
 
-namespace controllers;
+namespace app\controllers;
 
 use ActionPDO;
-use models\BaoxianModel;
-use models\UserModel;
+use app\library\JSSDK;
+use app\models\BaoxianModel;
+use app\models\UserModel;
+use app\models\TradeModel;
 
 /**
  * 保险
@@ -76,7 +78,7 @@ class Baoxian extends ActionPDO {
             // 微信登录
             if (empty($this->_G['user'])) {
                 $wxConfig = getSysConfig('xiche', 'wx');
-                $jssdk = new \library\JSSDK($wxConfig['appid'], $wxConfig['appsecret']);
+                $jssdk = new JSSDK($wxConfig['appid'], $wxConfig['appsecret']);
                 $userInfo = $jssdk->connectAuth(gurl('baoxian/login', burl()), 'snsapi_base', false);
                 if ($userInfo['errorcode'] === 0) {
                     $this->_G['user'] = $model->checkLogin($userInfo['result']);
@@ -107,7 +109,7 @@ class Baoxian extends ActionPDO {
      * @login
      */
     public function payQuery () {
-        return (new \models\TradeModel())->payQuery($this->_G['user']['uid'], getgpc('tradeid'));
+        return (new TradeModel())->payQuery($this->_G['user']['uid'], getgpc('tradeid'));
     }
 
     /**

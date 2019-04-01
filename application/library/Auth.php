@@ -1,6 +1,6 @@
 <?php
 
-namespace library;
+namespace app\library;
 
 /**
  * 权限认证类
@@ -10,9 +10,9 @@ class Auth {
     public static $_config = array(
             // 超管
             'administrator' => array(
-                    1, 
-                    2, 
-                    3, 
+                    1,
+                    2,
+                    3,
                     4
             )
     );
@@ -30,17 +30,17 @@ class Auth {
     {
         $uid = intval($uid);
         $plugin_id = intval($plugin_id);
-        
+
         if (empty($name) || empty($uid)) return false;
-        
+
         // 超管账号有所有权限
         if (in_array($uid, self::$_config['administrator'])) return true;
-        
+
         // 获取用户需要验证的所有有效规则列表
         $authList = self::getAuthList($uid, 1, $plugin_id, $extra);
-        
+
         if (empty($authList)) return false;
-        
+
         if (is_string($name)) {
             $name = strtolower($name);
             if (strpos($name, ',') !== false) {
@@ -51,7 +51,7 @@ class Auth {
                 );
             }
         }
-        
+
         // 保存验证通过的规则名
         $list = array();
         foreach ($authList as $auth) {
@@ -79,14 +79,14 @@ class Auth {
     }
 
     /**
-     * 获得权限列表          
+     * 获得权限列表
      */
     protected static function getAuthList ($uid, $type, $plugin_id, $extra = array())
     {
         static $_authList = array();
         $_index = $uid . '_' . $plugin_id . '_' . $type;
         if (isset($_authList[$_index])) {return self::getRule($_authList[$_index], $uid, $extra);}
-        
+
         // 读取用户所属用户组
         $groups = self::getGroups($uid, $plugin_id);
         // 保存用户所属用户组设置的所有权限规则id
@@ -99,12 +99,12 @@ class Auth {
             $_authList[$_index] = array();
             return false;
         }
-        
+
         // 读取用户组所有权限规则
         $rules = DB::getInstance()->table('~auth_rule~')->where('id in (' . implode(',', $ids) . ') and type = ' . $type . ' and status = 1 and plugin_id = ' . $plugin_id)->field('conditions,name')->select();
-        
+
         $_authList[$_index] = $rules;
-        
+
         return self::getRule($rules, $uid, $extra);
     }
 

@@ -1,6 +1,6 @@
 <?php
 
-namespace library;
+namespace app\library;
 
 class Aes {
 

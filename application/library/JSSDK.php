@@ -1,6 +1,6 @@
 <?php
 
-namespace library;
+namespace app\library;
 
 class JSSDK {
 
@@ -211,7 +211,7 @@ class JSSDK {
 
     public function getJsApiTicket ()
     {
-        $data = \library\Cache::getInstance(['type' => 'file'])->get('jsapi_ticket' . $this->appId);
+        $data = Cache::getInstance(['type' => 'file'])->get('jsapi_ticket' . $this->appId);
 
         if (!$data) {
             $_access_token = $this->getAccessToken();
@@ -227,7 +227,7 @@ class JSSDK {
             if ($reponse['errcode']) {
                 return error($reponse['errmsg']);
             }
-            \library\Cache::getInstance(['type' => 'file'])->set('jsapi_ticket' . $this->appId, $reponse['ticket'], $reponse['expires_in'] - 100);
+            Cache::getInstance(['type' => 'file'])->set('jsapi_ticket' . $this->appId, $reponse['ticket'], $reponse['expires_in'] - 100);
 
             return success(array(
                     'jsapi_ticket' => $reponse['ticket']
@@ -252,7 +252,7 @@ class JSSDK {
             ));
         }
 
-        $data = \library\Cache::getInstance(['type' => 'file'])->get('access_token' . $this->appId);
+        $data = Cache::getInstance(['type' => 'file'])->get('access_token' . $this->appId);
 
         if (!$data) {
             try {
@@ -263,7 +263,7 @@ class JSSDK {
             if ($reponse['errcode']) {
                 return error($reponse['errmsg']);
             }
-            \library\Cache::getInstance(['type' => 'file'])->set('access_token' . $this->appId, $reponse['access_token'], $reponse['expires_in'] - 100);
+            Cache::getInstance(['type' => 'file'])->set('access_token' . $this->appId, $reponse['access_token'], $reponse['expires_in'] - 100);
 
             return success(array(
                 'access_token' => $reponse['access_token']

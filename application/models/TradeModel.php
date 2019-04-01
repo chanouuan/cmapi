@@ -1,8 +1,8 @@
 <?php
 
-namespace models;
+namespace app\models;
 
-use library\Crud;
+use Crud;
 
 class TradeModel extends Crud {
 
@@ -58,7 +58,7 @@ class TradeModel extends Crud {
         }
 
         // 查询订单
-        $className = '\\controllers\\' . ucwords($tradeInfo['payway']);
+        $className = 'app\\controllers\\' . ucwords($tradeInfo['payway']);
         $referer = new $className();
         $referer->_module = $tradeInfo['payway'];
         $result = call_user_func([$referer, 'query']);

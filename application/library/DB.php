@@ -1,10 +1,9 @@
 <?php
 /**
  * 数据库管理
- * @author Administrator
- *
+ * @author cyq
  */
-namespace library;
+namespace app\library;
 
 abstract class DB {
 
@@ -38,7 +37,7 @@ abstract class DB {
         if (!$dbconfig = $dbconfig[$link]) {
             throw new \Exception('Undefined DbLink: ' . $link);
         }
-        $dbclass = '\\library\\Db' . ucfirst($dbconfig['db']);
+        $dbclass = 'app\\library\\Db' . ucfirst($dbconfig['db']);
         $dbclass = new $dbclass();
         try {
             $dbclass->connect($dbconfig);

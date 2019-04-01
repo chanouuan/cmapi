@@ -17,13 +17,11 @@ function concat (...$args)
     return '';
 }
 
-function import_vendor($path)
+function import_library($path)
 {
     $path = trim($path, DIRECTORY_SEPARATOR) . '.php';
-    include implode(DIRECTORY_SEPARATOR, [
-        APPLICATION_PATH,
-        'vendor',
-        $path
+    require_once implode(DIRECTORY_SEPARATOR, [
+        APPLICATION_PATH, 'application', DIRECTORY_SEPARATOR, 'library', $path
     ]);
 }
 
@@ -122,7 +120,7 @@ function getSysConfig ($key = null, $target = 'config')
 function getConfig ($app = null, $name = null)
 {
     if (false === F('config')) {
-        $result = \library\DB::getInstance()->table('__tablepre__config')->field('app,name,value,type')->select();
+        $result = \app\library\DB::getInstance()->table('__tablepre__config')->field('app,name,value,type')->select();
         $config = array();
         foreach ($result as $k => $v) {
             if ($v['type'] == 'textarea') {
@@ -268,8 +266,8 @@ function submitcheck ($formhash = null, $disposable = false)
     if (empty($formhash) || false === strpos(APPLICATION_URL, $_SERVER['HTTP_HOST'])) return false;
     if (authcode(rawurldecode($formhash), 'DECODE') !== formhash()) return false;
     if (false === $disposable) return true;
-    \library\DB::getInstance()->delete('__tablepre__hashcheck', 'dateline < ' . (TIMESTAMP - 3600));
-    return \library\DB::getInstance()->insert('__tablepre__hashcheck', array(
+    \app\library\DB::getInstance()->delete('__tablepre__hashcheck', 'dateline < ' . (TIMESTAMP - 3600));
+    return \app\library\DB::getInstance()->insert('__tablepre__hashcheck', array(
             'hash' => md5_mini($formhash),
             'dateline' => TIMESTAMP
     ));
@@ -500,7 +498,7 @@ function https_request ($url, $post = null, $headers = null, $timeout = 3, $enco
             return https_request($url, $post, $headers, $timeout, $encode, $reload - 1, $st);
         }
         $error = curl_error($curl);
-        \library\DebugLog::_log([
+        \DebugLog::_log([
             '[Args] ' . json_unicode_encode(func_get_args()),
             '[Info] ' . json_unicode_encode(curl_getinfo($curl)),
             '[Fail] ' . $error,
@@ -510,7 +508,7 @@ function https_request ($url, $post = null, $headers = null, $timeout = 3, $enco
         throw new \Exception($error);
     }
     curl_close($curl);
-    \library\DebugLog::_curl($url, $headers, $post, round(microtime_float() - $st, 3), $reponse);
+    \DebugLog::_curl($url, $headers, $post, round(microtime_float() - $st, 3), $reponse);
     if ($encode == 'json') {
         if (!$reponse) {
             return [];
@@ -901,17 +899,17 @@ function checkSignPass($data)
     // 验签
     $sig = $data['sig'];
     if (empty($sig)) {
-        return error(null, \library\StatusCodes::getMessage(\library\StatusCodes::SIG_ERROR), \library\StatusCodes::SIG_ERROR);
+        return error(null, \StatusCodes::getMessage(\StatusCodes::SIG_ERROR), \StatusCodes::SIG_ERROR);
     }
     setSign($data);
     if ($sig != $data['sig']) {
-        return error(null, \library\StatusCodes::getMessage(\library\StatusCodes::SIG_ERROR), \library\StatusCodes::SIG_ERROR);
+        return error(null, \StatusCodes::getMessage(\StatusCodes::SIG_ERROR), \StatusCodes::SIG_ERROR);
     }
 
     // 时间效验
     $auth_expire_time = getSysConfig('auth_expire_time');
     if ($auth_expire_time && abs(TIMESTAMP - $data['time']) > $auth_expire_time) {
-        return error(null, \library\StatusCodes::getMessage(\library\StatusCodes::SIG_EXPIRE), \library\StatusCodes::SIG_EXPIRE);
+        return error(null, \StatusCodes::getMessage(\StatusCodes::SIG_EXPIRE), \StatusCodes::SIG_EXPIRE);
     }
 
     return success('OK');

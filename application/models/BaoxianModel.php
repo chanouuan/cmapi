@@ -1,9 +1,9 @@
 <?php
 
-namespace models;
+namespace app\models;
 
-use library\Crud;
-use library\Cache;
+use Crud;
+use app\library\Cache;
 
 class BaoxianModel extends Crud {
 
@@ -122,7 +122,7 @@ class BaoxianModel extends Crud {
             return error('参数错误');
         }
 
-        $userModel = new \models\UserModel();
+        $userModel = new UserModel();
 
         // 获取用户
         if (!$userInfo = $userModel->getUserInfoCondition([
@@ -179,7 +179,7 @@ class BaoxianModel extends Crud {
         }
 
         // 加载模型
-        $userModel = new \models\UserModel();
+        $userModel = new UserModel();
 
         // 获取用户
         $userInfo = $userModel->getUserInfoCondition([
@@ -501,7 +501,7 @@ class BaoxianModel extends Crud {
         }
 
         // model
-        $userModel = new \models\UserModel();
+        $userModel = new UserModel();
         // 账户信息
         $userInfo = $userModel->getUserInfo($uid);
         if ($userInfo['errorcode'] !== 0) {
@@ -672,7 +672,7 @@ class BaoxianModel extends Crud {
         }
 
         // model
-        $userModel = new \models\UserModel();
+        $userModel = new UserModel();
 
         // 使用优惠劵
         if ($tradeInfo['voucher_id']) {

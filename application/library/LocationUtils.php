@@ -5,7 +5,7 @@
  * @cyq
  */
 
-namespace library;
+namespace app\library;
 
 class LocationUtils {
 

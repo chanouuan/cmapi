@@ -1,10 +1,14 @@
 <?php
 
-namespace controllers;
+namespace app\controllers;
 
-use models\XicheModel;
+use ActionPDO;
+use app\library\JSSDK;
+use app\models\XicheModel;
+use app\models\TradeModel;
+use app\models\UserModel;
 
-class Xiche extends \ActionPDO {
+class Xiche extends ActionPDO {
 
     /**
      * 接收洗车机状态上报
@@ -106,7 +110,7 @@ class Xiche extends \ActionPDO {
             // 微信登录
             if (empty($this->_G['user'])) {
                 $wxConfig = getSysConfig('xiche', 'wx');
-                $jssdk = new \library\JSSDK($wxConfig['appid'], $wxConfig['appsecret']);
+                $jssdk = new JSSDK($wxConfig['appid'], $wxConfig['appsecret']);
                 $userInfo = $jssdk->connectAuth(gurl('xiche/login', burl()), 'snsapi_base', false);
                 if ($userInfo['errorcode'] === 0) {
                     $this->_G['user'] = $model->checkLogin($userInfo['result']);
@@ -191,7 +195,7 @@ class Xiche extends \ActionPDO {
 
         // 如果当前用户已支付，且机器未结束运行，就直接进入订单详情页
         if ($deviceInfo['usetime']) {
-            $tradeModel = new \models\TradeModel();
+            $tradeModel = new TradeModel();
             // 设备使用中，判断是否当前用户正在使用
             $tradeInfo = $tradeModel->get($deviceInfo['usetime'], [
                 'trade_id' => $this->_G['user']['uid'],
@@ -206,7 +210,7 @@ class Xiche extends \ActionPDO {
             }
         }
 
-        $userModel = new \models\UserModel();
+        $userModel = new UserModel();
         $userInfo = $userModel->getUserInfo($this->_G['user']['uid']);
         if ($userInfo['errorcode'] !== 0) {
             $this->error($userInfo['message'], null);
@@ -217,7 +221,7 @@ class Xiche extends \ActionPDO {
         if (CLIENT_TYPE == 'wx' && false) {
             // 加载微信JSSDK
             $wxConfig = getSysConfig('xiche', 'wx');
-            $jssdk = new \library\JSSDK($wxConfig['appid'], $wxConfig['appsecret']);
+            $jssdk = new JSSDK($wxConfig['appid'], $wxConfig['appsecret']);
             $jssdk = $jssdk->GetSignPackage();
             if ($jssdk['errorcode'] !== 0) {
                 $jssdk = null;
@@ -250,7 +254,7 @@ class Xiche extends \ActionPDO {
      * @login
      */
     public function payQuery () {
-        return (new \models\TradeModel())->payQuery($this->_G['user']['uid'], getgpc('tradeid'));
+        return (new TradeModel())->payQuery($this->_G['user']['uid'], getgpc('tradeid'));
     }
 
     /**
@@ -259,7 +263,7 @@ class Xiche extends \ActionPDO {
      */
     public function payItem () {
 
-        $tradeModel = new \models\TradeModel();
+        $tradeModel = new TradeModel();
         $xicheModel = new XicheModel();
 
         // 查询支付结果
@@ -298,7 +302,7 @@ class Xiche extends \ActionPDO {
      * 发送短信验证码
      */
     public function sendSms () {
-        return (new \models\UserModel())->sendSmsCode($_POST);
+        return (new UserModel())->sendSmsCode($_POST);
     }
 
     /**

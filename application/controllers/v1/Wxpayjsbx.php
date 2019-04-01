@@ -8,7 +8,7 @@ namespace controllers;
 class Wxpayjsbx extends Wxpayjs {
 
     public function __init () {
-        import_vendor('WxPayJs/WxPayPubHelper');
+        import_library('WxPayPubHelper');
         $wxConfig = getSysConfig('xiche', 'wx');
         define('APPID', $wxConfig['appid']);
         define('APPSECRET', $wxConfig['appsecret']);
