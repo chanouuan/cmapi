@@ -37,4 +37,11 @@ class Admin extends ActionPDO {
         return (new AdminModel())->getCommunityList(only('parking_id'));
     }
 
+    /**
+     * 获取业主列表
+     */
+    public function getOwnerList () {
+        return (new AdminModel())->getOwnerList(only('park_id', 'owner_name', 'owner_tell', 'carpost_id', 'space_identity', 'page', 'pagesize'));
+    }
+
 }

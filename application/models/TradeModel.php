@@ -21,7 +21,7 @@ class TradeModel extends Crud {
     {
         if (isset($id)) {
             if (is_array($where)) {
-                $where[] = 'id = ' . $id;
+                $where['id'] = $id;
             } else {
                 $where = $where ? ($where . ' and id = ' . $id) : (' id = ' . $id);
             }
@@ -29,7 +29,7 @@ class TradeModel extends Crud {
         if (!$where) {
             return null;
         }
-        return $this->getDb()->table('__tablepre__payments')->field($field)->where($where)->find();
+        return $this->getDb()->table('__tablepre__payments')->field($field)->where($where)->limit(1)->find();
     }
 
     /**
@@ -37,12 +37,10 @@ class TradeModel extends Crud {
      */
     public function payQuery ($uid, $tradeid)
     {
-        if (!$tradeInfo = $this->getDb()
-            ->field('id,pay,payway,mchid,status')
-            ->table('__tablepre__payments')
-            ->where('id = ' . intval($tradeid) . ' and trade_id = ' . $uid)
-            ->find()) {
-            return error('参数错误');
+        if (!$tradeInfo = $this->get(null, [
+            'id' => $tradeid, 'trade_id' => $uid
+        ], 'id,pay,payway,mchid,ordercode,status')) {
+            return error('交易单不存在或无效');
         }
 
         if ($tradeInfo['status'] == 1) {
@@ -60,11 +58,11 @@ class TradeModel extends Crud {
         }
 
         // 查询订单
-        try {
-            $result = https_request(gurl($tradeInfo['payway'] . '/query', 'ajax=1&tradeid=' . $tradeInfo['id']));
-        } catch (\Exception $e) {
-            return error($e->getMessage());
-        }
+        $className = '\\controllers\\' . ucwords($tradeInfo['payway']);
+        $referer = new $className();
+        $referer->_module = $tradeInfo['payway'];
+        $result = call_user_func([$referer, 'query']);
+
         if ($result['errorcode'] !== 0) {
             return error($result['message']);
         }
@@ -92,7 +90,9 @@ class TradeModel extends Crud {
      */
     public function paySuccess ($payway, $out_trade_no, $trade_no = '', $mchid = '', $trade_type = '', $trade_status = '')
     {
-        if (!$tradeInfo = $this->get(null, 'status = 0 and ordercode = "' . $out_trade_no . '"', 'id,type,trade_id,param_id,pay,money,status')) {
+        if (!$tradeInfo = $this->get(null, [
+            'ordercode' => $out_trade_no, 'status' => 0
+        ], 'id,type')) {
             return error($out_trade_no . '未找到');
         }
 
@@ -109,10 +109,13 @@ class TradeModel extends Crud {
         $model = null;
         if ($tradeInfo['type'] == 'xc') {
             // 洗车机支付成功
-            $model = new \models\XicheModel();
+            $model = new XicheModel();
         } elseif ($tradeInfo['type'] == 'bx') {
             // 保险支付成功
-            $model = new \models\BaoxianModel();
+            $model = new BaoxianModel();
+        } elseif ($tradeInfo['type'] == 'parkwash') {
+            // 停车场洗车支付成功
+            $model = new ParkWashModel();
         }
 
         if ($model) {

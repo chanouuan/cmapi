@@ -901,17 +901,17 @@ function checkSignPass($data)
     // 验签
     $sig = $data['sig'];
     if (empty($sig)) {
-        return error('签名为空');
+        return error(null, \library\StatusCodes::getMessage(\library\StatusCodes::SIG_ERROR), \library\StatusCodes::SIG_ERROR);
     }
     setSign($data);
     if ($sig != $data['sig']) {
-        return error('签名错误');
+        return error(null, \library\StatusCodes::getMessage(\library\StatusCodes::SIG_ERROR), \library\StatusCodes::SIG_ERROR);
     }
 
     // 时间效验
     $auth_expire_time = getSysConfig('auth_expire_time');
     if ($auth_expire_time && abs(TIMESTAMP - $data['time']) > $auth_expire_time) {
-        return error('签名过期');
+        return error(null, \library\StatusCodes::getMessage(\library\StatusCodes::SIG_EXPIRE), \library\StatusCodes::SIG_EXPIRE);
     }
 
     return success('OK');

@@ -7,6 +7,88 @@ use library\Crud;
 class AdminModel extends Crud {
 
     /**
+     * 获取业主列表
+     */
+    public function getOwnerList ($post) {
+
+        $condition = [
+            'stop_id' => $post['park_id'],
+            'owner_id' => ['>', 0]
+        ];
+        $ownerCondition = [];
+        if ($post['carpost_id']) {
+            $condition['carpost_id'] = ['like', '%' . intval($post['carpost_id']) . '%'];
+        }
+        if ($post['owner_name']) {
+            $ownerCondition['owner_name'] = ['like', '%' . addslashes($post['owner_name']) . '%'];
+        }
+        if ($post['owner_tell']) {
+            $ownerCondition['owner_tell'] = ['like', '%' . addslashes($post['owner_tell']) . '%'];
+        }
+        if ($ownerCondition) {
+            $ownerCondition['stop_id'] = $post['park_id'];
+            $ownerList = $this->getDb('park')->table('chemi_stop_owner_info')->field('owner_id')->where($ownerCondition)->limit(100)->select();
+            $ownerList = $ownerList ? array_column($ownerList, 'owner_id') : [-1];
+            $condition['owner_id'] = ['in', $ownerList];
+        }
+
+        $result = [
+            'totalpage' => 0,
+            'totalcount' => 0,
+            'page' => $post['page'],
+            'list' => []
+        ];
+
+        if (!$carpostList = $this->getDb('park')->table('chemi_stop_carpost')->field('id,carpost_name')->where(['stop_id' => $post['park_id']])->select()) {
+            return success($result);
+        }
+        $carpostList = array_column($carpostList, 'carpost_name', 'id');
+        if ($post['space_identity']) {
+            $spaceList = $this->getDb('park')->table('chemi_stop_space')->field('space_id')->where(['carpost_id' => ['in', array_keys($carpostList)], 'space_identity' => ['like', '%' . addslashes($post['space_identity']) . '%']])->limit(100)->select();
+            $spaceList = $spaceList ? array_column($spaceList, 'space_id') : [-1];
+            $condition['space_id'] = ['in', $spaceList];
+        }
+
+        if (!$count = $this->getDb('park')->table('chemi_stop_car')->where($condition)->count()) {
+            return success($result);
+        }
+
+        $pagesize = getPageParams($post['page'], $count, $post['pagesize'] < 10 ? 10 : $post['pagesize']);
+
+        if (!$carList = $this->getDb('park')->table('chemi_stop_car')->field('id,stoping_name,space_id,owner_id,license_number,carpost_id')->where($condition)->order('id desc')->limit($pagesize['limitstr'])->select()) {
+            return success($result);
+        }
+
+        $ownerIds = array_filter(array_column($carList, 'owner_id'));
+        if ($ownerIds) {
+            $ownerList = $this->getDb('park')->table('chemi_stop_owner_info')->field('owner_id,owner_name,owner_tell,room_number')->where(['owner_id' => ['in', $ownerIds]])->select();
+            $ownerList = array_column($ownerList, null, 'owner_id');
+        }
+        $spaceIds = array_filter(array_column($carList, 'space_id'));
+        if ($spaceIds) {
+            $spaceList = $this->getDb('park')->table('chemi_stop_space')->field('space_id,space_identity')->where(['space_id' => ['in', $spaceIds]])->select();
+            $spaceList = array_column($spaceList, null, 'space_id');
+        }
+        foreach ($carList as $k => $v) {
+            $carList[$k]['owner_name'] = isset($ownerList[$v['owner_id']]) ? $ownerList[$v['owner_id']]['owner_name'] : '';
+            $carList[$k]['owner_tell'] = isset($ownerList[$v['owner_id']]) ? $ownerList[$v['owner_id']]['owner_tell'] : '';
+            $carList[$k]['room_number'] = isset($ownerList[$v['owner_id']]) ? $ownerList[$v['owner_id']]['room_number'] : '';
+            $carList[$k]['space_identity'] = isset($spaceList[$v['space_id']]) ? $spaceList[$v['space_id']]['space_identity'] : '';
+            if ($v['carpost_id']) {
+                $carList[$k]['carpost_id'] = str_replace(array_keys($carpostList), $carpostList, $v['carpost_id']);
+            } else {
+                $carList[$k]['carpost_id'] = '全部区域';
+            }
+        }
+
+        $result['totalpage'] = $pagesize['totalpage'];
+        $result['totalcount'] = $pagesize['totalcount'];
+        $result['list'] = $carList;
+        unset($carList, $ownerList, $spaceList);
+        return success($result);
+    }
+
+    /**
      * 获取社区列表
      */
     public function getCommunityList ($post) {

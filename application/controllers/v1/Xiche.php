@@ -138,11 +138,9 @@ class Xiche extends \ActionPDO {
 
     /**
      * 获取AuthCode
+     * @login
      */
     public function getAuthCode () {
-        if (empty($this->_G['user'])) {
-            $this->error('用户校验失败', null);
-        }
         if (!$authcode = (new XicheModel())->getAuthCode($this->_G['user']['uid'], 'wx')) {
             $this->error('尚未绑定账号', null);
         }
@@ -153,11 +151,9 @@ class Xiche extends \ActionPDO {
 
     /**
      * 设置登录密码
+     * @login
      */
     public function setpw () {
-        if (empty($this->_G['user'])) {
-            $this->error('用户校验失败', null);
-        }
         $model = new XicheModel();
         if (submitcheck()) {
             return $model->setpw($this->_G['user'], $_POST);
@@ -167,11 +163,9 @@ class Xiche extends \ActionPDO {
 
     /**
      * 支付确认
+     * @login
      */
     public function checkout () {
-        if (empty($this->_G['user'])) {
-            $this->error('用户校验失败', null);
-        }
         $clienttype = $this->_G['user']['clienttype'];
 
         $model = new XicheModel();
@@ -200,9 +194,9 @@ class Xiche extends \ActionPDO {
             $tradeModel = new \models\TradeModel();
             // 设备使用中，判断是否当前用户正在使用
             $tradeInfo = $tradeModel->get($deviceInfo['usetime'], [
-                'trade_id = ' . $this->_G['user']['uid'],
-                'param_id = ' . $deviceInfo['id'],
-                'status = 1'
+                'trade_id' => $this->_G['user']['uid'],
+                'param_id' => $deviceInfo['id'],
+                'status' => 1
             ], 'id');
             if ($tradeInfo) {
                 // 跳过支付页
@@ -237,41 +231,33 @@ class Xiche extends \ActionPDO {
 
     /**
      * 解绑微信
+     * @login
      */
     public function unbind () {
-        if (empty($this->_G['user'])) {
-            $this->error('用户校验失败', null);
-        }
         return (new XicheModel())->unbind($this->_G['user']['uid']);
     }
 
     /**
      * 创建交易单
+     * @login
      */
     public function createCard () {
-        if (empty($this->_G['user'])) {
-            $this->error('用户校验失败', null);
-        }
         return (new XicheModel())->createCard($this->_G['user']['uid'], getgpc('devcode'), getgpc('payway'));
     }
 
     /**
      * 查询支付结果
+     * @login
      */
     public function payQuery () {
-        if (empty($this->_G['user'])) {
-            $this->error('用户校验失败', null);
-        }
         return (new \models\TradeModel())->payQuery($this->_G['user']['uid'], getgpc('tradeid'));
     }
 
     /**
      * 显示支付结果
+     * @login
      */
     public function payItem () {
-        if (empty($this->_G['user'])) {
-            $this->error('用户校验失败', null);
-        }
 
         $tradeModel = new \models\TradeModel();
         $xicheModel = new XicheModel();
@@ -279,7 +265,7 @@ class Xiche extends \ActionPDO {
         // 查询支付结果
         $tradeModel->payQuery($this->_G['user']['uid'], getgpc('tradeid'));
         // 查询订单信息
-        $info = $tradeModel->get(intval(getgpc('tradeid')), 'trade_id = ' . $this->_G['user']['uid'], 'money,ordercode,paytime,uses,status');
+        $info = $tradeModel->get(intval(getgpc('tradeid')), ['trade_id' => $this->_G['user']['uid']], 'money,ordercode,paytime,uses,status');
         if (empty($info)) {
             $this->error('该订单不存在或无效', null);
         }

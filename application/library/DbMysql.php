@@ -113,20 +113,20 @@ class DbMysql extends Db {
     private function parseSql ()
     {
         $_sql = str_replace([
-                '%TABLE%', 
-                '%FIELD%', 
-                '%JOIN%', 
-                '%WHERE%', 
-                '%GROUP%', 
-                '%ORDER%', 
+                '%TABLE%',
+                '%FIELD%',
+                '%JOIN%',
+                '%WHERE%',
+                '%GROUP%',
+                '%ORDER%',
                 '%LIMIT%'
         ], [
-                !empty($this->_options['table']) ? $this->parseTableName($this->_options['table']) : '', 
+                !empty($this->_options['table']) ? $this->parseTableName($this->_options['table']) : '',
                 !empty($this->_options['field']) ? (is_array($this->_options['field']) ? implode(',', $this->_options['field']) : $this->_options['field']) : '*',
-                !empty($this->_options['join']) ? $this->parseTableName($this->_options['join']) : '', 
+                !empty($this->_options['join']) ? $this->parseTableName($this->_options['join']) : '',
                 !empty($this->_options['where']) ? ('WHERE ' . $this->buildParams($this->_options['where'])) : '',
-                !empty($this->_options['group']) ? ('GROUP BY ' . $this->_options['group']) : '', 
-                !empty($this->_options['order']) ? ('ORDER BY ' . $this->_options['order']) : '', 
+                !empty($this->_options['group']) ? ('GROUP BY ' . $this->_options['group']) : '',
+                !empty($this->_options['order']) ? ('ORDER BY ' . $this->_options['order']) : '',
                 !empty($this->_options['limit']) ? ('LIMIT ' . $this->_options['limit']) : ''
         ], $this->_parseSql);
         $this->_options = [];
@@ -261,6 +261,9 @@ class DbMysql extends Db {
      */
     public function count ($query = null)
     {
+        if (!isset($this->_options['field'])) {
+            $this->_options['field'] = 'count(*) as count';
+        }
         return $this->execute($this->parseTableName($query), null, function  ($statement) {
             return $statement->fetchColumn();
         });
@@ -393,7 +396,11 @@ class DbMysql extends Db {
             $statement = $this->_db->prepare($query);
             if (!empty($parameters)) {
                 foreach ($parameters as $k => $v) {
-                    $statement->bindParam($k, $parameters[$k]);
+                    if (is_integer($v)) {
+                        $statement->bindParam($k, $parameters[$k], \PDO::PARAM_INT);
+                    } else {
+                        $statement->bindParam($k, $parameters[$k]);
+                    }
                 }
             }
             $statement->execute();

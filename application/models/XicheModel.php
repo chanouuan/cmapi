@@ -690,6 +690,7 @@ class XicheModel extends Crud {
             if ($loginret['errorcode'] !== 0) {
                 return [];
             }
+            $result['token'] = $loginret['result']['token'];
         }
 
         return $result;

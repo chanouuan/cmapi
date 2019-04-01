@@ -93,11 +93,9 @@ class Baoxian extends ActionPDO {
 
     /**
      * 获取微信授权码 AuthCode
+     * @login
      */
     public function getAuthCode () {
-        if (empty($this->_G['user'])) {
-            return error('用户校验失败');
-        }
         if (!$authcode = (new BaoxianModel())->getAuthCode($this->_G['user']['uid'], 'wx')) {
             return error('尚未绑定账号');
         }
@@ -106,112 +104,90 @@ class Baoxian extends ActionPDO {
 
     /**
      * 查询支付结果
+     * @login
      */
     public function payQuery () {
-        if (empty($this->_G['user'])) {
-            return error('用户校验失败');
-        }
         return (new \models\TradeModel())->payQuery($this->_G['user']['uid'], getgpc('tradeid'));
     }
 
     /**
      * 获取车秘用户车辆列表
+     * @login
      */
     public function getUserCars () {
-        if (empty($this->_G['user'])) {
-            return error('用户校验失败');
-        }
         return (new UserModel())->getUserCars($this->_G['user']['uid']);
     }
 
     /**
      * 添加车秘用户车辆
+     * @login
      */
     public function addUserCar () {
-        if (empty($this->_G['user'])) {
-            return error('用户校验失败');
-        }
         return (new UserModel())->addUserCar($this->_G['user']['uid'], $_POST);
     }
 
     /**
      * 申请认证车辆
+     * @login
      */
     public function authUserCar () {
-        if (empty($this->_G['user'])) {
-            return error('用户校验失败');
-        }
         return (new UserModel())->authUserCar($this->_G['user']['uid'], $_POST);
     }
 
     /**
      * 获取车秘用户保险优惠劵
+     * @login
      */
     public function getCouponList () {
-        if (empty($this->_G['user'])) {
-            return error('用户校验失败');
-        }
         $_POST['voucher_type'] = [0, 2]; // 通用，保险
         return (new UserModel())->getCouponList($this->_G['user']['uid'], $_POST);
     }
 
     /**
      * 获取返还的优惠劵
+     * @login
      */
     public function getPrepareCoupon () {
-        if (empty($this->_G['user'])) {
-            return error('用户校验失败');
-        }
         return (new BaoxianModel())->getPrepareCoupon($this->_G['user']['uid'], getgpc('tradeid'));
     }
 
     /**
      * 获取用户车辆信息和去年投保信息
+     * @login
      */
     public function getReinfo() {
-        if (empty($this->_G['user'])) {
-            return error('用户校验失败');
-        }
         return (new BaoxianModel())->getReinfo($this->_G['user']['uid'], $_POST);
     }
 
     /**
      * 请求报价/核保信息
+     * @login
      */
     public function postPrecisePrice() {
-        if (empty($this->_G['user'])) {
-            return error('用户校验失败');
-        }
         return (new BaoxianModel())->postPrecisePrice($this->_G['user']['uid'], $_POST);
     }
 
     /**
      * 获取车辆报价信息
+     * @login
      */
     public function getPrecisePrice() {
-        if (empty($this->_G['user'])) {
-            return error('用户校验失败');
-        }
         return (new BaoxianModel())->getPrecisePrice($this->_G['user']['uid'], $_POST);
     }
 
     /**
      * 提交个人补充信息
+     * @login
      */
     public function postStockInfo () {
-        if (empty($this->_G['user'])) {
-            return error('用户校验失败');
-        }
         return (new BaoxianModel())->postStockInfo($this->_G['user']['uid'], $_POST);
     }
 
     /**
      * 创建交易单
+     * @login
      */
     public function createCard () {
-        if (empty($this->_G['user'])) {
-            return error('用户校验失败');
-        }
         return (new BaoxianModel())->createCard($this->_G['user']['uid'], $_POST);
     }
 

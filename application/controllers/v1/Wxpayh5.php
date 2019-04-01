@@ -22,13 +22,13 @@ class Wxpayh5 extends \ActionPDO {
         define('NOTIFY_URL', APPLICATION_URL . '/wxpayh5/notify');
     }
 
-    /** 
+    /**
      * 获取支付参数
      */
     public function api ()
     {
         if (CLIENT_TYPE == 'wx') {
-            $this->error('当前支付环境不支持H5支付');
+            return error('当前支付环境不支持H5支付');
         }
 
         // 交易单id
@@ -36,11 +36,11 @@ class Wxpayh5 extends \ActionPDO {
 
         $model = new TradeModel();
 
-        if (!$tradeInfo = $model->get($tradeid, 'status = 0', 'type,trade_id,pay,ordercode,uses')) {
-            $this->error('交易单不存在');
+        if (!$tradeInfo = $model->get($tradeid, ['status' => 0], 'type,trade_id,pay,ordercode,uses')) {
+            return error('交易单不存在');
         }
         if ($tradeInfo['pay'] <= 0) {
-            $this->error('交易金额错误');
+            return error('交易金额错误');
         }
 
         // 更新交易单支付参数
@@ -66,15 +66,15 @@ class Wxpayh5 extends \ActionPDO {
         $prepay_id = $unifiedOrder->getPrepayId();
         // 校验接口返回
         if ($unifiedOrder->result['return_code'] == 'FAIL') {
-            $this->error($unifiedOrder->result['return_msg']);
+            return error($unifiedOrder->result['return_msg']);
         } else if ($unifiedOrder->result['result_code'] == 'FAIL') {
-            $this->error($unifiedOrder->result['err_code'] . ':' . $unifiedOrder->result['err_code_des']);
+            return error($unifiedOrder->result['err_code'] . ':' . $unifiedOrder->result['err_code_des']);
         } else if ($unifiedOrder->result['result_code'] == 'SUCCESS') {
-            $this->success([
+            return success([
                 'url' => $unifiedOrder->result['mweb_url']
             ]);
         } else {
-            $this->error('API ERROR');
+            return error('API ERROR');
         }
     }
 
@@ -140,8 +140,8 @@ class Wxpayh5 extends \ActionPDO {
     {
         $tradeid = intval(getgpc('tradeid'));
         $model = new TradeModel();
-        if (!$tradeInfo = $model->get($tradeid, 'payway = "' . strtolower($this->_module) . '"', 'ordercode')) {
-            $this->error('交易单不存在');
+        if (!$tradeInfo = $model->get($tradeid, ['payway' => strtolower($this->_module)], 'ordercode')) {
+            return error('交易单不存在');
         }
         // 使用订单查询接口
         $orderQuery = new \OrderQuery_pub();
@@ -149,12 +149,12 @@ class Wxpayh5 extends \ActionPDO {
         $orderQuery->setParameter('out_trade_no', $tradeInfo['ordercode']);
         // 获取订单查询结果
         if (!$orderQueryResult = $orderQuery->getResult()) {
-            $this->error('查询失败');
+            return error('查询失败');
         }
         if ($orderQueryResult['return_code'] == 'FAIL') {
-            $this->error('通信出错：' . $orderQueryResult['return_msg']);
+            return error('通信出错：' . $orderQueryResult['return_msg']);
         } else if ($orderQueryResult['result_code'] == 'FAIL') {
-            $this->error('错误描述：' . $orderQueryResult['err_code_des']);
+            return error('错误描述：' . $orderQueryResult['err_code_des']);
         } else if ($orderQueryResult['result_code'] == 'SUCCESS') {
             $result = array();
             $result['mchid'] = $orderQueryResult['mch_id'];
@@ -168,9 +168,9 @@ class Wxpayh5 extends \ActionPDO {
             if ($result['trade_status'] === 'SUCCESS') {
                 $result['pay_success'] = 'SUCCESS';
             }
-            $this->success($result);
+            return success($result);
         } else {
-            $this->error('参数错误');
+            return error('参数错误');
         }
     }
 

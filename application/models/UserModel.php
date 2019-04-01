@@ -188,7 +188,7 @@ class UserModel extends Crud {
             'telephone' => $userInfo['member_name'],
             'avatar' => $userInfo['member_avatar'] ? ('http://park.chemi.ren/mobile/data/upload/shop/mobile/avatar/' . $userInfo['member_avatar']) : '',
             'nickname' => strval(get_real_val($userInfo['nickname'], $userInfo['member_name'])),
-            'sex' => strval($userInfo['member_sex']),
+            'sex' => intval($userInfo['member_sex']),
             'money' => floatval($userInfo['available_predeposit']) * 100,
             'ispw' => $userInfo['member_passwd'] ? 1 : 0
         ];
@@ -203,6 +203,7 @@ class UserModel extends Crud {
     public function regCm ($post) {
         if (!$this->getDb('chemiv2')->insert('chemi_member', [
             'member_name' => $post['telephone'],
+            'nickname' => $post['nickname'],
             'member_time' => TIMESTAMP,
             'member_old_login_time'=>0,
             'member_login_time'=>0,
@@ -211,6 +212,31 @@ class UserModel extends Crud {
             return false;
         }
         return $this->getDb('chemiv2')->getlastid();
+    }
+
+    /**
+     * 注册车秘用户 (回调方式)
+     */
+    public function callRegCm ($post, $call) {
+        if (!$uid = $this->getDb('chemiv2')->transaction(function ($db) use($post, $call) {
+            if ($db->update('chemi_member', ['member_time' => TIMESTAMP + 1], ['member_name' => $post['telephone']])) {
+                return false;
+            }
+            if (!$db->insert('chemi_member', [
+                'member_name' => $post['telephone'], 'nickname' => $post['nickname'], 'member_time' => TIMESTAMP, 'member_old_login_time' => 0, 'member_login_time' => 0, 'member_login_num' => 0
+            ])) {
+                return false;
+            }
+            $uid = $db->getlastid();
+            $post['uid'] = $uid;
+            if (!$call($db, $post)) {
+                return false;
+            }
+            return $uid;
+        })) {
+            return false;
+        }
+        return $uid;
     }
 
     /**

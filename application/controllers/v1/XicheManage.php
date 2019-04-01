@@ -9,6 +9,7 @@ class XicheManage extends \ActionPDO {
     public function __init ()
     {
         if (!in_array($this->_action, ['login', 'checkImgCode'])) {
+            $this->_G['user'] = $this->loginCheck();
             if (empty($this->_G['user'])) {
                 $this->error('用户校验失败', gurl('xicheManage/login'));
             }

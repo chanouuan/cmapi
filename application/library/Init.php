@@ -80,23 +80,33 @@ class Controller {
 
         $module = empty($module) ? 'Index' : ucwords($module);
         $action = empty($action) ? 'index' : $action;
-        
+
         $className = '\\controllers\\' . $module;
         if (!class_exists($className)) {
             throw new \Exception('Undefined Module: ' . $module);
         }
-        
+
         $referer = new $className();
         $referer->_module = $module;
         $referer->_action = $action;
-        $referer->__init();
-        
-        if (method_exists($className, $action)) {
-            $result = call_user_func([$referer, $action]);
-        } else {
-            $result = $referer->__notfund();
+
+        if (!method_exists($className, $action)) {
+            $action = '__notfund';
         }
-        
+
+        $refClass = new ReflectionClass($referer);
+        if ($refDoc = $refClass->getMethod($action)->getDocComment()) {
+            if (false !== strpos($refDoc, '@login')) {
+                $referer->_G['user'] = $referer->loginCheck();
+                if (empty($referer->_G['user'])) {
+                    json(null, \library\StatusCodes::getMessage(\library\StatusCodes::USER_NOT_LOGIN_ERROR), \library\StatusCodes::USER_NOT_LOGIN_ERROR, \library\StatusCodes::STATUS_UNAUTHORIZED);
+                }
+            }
+        }
+        unset($refClass, $refDoc);
+        $referer->__init();
+        $result = call_user_func([$referer, $action]);
+
         if (null !== $result) {
             if (is_array($result) ) {
                 if (isset($result['errorcode'])) {
@@ -127,9 +137,6 @@ abstract class ActionPDO {
         // 检查客服端类型
         define('CLIENT_TYPE', check_client());
 
-        // 用户效验
-        $this->_G['user'] = $this->loginCheck();
-        
         // 过滤数据
         safepost($_GET);
         safepost($_POST);
@@ -185,23 +192,16 @@ abstract class ActionPDO {
         $docList = [];
         foreach ($reflection->getMethods() as $k => $v) {
             if ($v->class !== 'ActionPDO') {
+                $docList[$v->name]['url'] = APPLICATION_URL . '/' . strtolower($this->_module) . '/' . $v->name;
                 $method_doc = $reflection->getMethod($v->name)->getDocComment();
                 $method_doc = trim(str_replace(['/**', ' * ', ' */'], '', $method_doc));
-                if (!empty($method_doc)) {
-                    $method_doc = array_map('trim', explode("\n", $method_doc));
-                    $doc = [];
-                    $key = '@name';
-                    foreach ($method_doc as $kk => $vv) {
-                        if ($vv{0} == '@') {
-                            $key = $vv;
-                        } else {
-                            $doc[$key][] = $vv;
-                        }
-                    }
-                    $docList[] = $doc;
-                }
+                preg_match('/(.+)[^\n]/', $method_doc, $matches);
+                $docList[$v->name]['name'] = isset($matches[1]) ? $matches[1] : '';
+                preg_match_all('/@param(.+)/', $method_doc, $matches);
+                $docList[$v->name]['param'] = isset($matches[1]) ? $matches[1] : [];
+                preg_match('/@return(.|\n)*/', $method_doc, $matches);
+                $docList[$v->name]['return'] = $matches[0];
             }
-
         }
 
         $doc_name = [
@@ -301,9 +301,9 @@ abstract class ActionPDO {
         }
         if ($wait > 0) {
             $this->render('redirect.html', [
-                    'type' => $type, 
-                    'message' => $message, 
-                    'url' => $url, 
+                    'type' => $type,
+                    'message' => $message,
+                    'url' => $url,
                     'wait' => $wait
             ]);
         } else {
@@ -312,7 +312,7 @@ abstract class ActionPDO {
         exit(0);
     }
 
-    protected function loginCheck ($token = '', $clienttype = '')
+    public function loginCheck ($token = '', $clienttype = '')
     {
         if (empty($token)) {
             if (!empty($_POST['token'])) $token = $_POST['token'];
@@ -364,7 +364,7 @@ class ComposerAutoloader {
     public static function getLoader ()
     {
         spl_autoload_register(array(
-                'ComposerAutoloader', 
+                'ComposerAutoloader',
                 'loadClassLoader'
         ), true, true);
     }

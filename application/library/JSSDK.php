@@ -18,6 +18,51 @@ class JSSDK {
     }
 
     /**
+     * 小程序登录凭证校验
+     * @param string $code 小程序 wx.login
+     * @return array
+     * openid 用户唯一标识
+     * session_key 会话密钥
+     * unionid 用户在开放平台的唯一标识符
+     */
+    public function code2Session ($code)
+    {
+        try {
+            $reponse = https_request('https://api.weixin.qq.com/sns/jscode2session?appid=' . $this->appId . '&secret=' . $this->appSecret . '&js_code=' . $code . '&grant_type=authorization_code');
+        } catch (\Exception $e) {
+            return error($e->getMessage());
+        }
+        if ($reponse['errcode']) {
+            return error($reponse['errmsg']);
+        }
+
+        // 数据签名校验
+        $signature = sha1($reponse['rawData'] . $reponse['session_key']);
+        if ($signature != $reponse['signature']) {
+            return error('code2Session签名验证失败！');
+        }
+
+        // aes 解密
+        $pc = new WXBizDataCrypt($this->appId, $reponse['session_key']);
+        $errCode = $pc->decryptData($reponse['encryptedData'], $reponse['iv'], $data);
+
+        if ($errCode !== 0) {
+            return error('code2Session解密失败！[' . $errCode . ']');
+        }
+
+        // {"openId":"oGZUI0egBJY1zhBYw2KhdUfwVJJE","nickName":"Band","gender":1,"language":"zh_CN","city":"Guangzhou","province":"Guangdong","country":"CN","avatarUrl":"","unionId":"ocMvos6NjeKLIBqg5Mr9QjxrP1FA","watermark":{"timestamp":1477314187,"appid":"wx4f4bc4dec97d474b"}}
+        $data = json_decode($data, true);
+        // 转成小写
+        foreach ($data as $k => $v) {
+            $data[strtolower($k)] = $v;
+        }
+
+        $data['authcode'] = (isset($data['unionid']) && $data['unionid']) ? $data['unionid'] : $data['openid'];
+        $data['type'] = 'wx';
+        return success($data);
+    }
+
+    /**
      * 网页授权
      */
     public function connectAuth ($redirect_url, $scope = 'snsapi_userinfo', $fetch_userinfo = true)
@@ -140,25 +185,25 @@ class JSSDK {
             return $_jsapiTicket;
         }
         $jsapiTicket = $_jsapiTicket['result']['jsapi_ticket'];
-        
+
         // 注意 URL 一定要动态获取，不能 hardcode.
         $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
         $url = "$protocol$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
-        
+
         $timestamp = time();
         $nonceStr = $this->createNonceStr();
-        
+
         // 这里参数的顺序要按照 key 值 ASCII 码升序排序
         $string = "jsapi_ticket=$jsapiTicket&noncestr=$nonceStr&timestamp=$timestamp&url=$url";
-        
+
         $signature = sha1($string);
-        
+
         $signPackage = array(
-                "appId" => $this->appId, 
-                "nonceStr" => $nonceStr, 
-                "timestamp" => $timestamp, 
-                "url" => $url, 
-                "signature" => $signature, 
+                "appId" => $this->appId,
+                "nonceStr" => $nonceStr,
+                "timestamp" => $timestamp,
+                "url" => $url,
+                "signature" => $signature,
                 "rawString" => $string
         );
         return success($signPackage);
