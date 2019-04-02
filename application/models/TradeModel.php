@@ -15,7 +15,7 @@ class TradeModel extends Crud {
     }
 
     /**
-     * 获取交易单
+     * 获取单个交易单
      */
     public function get ($id, $where = null, $field = '*')
     {
@@ -30,6 +30,22 @@ class TradeModel extends Crud {
             return null;
         }
         return $this->getDb()->table('__tablepre__payments')->field($field)->where($where)->limit(1)->find();
+    }
+
+    /**
+     * 获取多个交易单
+     */
+    public function select ($where, $field = '*', $limit = null, $order = null)
+    {
+        return $this->getDb()->table('__tablepre__payments')->field($field)->where($where)->limit($limit)->order($order)->select();
+    }
+
+    /**
+     * 更新状态退款中
+     */
+    public function update ($param, $condition)
+    {
+        return $this->getDb()->update('__tablepre__payments', $param, $condition);
     }
 
     /**

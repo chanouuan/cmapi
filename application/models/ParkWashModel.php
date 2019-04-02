@@ -5,9 +5,306 @@ namespace app\models;
 use Crud;
 use app\library\LocationUtils;
 use app\library\Geohash;
-use app\library\Cache;
 
 class ParkWashModel extends Crud {
+
+    /**
+     * 我的订单
+     */
+    public function getOrderList ($uid, $post) {
+
+        // 最后排序字段
+        $post['lastpage'] = intval($post['lastpage']);
+        $post['status'] = intval($post['status']);
+
+        // 结果返回
+        $result = [
+            'limit' => 10,
+            'lastpage' => '',
+            'list' => []
+        ];
+
+        $condition = [
+            'uid' => $uid,
+            'status' => ['<>', 0]
+        ];
+
+        if ($post['status']) {
+            $condition['status'] = $post['status'];
+        }
+
+        if ($post['lastpage'] > 0) {
+            $condition['id'] = ['<', $post['lastpage']];
+        }
+
+        // 获取订单
+        if (!$orderList = $this->getDb()->table('parkwash_order')->field('id,xc_trade_id,store_id,car_number,brand_id,series_id,area_id,place,(pay+deduct) as pay,payway,items,order_time,create_time,status')->where($condition)->order('id desc')->limit($result['limit'])->select()) {
+            return success($result);
+        }
+
+        // 订单包括自助洗车，停车场洗车
+        $orderCategory = [];
+        foreach ($orderList as $k => $v) {
+            // xc_trade_id 为自助洗车交易单ID
+            if ($v['xc_trade_id'] > 0) {
+                $orderCategory[0][$k] = $v['xc_trade_id'];
+            } else {
+                $orderCategory[1][$k] = $v;
+            }
+        }
+
+        // 枚举支付方式
+        $payway = [
+            'cbpay' => '车币', 'wxpayjs' => '微信', 'wxpayh5' => '微信H5'
+        ];
+
+        // 处理洗车订单
+        if (isset($orderCategory[0])) {
+            $tradeModel = new TradeModel();
+            $tradelist = $tradeModel->select([
+                'id' => ['in', $orderCategory[0]]
+            ], 'id,param_id,payway,refundpay');
+            $tradelist = array_column($tradelist, null, 'id');
+            $xicheModel = new XicheModel();
+            // 获取洗车机设备
+            $deviceList = $xicheModel->getDeviceCondition(['id' => ['in', array_column($tradelist, 'param_id')]], 'id,areaname');
+            $deviceList = array_column($deviceList, null, 'id');
+            foreach ($tradelist as $k => $v) {
+                $tradelist[$k]['areaname'] = $deviceList[$v['param_id']]['areaname'];
+            }
+            foreach ($orderList as $k => $v) {
+                if ($v['xc_trade_id'] > 0) {
+                    $orderList[$k]['order_type'] = 'xc';
+                    $orderList[$k]['order_code'] = str_replace(['-', ' ', ':'], '', $v['create_time']) . $v['id']; // 组合订单号
+                    $orderList[$k]['store_name'] = $tradelist[$v['xc_trade_id']]['areaname'];
+                    $orderList[$k]['refundpay'] = $tradelist[$v['xc_trade_id']]['refundpay'];
+                    $orderList[$k]['payway'] = isset($payway[$tradelist[$v['xc_trade_id']]['payway']]) ? $payway[$tradelist[$v['xc_trade_id']]['payway']] : $tradelist[$v['xc_trade_id']]['payway'];
+                }
+            }
+            unset($deviceList, $tradelist);
+        }
+
+        // 处理停车场订单
+        if (isset($orderCategory[1])) {
+            $brandList = $this->getDb()->table('parkwash_car_brand')->field('id,name')->where(['id' => ['in', array_column($orderCategory[1], 'brand_id')]])->select();
+            $brandList = array_column($brandList, null, 'id');
+            $seriesList = $this->getDb()->table('parkwash_car_series')->field('id,name')->where(['id' => ['in', array_column($orderCategory[1], 'series_id')]])->select();
+            $seriesList = array_column($seriesList, null, 'id');
+            $areaList = $this->getDb()->table('parkwash_park_area')->field('id,floor,name')->where(['id' => ['in', array_column($orderCategory[1], 'area_id')]])->select();
+            $areaList = array_column($areaList, null, 'id');
+            $storeList = $this->getDb()->table('parkwash_store')->field('id,name')->where(['id' => ['in', array_column($orderCategory[1], 'store_id')]])->select();
+            $storeList = array_column($storeList, null, 'id');
+            foreach ($orderList as $k => $v) {
+                if ($v['xc_trade_id'] == 0) {
+                    $orderList[$k]['order_type'] = 'parkwash';
+                    $orderList[$k]['order_code'] = str_replace(['-', ' ', ':'], '', $v['create_time']) . $v['id']; // 组合订单号
+                    $orderList[$k]['brand_name'] = $brandList[$v['brand_id']]['name'];
+                    $orderList[$k]['series_name'] = $seriesList[$v['series_id']]['name'];
+                    $orderList[$k]['area_floor'] = $areaList[$v['area_id']]['floor'];
+                    $orderList[$k]['area_name'] = $areaList[$v['area_id']]['name'];
+                    $orderList[$k]['store_name'] = $storeList[$v['store_id']]['name'];
+                    $orderList[$k]['payway'] = isset($payway[$v['payway']]) ? $payway[$v['payway']] : $v['payway'];
+                }
+            }
+            unset($brandList, $seriesList, $areaList, $storeList, $payway);
+        }
+        unset($orderCategory);
+
+        // 去掉前端显示多余参数
+        $orderList = array_key_clean($orderList, [
+            'store_id', 'brand_id', 'series_id', 'area_id', 'xc_trade_id'
+        ]);
+
+        $result['lastpage'] = end($orderList)['id'];
+        $result['list'] = $orderList;
+        unset($orderList);
+        return success($result);
+    }
+
+    /**
+     * 获取订单详情
+     */
+    public function getOrderInfo ($uid, $post) {
+
+        $post['orderid'] = intval($post['orderid']);
+
+        if (!$orderInfo = $this->findOrderInfo([
+            'id' => $post['orderid'], 'uid' => $uid
+        ], 'id,xc_trade_id,store_id,car_number,brand_id,series_id,area_id,place,(pay+deduct) as pay,payway,items,order_time,create_time,status')) {
+            return error('订单不存在或无效');
+        }
+
+        // 枚举支付方式
+        $payway = [
+            'cbpay' => '车币', 'wxpayjs' => '微信', 'wxpayh5' => '微信H5'
+        ];
+
+        // xc_trade_id > 0 为自助洗车交易单ID
+        if ($orderInfo['xc_trade_id'] > 0) {
+
+            $tradeModel = new TradeModel();
+            $tradeInfo = $tradeModel->get($orderInfo['xc_trade_id'], null, 'id,param_id,payway,refundpay');
+            $xicheModel = new XicheModel();
+            $deviceInfo = $xicheModel->getDeviceById($tradeInfo['param_id'], 'id,areaname');
+            $orderInfo['order_type'] = 'xc';
+            $orderInfo['order_code'] = str_replace(['-', ' ', ':'], '', $orderInfo['create_time']) . $orderInfo['id']; // 组合订单号
+            $orderInfo['store_name'] = $deviceInfo['areaname'];
+            $orderInfo['refundpay'] = $tradeInfo['refundpay'];
+            $orderInfo['payway'] = isset($payway[$tradeInfo['payway']]) ? $payway[$tradeInfo['payway']] : $tradeInfo['payway'];
+            $orderInfo['sequence'] = [];
+
+        } else {
+
+            $brandInfo = $this->getDb()->table('parkwash_car_brand')->field('name')->where(['id' => $orderInfo['brand_id']])->find();
+            $seriesInfo = $this->getDb()->table('parkwash_car_series')->field('name')->where(['id' => $orderInfo['series_id']])->find();
+            $areaInfo = $this->getDb()->table('parkwash_park_area')->field('floor,name')->where(['id' => $orderInfo['area_id']])->find();
+            $storeInfo = $this->getDb()->table('parkwash_store')->field('name,location')->where(['id' => $orderInfo['store_id']])->find();
+            $orderInfo['order_type'] = 'parkwash';
+            $orderInfo['order_code'] = str_replace(['-', ' ', ':'], '', $orderInfo['create_time']) . $orderInfo['id']; // 组合订单号
+            $orderInfo['brand_name'] = $brandInfo['name'];
+            $orderInfo['series_name'] = $seriesInfo['name'];
+            $orderInfo['area_floor'] = $areaInfo['floor'];
+            $orderInfo['area_name'] = $areaInfo['name'];
+            $orderInfo['store_name'] = $storeInfo['name'];
+            $orderInfo['location'] = $storeInfo['location'];
+            $orderInfo['payway'] = isset($payway[$orderInfo['payway']]) ? $payway[$orderInfo['payway']] : $orderInfo['payway'];
+            // 获取订单时序表
+            $orderInfo['sequence'] = $this->getDb()->table('parkwash_order_sequence')->field('title,create_time')->where(['orderid' => $orderInfo['id']])->select();
+
+        }
+
+        unset($orderInfo['xc_trade_id']);
+
+        return success($orderInfo);
+    }
+
+    /**
+     * 用户取消订单,商户未接单情况下
+     */
+    public function cancelOrder ($uid, $post) {
+
+        $post['orderid'] = intval($post['orderid']);
+
+        if (!$orderInfo = $this->findOrderInfo([
+            'id' => $post['orderid'], 'uid' => $uid, 'status' => 1
+        ], 'id,uid,store_id,pool_id,car_number,pay,deduct,order_time')) {
+            return error('订单不存在或无效');
+        }
+
+        // 已到预约时间的订单不能取消
+        if (strtotime($orderInfo['order_time']) < TIMESTAMP) {
+            return error('已到预约时间的订单不能取消');
+        }
+
+        $storeInfo = $this->findStoreInfo(['id' => $orderInfo['store_id']], 'id,tel,daily_cancel_limit');
+
+        // 每日限制取消次数
+        if ($storeInfo['daily_cancel_limit'] > 0) {
+            $cancel_count = $this->getDb()->table('parkwash_order')->where([
+                'uid' => $uid, 'store_id' => $orderInfo['store_id'], 'status' => -1, 'cancel_time' => ['between', [date('Y-m-d 00:00:00', TIMESTAMP), date('Y-m-d 23:59:59', TIMESTAMP)]]
+            ])->count();
+            if ($storeInfo['daily_cancel_limit'] >= $cancel_count) {
+                return error('每日最多取消 ' . $storeInfo['daily_cancel_limit'] . ' 次订单');
+            }
+        }
+
+        // 更新订单状态
+        if (!$this->getDb()->update('parkwash_order', [
+            'status' => -1, 'cancel_time' => date('Y-m-d H:i:s', TIMESTAMP), 'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
+        ], [
+            'orderid' => $post['orderid'], 'status' => 1
+        ])) {
+            return error('取消订单失败');
+        }
+
+        // 更新交易单状态
+        $tradeParam = [
+            'status' => -1, 'refundcode' => $this->generateOrderCode($orderInfo['uid']), 'refundpay' => $orderInfo['pay'], 'refundtime' => date('Y-m-d H:i:s', TIMESTAMP)
+        ];
+        $tradeModel = new TradeModel();
+        $tradeModel->update($tradeParam, [
+            'type' => 'parkwash', 'trade_id' => $orderInfo['uid'], 'param_id' => $orderInfo['id'], 'status' => 1
+        ]);
+
+        // 退费为车币
+        if ($tradeParam > 0) {
+            // 用户充值
+            $result = (new UserModel())->recharge([
+                'platform' => 3,
+                'authcode' => $orderInfo['uid'],
+                'trade_no' => $tradeParam['refundcode'],
+                'money' => $tradeParam['refundpay'],
+                'remark' => '洗车服务退款'
+            ]);
+            if ($result['errorcode'] !== 0) {
+                // 回滚订单状态
+                $this->getDb()->update('parkwash_order', [
+                    'status' => 1, 'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
+                ], [
+                    'orderid' => $post['orderid'], 'status' => -1
+                ]);
+                $tradeModel->update([
+                    'status' => 1
+                ], [
+                    'type' => 'parkwash', 'trade_id' => $orderInfo['uid'], 'param_id' => $orderInfo['id'], 'status' => -1
+                ]);
+                return $result;
+            }
+        }
+
+        // 预约号加 1
+        if (!$this->getDb()->update('parkwash_pool', [
+            'amount' => '{!amount+1}'
+        ], 'id = ' . $orderInfo['pool_id'])) {
+            return error('该时间段已订完,请选择其他时间');
+        }
+
+        // 更新门店下单数、收益
+        $this->getDb()->update('parkwash_store', [
+            'order_count' => '{!order_count-1}', 'money' => '{!money-' . ($orderInfo['pay'] + $orderInfo['deduct']) . '}'
+        ], [
+            'id' => $orderInfo['store_id']
+        ]);
+
+        // 更新用户下单数、消费
+        $this->getDb()->update('parkwash_usercount', [
+            'coupon_consume' => '{!coupon_consume-' . $orderInfo['deduct'] . '}',
+            'parkwash_count' => '{!parkwash_count-1}',
+            'parkwash_consume' => '{!parkwash_consume-' . $orderInfo['pay'] . '}'
+        ], [
+            'uid' => $orderInfo['uid']
+        ]);
+
+        // 记录资金变动
+        $this->pushTrades([
+            'uid' => $orderInfo['uid'], 'mark' => '+', 'money' => $orderInfo['pay'], 'title' => '取消洗车服务'
+        ]);
+
+        // 记录订单状态改变
+        $this->pushSequence([
+            'orderid' => $orderInfo['id'],
+            'uid' => $orderInfo['uid'],
+            'title' => template_replace('取消订单成功，退款 {$money} 元', [
+                'money' => round_dollar($orderInfo['pay'])
+            ])
+        ]);
+
+        // 通知商家
+        $this->pushNotice([
+            'receiver' => 2,
+            'notice_type' => 2, // 播报器
+            'orderid' => $orderInfo['id'],
+            'store_id' => $orderInfo['store_id'],
+            'uid' => $orderInfo['uid'],
+            'tel' => $storeInfo['tel'],
+            'title' => '取消订单',
+            'content' => template_replace('{$car_number}已取消订单', [
+                'car_number' => $orderInfo['car_number']
+            ])
+        ]);
+
+        return success('OK');
+    }
 
     /**
      * 获取通知列表
@@ -227,7 +524,7 @@ class ParkWashModel extends Crud {
         $brandList = array_column($brandList, null, 'id');
         $seriesList = $this->getDb()->table('parkwash_car_series')->field('id,name')->where(['id' => ['in', array_unique(array_column($carportList, 'series_id'))]])->select();
         $seriesList = array_column($seriesList, null, 'id');
-        $areaList = $this->getDb()->table('parkwash_park_area')->field('id,floor,area')->where(['id' => ['in', array_unique(array_column($carportList, 'area_id'))]])->select();
+        $areaList = $this->getDb()->table('parkwash_park_area')->field('id,floor,name')->where(['id' => ['in', array_unique(array_column($carportList, 'area_id'))]])->select();
         $areaList = array_column($areaList, null, 'id');
 
         foreach ($carportList as $k => $v) {
@@ -235,7 +532,7 @@ class ParkWashModel extends Crud {
             $carportList[$k]['brand_logo'] = $brandList[$v['brand_id']]['logo'];
             $carportList[$k]['series_name'] = $seriesList[$v['series_id']]['name'];
             $carportList[$k]['area_floor'] = $areaList[$v['area_id']]['floor'];
-            $carportList[$k]['area_name'] = $areaList[$v['area_id']]['area'];
+            $carportList[$k]['area_name'] = $areaList[$v['area_id']]['name'];
         }
 
         unset($brandList, $seriesList, $areaList);
@@ -293,7 +590,7 @@ class ParkWashModel extends Crud {
 
         $post['park_id'] = get_real_val($post['park_id'], 1);
 
-        $list = $this->getDb()->table('parkwash_park_area')->field('id,floor,area')->where(['park_id' => $post['park_id']])->select();
+        $list = $this->getDb()->table('parkwash_park_area')->field('id,floor,name')->where(['park_id' => $post['park_id'], 'status' => 1])->select();
 
         return success($list);
     }
@@ -356,7 +653,7 @@ class ParkWashModel extends Crud {
         // 距离
         $post['distance'] = intval($post['distance']);
         $post['distance'] = $post['distance'] < 1 ? 1 : $post['distance'];
-        $post['distance'] = $post['distance'] > 20 ? 20 : $post['distance'];
+        $post['distance'] = $post['distance'] > 50 ? 50 : $post['distance'];
 
         if (!$geohash = $this->geoOrder($post['lon'], $post['lat'])) {
             // 经纬度错误
@@ -407,6 +704,85 @@ class ParkWashModel extends Crud {
         }
 
         return success(array_values($storeList));
+    }
+
+    /**
+     * 获取自助洗车机列表
+     */
+    public function getXicheDeviceList ($post) {
+
+        // 城市
+        $post['adcode'] = intval($post['adcode']);
+        // 最后排序字段
+        $post['lastpage'] = trim($post['lastpage']);
+        // 排序字段
+        $post['ordername'] = 'geohash';
+        $post['ordersort'] = 'asc';
+
+        // 查询字段
+        $field = [
+            'id', 'areaname', 'address', 'location', 'usetime', 'isonline', 'price', 'order_count', 'parameters', 'sort'
+        ];
+        // 结果返回
+        $result = [
+            'limit' => 10,
+            'lastpage' => '',
+            'list' => []
+        ];
+
+        // 经纬度
+        if ($post['ordername'] == 'geohash') {
+            $geohash = $this->geoOrder($post['lon'], $post['lat']);
+            if (!$geohash) {
+                $post['ordername'] = 'sort';
+                $post['ordersort'] = 'desc';
+                $post['lastpage'] = '';
+            } else {
+                $field[] = $geohash . ' as geohash';
+            }
+        }
+
+        // 分页参数
+        list($lastid, $lastorder) = explode(',', $post['lastpage']);
+
+        $condition = [
+            'adcode = ' . $post['adcode']
+        ];
+        if ($lastid > 0) {
+            if ($post['ordersort'] == 'desc') {
+                $condition[] = '(' . (isset($geohash) ? $geohash : $post['ordername']) . ' < ' . $lastorder . ' or (' . (isset($geohash) ? $geohash : $post['ordername']) . ' = ' . $lastorder . ' and id > ' . $lastid . '))';
+            } else {
+                $condition[] = '(' . (isset($geohash) ? $geohash : $post['ordername']) . ' > ' . $lastorder . ' or (' . (isset($geohash) ? $geohash : $post['ordername']) . ' = ' . $lastorder . ' and id > ' . $lastid . '))';
+            }
+        }
+        $order = $post['ordername'] . ' ' . $post['ordersort'] . ', id asc';
+
+        // 获取洗车机
+        if (!$storeList = $this->getDb()->table('pro_xiche_device')->field($field)->where($condition)->order($order)->limit($result['limit'])->select()) {
+            return success($result);
+        }
+
+        foreach ($storeList as $k => $v) {
+            $result['lastpage'] = $v['id'] . ',' . $v[$post['ordername']];
+            // 洗车时长
+            $v['parameters'] = json_decode($v['parameters'], true);
+            $storeList[$k]['duration'] = intval($v['parameters']['WashTotal']);
+            // 0离线 1空闲 2使用中
+            if ($v['isonline']) {
+                $storeList[$k]['use_state'] = $v['usetime'] ? 2 : 1;
+            } else {
+                $storeList[$k]['use_state'] = 0;
+            }
+            if ($post['ordername'] == 'geohash') {
+                // 获取距离公里
+                $storeList[$k]['distance'] = round(LocationUtils::getDistance($v['location'], $post) / 1000, 2);
+            }
+            unset($storeList[$k]['isonline'], $storeList[$k]['usetime'], $storeList[$k]['geohash'], $storeList[$k]['sort'], $storeList[$k]['parameters']);
+        }
+
+        $result['list'] = $storeList;
+        unset($storeList);
+        return success($result);
     }
 
     /**
@@ -505,9 +881,6 @@ class ParkWashModel extends Crud {
         if (!$post['area_id']) {
             return error('请选择区域');
         }
-        if (!check_car_license($post['car_number'])) {
-            return error('车牌号不正确');
-        }
         if ($post['place'] && strlen($post['place']) > 10) { // 车位不必填
             return error('车位号最多10个字符');
         }
@@ -521,6 +894,11 @@ class ParkWashModel extends Crud {
             return error('请选择支付方式');
         }
 
+        // 每个用户每天仅可下一个订单
+        if ($this->getDb()->table('parkwash_order')->where(['uid' => $uid, 'status' => 1, 'create_time' => ['between', [date('Y-m-d 00:00:00', TIMESTAMP), date('Y-m-d 23:59:59', TIMESTAMP)]]])->count()) {
+            return error('今天已经洗过车咯，请明天再来');
+        }
+
         // 判断门店状态
         if (!$storeInfo = $this->getDb()->table('parkwash_store')->field('adcode,status')->where(['id' => $post['store_id']])->find()) {
             return error('该门店不存在');
@@ -530,7 +908,7 @@ class ParkWashModel extends Crud {
         }
 
         // 判断车辆状态
-        if (!$carportInfo = $this->getDb()->table('parkwash_carport')->field('brand_id,series_id')->where(['id' => $post['carport_id'], 'uid' => $uid])->find()) {
+        if (!$carportInfo = $this->getDb()->table('parkwash_carport')->field('car_number,brand_id,series_id')->where(['id' => $post['carport_id'], 'uid' => $uid])->find()) {
             return error('该车辆不存在');
         }
 
@@ -594,7 +972,7 @@ class ParkWashModel extends Crud {
 
         // 订单预生成数据
         $orderParam = [
-            'adcode' => $storeInfo['adcode'], 'pool_id' => $post['pool_id'], 'store_id' => $post['store_id'], 'uid' => $uid, 'car_number' => $post['car_number'], 'brand_id' => $carportInfo['brand_id'], 'series_id' => $carportInfo['series_id'], 'area_id' => $post['area_id'], 'place' => $post['place'], 'pay' => $totalPrice, 'deduct' => 0, 'items' => json_unicode_encode($items), 'order_time' => $post['order_time'], 'abort_time' => $post['abort_time']
+            'adcode' => $storeInfo['adcode'], 'pool_id' => $post['pool_id'], 'store_id' => $post['store_id'], 'uid' => $uid, 'user_tel' => $userInfo['telephone'], 'car_number' => $carportInfo['car_number'], 'brand_id' => $carportInfo['brand_id'], 'series_id' => $carportInfo['series_id'], 'area_id' => $post['area_id'], 'place' => $post['place'], 'pay' => $totalPrice, 'deduct' => 0, 'items' => json_unicode_encode($items), 'order_time' => $post['order_time'], 'abort_time' => $post['abort_time']
         ];
 
         // 更新车辆
@@ -606,20 +984,23 @@ class ParkWashModel extends Crud {
         $orderCode = $this->generateOrderCode($uid);
 
         // 防止重复扣费
-        if ($lastTradeInfo = $this->getDb()->table('__tablepre__payments')->field('id,createtime,payway')->where([
-                'trade_id' => $uid, 'mark' => md5(json_encode($orderParam)), 'status' => 0
-             ])->limit(1)->find()) {
-            // 支付方式改变或超时后更新订单号
-            if ($lastTradeInfo['payway'] != $post['payway'] || strtotime($lastTradeInfo['createtime']) < TIMESTAMP - 600) {
-                if (false === $this->getDb()->update('__tablepre__payments', [
-                        'ordercode' => $orderCode, 'createtime' => date('Y-m-d H:i:s', TIMESTAMP)
-                    ], 'id = ' . $lastTradeInfo['id'])) {
-                    return error('更新订单失败');
+        $tradeModel = new TradeModel();
+        if ($lastTradeInfo = $tradeModel->get(null, [
+            'trade_id' => $uid, 'mark' => md5(json_encode($orderParam)), 'status' => 0
+            ], 'id,createtime,payway')) {
+            // 支付方式相同，返回上次生成的订单
+            if ($lastTradeInfo['payway'] == $post['payway']) {
+                if (strtotime($lastTradeInfo['createtime']) < TIMESTAMP - 600) {
+                    if (false === $tradeModel->update([
+                            'ordercode' => $orderCode, 'createtime' => date('Y-m-d H:i:s', TIMESTAMP)
+                        ], 'id = ' . $lastTradeInfo['id'])) {
+                        return error('更新订单失败');
+                    }
                 }
+                return success([
+                    'tradeid' => $lastTradeInfo['id']
+                ]);
             }
-            return success([
-                'tradeid' => $lastTradeInfo['id']
-            ]);
         }
 
         // 预约号减 1
@@ -661,7 +1042,7 @@ class ParkWashModel extends Crud {
             if ($post['payway'] == 'cbpay') {
                 $result = $userModel->consume([
                     'platform' => 3,
-                    'authcode' => md5('xc' . $uid),
+                    'authcode' =>  $uid,
                     'trade_no' => $orderCode,
                     'money' => $totalPrice,
                     'remark' => '支付停车场洗车费'
@@ -732,7 +1113,7 @@ class ParkWashModel extends Crud {
                 return false;
             }
             if (!$db->update('parkwash_order', [
-                'status' => 1, 'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
+                'status' => 1, 'payway' => $tradeInfo['payway'], 'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
             ], [
                 'id' => $tradeInfo['param_id'], 'status' => 0
             ])) {
@@ -744,10 +1125,10 @@ class ParkWashModel extends Crud {
         }
 
         // 获取订单信息
-        $orderInfo = $this->getDb()->table('parkwash_order')->field('id,uid,store_id,items,car_number,place,order_time')->where(['id' => $tradeInfo['param_id']])->limit(1)->find();
+        $orderInfo = $this->findOrderInfo(['id' => $tradeInfo['param_id']], 'id,uid,store_id,car_number,order_time');
 
         // 获取门店信息
-        $storeInfo = $this->getDb()->table('parkwash_store')->field('id,tel')->where(['id' => $orderInfo['store_id']])->limit(1)->find();
+        $storeInfo = $this->findStoreInfo(['id' => $orderInfo['store_id']], 'id,tel');
 
         // 更新门店下单数、收益
         $this->getDb()->update('parkwash_store', [
@@ -773,7 +1154,11 @@ class ParkWashModel extends Crud {
 
         // 记录订单状态改变
         $this->pushSequence([
-            'orderid' => $orderInfo['id'], 'uid' => $orderInfo['uid'], 'title' => '下单成功，支付 ' . round_dollar($tradeInfo['money']) . ' 元'
+            'orderid' => $orderInfo['id'],
+            'uid' => $orderInfo['uid'],
+            'title' => template_replace('下单成功，支付 {$money} 元，等待商家接单', [
+                'money' => round_dollar($tradeInfo['money'])
+            ])
         ]);
 
         // 通知商家
@@ -785,12 +1170,46 @@ class ParkWashModel extends Crud {
             'uid' => $orderInfo['uid'],
             'tel' => $storeInfo['tel'],
             'title' => '下单通知',
-            'content' => template_replace('{$car_number}已下单，预约时间:{$order_time}。', [
+            'content' => template_replace('{$car_number}已下单，预约时间:{$order_time}', [
                 'car_number' => $orderInfo['car_number'], 'order_time' => $orderInfo['order_time']
             ])
         ]);
 
         return success('OK');
+    }
+
+    /**
+     * 自助洗车成功后，加入到停车场洗车订单中
+     */
+    public function handleXichePaySuc ($param) {
+
+        return $this->getDb()->insert('parkwash_order', array_merge($param, [
+            'create_time' => date('Y-m-d H:i:s', TIMESTAMP),
+            'update_time' => date('Y-m-d H:i:s', TIMESTAMP),
+            'status' => 1
+        ]));
+    }
+
+    /**
+     * 查询订单信息
+     * @param $condition 查询条件
+     * @param $field 查询字段
+     * @return array
+     */
+    protected function findOrderInfo ($condition, $field = null) {
+
+        return $this->getDb()->table('parkwash_order')->field($field)->where($condition)->limit(1)->find();
+    }
+
+    /**
+     * 查询门店信息
+     * @param $condition 查询条件
+     * @param $field 查询字段
+     * @return array
+     */
+    protected function findStoreInfo ($condition, $field = null) {
+
+        return $this->getDb()->table('parkwash_store')->field($field)->where($condition)->limit(1)->find();
     }
 
     /**

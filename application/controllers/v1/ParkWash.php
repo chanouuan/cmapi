@@ -123,12 +123,11 @@ class ParkWash extends ActionPDO {
     }
 
     /**
-     * 获取门店列表
+     * 获取洗车店列表
      * @param $adcode 城市代码 (贵阳 520100)
      * @param $lon 经度 (精确到 6 位)
      * @param $lon 维度 (精确到 6 位)
-     * @param $lastid 分页参数
-     * @param $lastorder 分页参数
+     * @param $lastpage 分页参数
      * @return array
      * {
      * "errNo":0,
@@ -137,18 +136,18 @@ class ParkWash extends ActionPDO {
      *     "limit":10, //每页最大显示数
      *     "lastpage":"", //分页参数 (下一页携带的参数)
      *     "list":[{
-     *             "id":1, //门店ID
-     *             "name":"洗车", //门店名称
-     *             "logo":"", //门店图片地址
-     *             "address":"地址", //门店地址
-     *             "market":"洗车半价", //活动描述
-     *             "score":5, //评分
-     *             "business_hours":"09:00-21:00", //营业时间
-     *             "price":10, //洗车价(分)
-     *             "order_count":1000, //下单数
-     *             "status":1, //门店状态 1正常 0建设中
-     *             "distance":0.81, //距离(公里)
-     *             "location":“106.925389,27.728654”, //经纬度
+     *         "id":1, //门店ID
+     *         "name":"洗车", //门店名称
+     *         "logo":"", //门店图片地址
+     *         "address":"地址", //门店地址
+     *         "market":"洗车半价", //活动描述
+     *         "score":5, //评分
+     *         "business_hours":"09:00-21:00", //营业时间
+     *         "price":10, //洗车价(分)
+     *         "order_count":1000, //下单数
+     *         "status":1, //门店状态 1正常 0建设中
+     *         "distance":0.81, //距离(公里)
+     *         "location":“106.925389,27.728654”, //经纬度
      *      }]
      * }}
      */
@@ -164,7 +163,7 @@ class ParkWash extends ActionPDO {
      * @param $adcode 城市代码 (贵阳 520100)
      * @param $lon 经度 (精确到 6 位)
      * @param $lon 维度 (精确到 6 位)
-     * @param $distance 搜索范围 (可选 1-20 公里)
+     * @param $distance 搜索范围最大公里数 (可选 1-50 公里)
      * @return array
      * {
      * "errNo":0,
@@ -189,6 +188,39 @@ class ParkWash extends ActionPDO {
         $_POST['lon'] = '105.989078';
         $_POST['lat'] = '26.704543';
         return (new ParkWashModel())->getNearbyStore($_POST);
+    }
+
+    /**
+     * 获取自助洗车机列表
+     * @param $adcode 城市代码 (贵阳 520100)
+     * @param $lon 经度 (精确到 6 位)
+     * @param $lon 维度 (精确到 6 位)
+     * @param $lastpage 分页参数
+     * @return array
+     * {
+     * "errNo":0,
+     * "message":"",
+     * "result":{
+     *     "limit":10, //每页最大显示数
+     *     "lastpage":"", //分页参数 (下一页携带的参数)
+     *     "list":[{
+     *         "id":1, //洗车机ID
+     *         "areaname":"", //洗车机名称
+     *         "address":"地址", //洗车机地址
+     *         "price":10, //洗车价(分)
+     *         "duration":20, //洗车时长 (分钟)
+     *         "order_count":1000, //下单数
+     *         "distance":0.81, //距离(公里)
+     *         "location":“106.925389,27.728654”, //经纬度
+     *         "use_state":0 //状态 0离线 1空闲 2使用中
+     *      }]
+     * }}
+     */
+    public function getXicheDeviceList () {
+        $_POST['adcode'] = '520100';
+        $_POST['lon'] = '105.989078';
+        $_POST['lat'] = '26.704543';
+        return (new ParkWashModel())->getXicheDeviceList($_POST);
     }
 
     /**
@@ -369,6 +401,7 @@ class ParkWash extends ActionPDO {
      * @param place 车位号
      * @param pool_id 排班ID
      * @param items 套餐ID (多个用逗号分隔)
+     * @param payway 支付方式 (cbpay车币支付 wxpayjs小程序支付)
      * @return array
      * {
      * "errNo":0,
@@ -399,9 +432,117 @@ class ParkWash extends ActionPDO {
     /**
      * 获取通知列表
      * @login
+     * @param $lastorder 分页参数
+     * @return array
+     * {
+     * "errNo":0,
+     * "message":"",
+     * "result":{
+     *     "limit":10, //每页最大显示数
+     *     "lastpage":"", //分页参数 (下一页携带的参数)
+     *     "list":[{
+     *         "id":1, //通知ID
+     *         "title":"", //通知标题
+     *         "content":"", //通知内容
+     *         "is_read":0, //是否已读 0未读 1已读
+     *         "create_time":"", //通知时间
+     *      }]
+     * }}
      */
     public function getNoticeList () {
         return (new ParkWashModel())->getNoticeList($this->_G['user']['uid'], $_POST);
+    }
+
+    /**
+     * 用户取消订单
+     * @login
+     * @param orderid 订单ID
+     * @return array
+     * {
+     * "errNo":0, //错误码
+     * "message":"", //返回信息
+     * "result":[]
+     * }
+     */
+    public function cancelOrder () {
+        return (new ParkWashModel())->cancelOrder($this->_G['user']['uid'], $_POST);
+    }
+
+    /**
+     * 我的订单
+     * @login
+     * @param status 订单状态 (-1已取消 1已支付 2已接单 3服务中 4已完成)
+     * @param lastorder 分页参数
+     * @return array
+     * {
+     * "errNo":0,
+     * "message":"",
+     * "result":{
+     *     "limit":10, //每页最大显示数
+     *     "lastpage":"", //分页参数 (下一页携带的参数)
+     *     "list":[{
+     *          "id":5, //订单ID
+     *          "order_type":"parkwash", //订单类型 (xc自助洗车 parkwash停车场洗车)
+     *          "order_code":"201904010900005", //订单号
+     *          "car_number":"", //车牌号
+     *          "place":"A002", //车位号
+     *          "pay":0, //支付金额 (分)
+     *          "refundpay":0, //自助洗车退款金额 (分)
+     *          "payway":"车币支付", //支付方式
+     *          "items":"[]", //洗车套餐JSON
+     *          "order_time":"2019-04-01 14:00:00", //预约时间
+     *          "create_time":"2019-04-01 09:00:00", //下单时间
+     *          "brand_name":"斯柯达", //汽车品牌名
+     *          "series_name":"昊锐", //汽车款型
+     *          "area_floor":"负一楼", //楼层
+     *          "area_name":"A区", //区域
+     *          "store_name":"门店0" //服务网点
+     *          "status":1, //订单状态 (-1已取消 1已支付 2已接单 3服务中 4已完成)
+     *      }]
+     * }}
+     */
+    public function getOrderList () {
+        return (new ParkWashModel())->getOrderList($this->_G['user']['uid'], $_POST);
+    }
+
+    /**
+     * 获取订单详情
+     * @login
+     * @param orderid 订单ID
+     * @return array
+     * {
+     * "errNo":0, //错误码
+     * "message":"", //返回信息
+     * "result":{
+     *      "id":4, //订单ID
+     *      "order_type":"parkwash", //订单类型 (xc自助洗车 parkwash停车场洗车)
+     *      "order_code":"201904010900005", //订单号
+     *      "store_id":1, //门店ID
+     *      "brand_id":1, //品牌ID
+     *      "series_id":1, //车系ID
+     *      "area_id":1, //区域ID
+     *      "car_number":"", //车牌号
+     *      "place":"A002", //车位号
+     *      "pay":0, //支付金额 (分)
+     *      "refundpay":0, //自助洗车退款金额 (分)
+     *      "payway":"车币支付", //支付方式
+     *      "items":"[]", //洗车套餐JSON
+     *      "order_time":"2019-04-01 14:00:00", //预约时间
+     *      "create_time":"2019-04-01 09:00:00", //下单时间
+     *      "brand_name":"斯柯达", //汽车品牌名
+     *      "series_name":"昊锐", //汽车款型
+     *      "area_floor":"负一楼", //楼层
+     *      "area_name":"A区", //区域
+     *      "store_name":"门店0" //服务网点
+     *      "location":"106.328468,25.844113", //经纬度
+     *      "sequence":[{
+     *          "title":"下单成功，等待商家接单", //订单状态改变事件
+     *          "create_time":"2019-04-02 16:38:43" //事件时间
+     *      }]
+     * }
+     */
+    public function getOrderInfo () {
+        return (new ParkWashModel())->getOrderInfo($this->_G['user']['uid'], $_POST);
     }
 
 }

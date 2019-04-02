@@ -139,7 +139,7 @@ class XicheModel extends Crud {
                 $userModel = new UserModel();
                 $result = $userModel->recharge([
                     'platform' => 3,
-                    'authcode' => md5('xc' . $tradeInfo['trade_id']),
+                    'authcode' => $tradeInfo['trade_id'],
                     'trade_no' => $param['refundcode'],
                     'money' => $Fee,
                     'remark' => '自助洗车退款'
@@ -308,6 +308,14 @@ class XicheModel extends Crud {
     }
 
     /**
+     * 获取多个设备
+     */
+    public function getDeviceCondition($condition, $field = null) {
+
+        return $this->getDb()->table('__tablepre__xiche_device')->field(get_real_val($field, 'devcode'))->where($condition)->select();
+    }
+
+    /**
      * 检查设备码是否正常
      */
     public function checkDevcode ($devcode) {
@@ -377,7 +385,7 @@ class XicheModel extends Crud {
         $post['nopw'] = 1; // 不验证密码
         $post['platform'] = 3; // 固定平台代码
         $post['type'] = 'xc';
-        $post['authcode'] = md5('xc' . $userInfo['member_id']); // 取不易识别的值
+        $post['authcode'] = $userInfo['member_id']; // 取不易识别的值
         $post['telephone'] =  $userInfo['member_name'];
         $userInfo = $userModel->loginBinding($post);
         if ($userInfo['errorcode'] !== 0) {
@@ -455,7 +463,7 @@ class XicheModel extends Crud {
         // 执行绑定
         $post['platform'] = 3; // 固定平台代码
         $post['type'] = 'xc';
-        $post['authcode'] = md5('xc' . $userInfo['member_id']); // 取不易识别的值
+        $post['authcode'] = $userInfo['member_id']; // 取不易识别的值
         $userInfo = $userModel->loginBinding($post);
         if ($userInfo['errorcode'] !== 0) {
             return $userInfo;
@@ -522,16 +530,15 @@ class XicheModel extends Crud {
         }
         $userInfo = $userInfo['result'];
 
+        // 支付金额
+        $totalPrice = $deviceInfo['price'];
+
         // 支付方式
         if ($payway == 'cbpay') {
             // 车币支付
             if ($deviceInfo['price'] > $userInfo['money']) {
                 return error('余额不足');
             }
-            $totalPrice = 0;
-        } else {
-            // 在线支付
-            $totalPrice = $deviceInfo['price'];
         }
 
         // 生成订单号
@@ -541,6 +548,7 @@ class XicheModel extends Crud {
         if ($lastTradeInfo = $this->getDb()->table('__tablepre__payments')
             ->field('id,createtime,payway')
             ->where([
+                'type' => 'xc',
                 'status' => 0,
                 'trade_id' => $uid,
                 'param_id' => $deviceInfo['id'],
@@ -549,24 +557,25 @@ class XicheModel extends Crud {
             ])
             ->limit(1)
             ->find()) {
-            // 支付方式改变或超时后更新订单号
-            if ($lastTradeInfo['payway'] != $payway || strtotime($lastTradeInfo['createtime']) < TIMESTAMP - 600) {
-                if (false === $this->getDb()->update('__tablepre__payments', [
-                        'ordercode' => $orderCode,
-                        'createtime' => date('Y-m-d H:i:s', TIMESTAMP)
-                    ], 'id = ' . $lastTradeInfo['id'])) {
-                    return error('更新订单失败');
+            // 支付方式相同，返回上次生成的订单
+            if ($lastTradeInfo['payway'] == $payway) {
+                if (strtotime($lastTradeInfo['createtime']) < TIMESTAMP - 600) {
+                    if (false === $this->getDb()->update('__tablepre__payments', [
+                            'ordercode' => $orderCode, 'createtime' => date('Y-m-d H:i:s', TIMESTAMP)
+                        ], 'id = ' . $lastTradeInfo['id'])) {
+                        return error('更新订单失败');
+                    }
                 }
+                return success([
+                    'tradeid' => $lastTradeInfo['id']
+                ]);
             }
-            return success([
-                'tradeid' => $lastTradeInfo['id']
-            ]);
         }
 
         // 新增交易单
         if (!$this->getDb()->insert('__tablepre__payments', [
             'type' => 'xc',
-            'uses' => concat('自助洗车-', $deviceInfo['areaname']),
+            'uses' => '自助洗车',
             'trade_id' => $uid,
             'param_id' => $deviceInfo['id'],
             'pay' => $totalPrice,
@@ -586,7 +595,7 @@ class XicheModel extends Crud {
             // 支付车币
             $result = $userModel->consume([
                 'platform' => 3,
-                'authcode' => md5('xc' . $uid),
+                'authcode' => $uid,
                 'trade_no' => $orderCode,
                 'money' => $deviceInfo['price'],
                 'remark' => '支付自助洗车费'
@@ -617,7 +626,7 @@ class XicheModel extends Crud {
     public function handleCardSuc ($cardId, $tradeParam = []) {
 
         if (!$tradeInfo = $this->getDb()->table('__tablepre__payments')
-            ->field('id,trade_id,param_id,param_a,pay,money,ordercode')
+            ->field('id,trade_id,param_id,param_a,pay,money,ordercode,payway')
             ->where(['id' => $cardId])
             ->limit(1)
             ->find()) {
@@ -634,6 +643,11 @@ class XicheModel extends Crud {
         ])) {
             return error('更新交易失败');
         }
+
+        // 加入到停车场洗车订单中
+        (new ParkWashModel())->handleXichePaySuc([
+            'xc_trade_id' => $cardId, 'pay' => $tradeInfo['money'], 'deduct' => $tradeInfo['money'] - $tradeInfo['pay'], 'payway' => $tradeInfo['payway']
+        ]);
 
         // 更新设备使用中
         $this->updateDevUse($tradeInfo['id'], $tradeInfo['param_id']);

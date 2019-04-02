@@ -955,3 +955,21 @@ function except ($keys)
 
     return $results;
 }
+
+function array_key_clean (array $input, array $only = [], array $except = [])
+{
+    foreach ($input as $k => $v) {
+        if (is_array($v)) {
+            $input[$k] = array_key_clean($input[$k], $only, $except);
+        } else {
+            if ($only && in_array($k, $only)) {
+                unset($input[$k]);
+            }
+            if ($except && !in_array($k, $except)) {
+                unset($input[$k]);
+            }
+        }
+    }
+    return $input;
+}
+
