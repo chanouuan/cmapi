@@ -181,62 +181,59 @@ abstract class ActionPDO {
     public function help ()
     {
         $reflection = new ReflectionClass($this);
-        $class_doc = $reflection->getDocComment();
-        if (empty($class_doc)) {
+        $title = $reflection->getDocComment();
+        if (empty($title)) {
             return null;
         }
 
-        $class_doc = trim(str_replace(['/**', ' * ', ' */'], '', $class_doc));
-        if (empty($class_doc)) {
+        $title = trim(str_replace(['/**', ' * ', ' */'], '', $title));
+        if (empty($title)) {
             return null;
         }
 
         $docList = [];
+
         foreach ($reflection->getMethods() as $k => $v) {
-            if ($v->class !== 'ActionPDO') {
-                $docList[$v->name]['url'] = APPLICATION_URL . '/' . strtolower($this->_module) . '/' . $v->name;
-                $method_doc = $reflection->getMethod($v->name)->getDocComment();
-                $method_doc = trim(str_replace(['/**', ' * ', ' */'], '', $method_doc));
-                preg_match('/(.+)[^\n]/', $method_doc, $matches);
-                $docList[$v->name]['name'] = isset($matches[1]) ? $matches[1] : '';
-                preg_match_all('/@param(.+)/', $method_doc, $matches);
-                $docList[$v->name]['param'] = isset($matches[1]) ? $matches[1] : [];
-                preg_match('/@return(.|\n)*/', $method_doc, $matches);
-                $docList[$v->name]['return'] = $matches[0];
+            if ($v->class === 'ActionPDO') {
+                continue;
             }
+
+            $method_doc = $reflection->getMethod($v->name)->getDocComment();
+            $method_doc = trim(str_replace(['/**', ' * ', ' */'], '', $method_doc));
+
+            preg_match_all('/@route(.+)/', $method_doc, $matches);
+            $docList[$v->name]['url'] = gurl($matches[1] ? $matches[1] : (strtolower($this->_module) . '/' . $v->name));
+
+            preg_match('/(.+)[^\n]/', $method_doc, $matches);
+            $docList[$v->name]['name'] = isset($matches[1]) ? (is_array($matches[1]) ? current($matches[1]) : $matches[1]) : '';
+
+            preg_match_all('/@description(.+)/', $method_doc, $matches);
+            $docList[$v->name]['description'] = $matches[1] ? (is_array($matches[1]) ? current($matches[1]) : $matches[1]) : $docList[$v->name]['name'];
+
+            $isLogin = preg_match('/@login/', $method_doc);
+            $docList[$v->name]['login'] = $isLogin;
+
+            preg_match_all('/@param(.+)/', $method_doc, $matches);
+            $paramList = $matches[1] ? $matches[1] : [];
+            if ($isLogin) {
+                array_splice($paramList, 0, 0, '*token string 登录Token');
+            }
+            foreach ($paramList as $kk => $vv) {
+                $vv = array_slice(array_filter(explode(' ', trim($vv))), 0, 3);
+                if (count($vv) == 2) {
+                    array_splice($vv, 1, 0, 'string');
+                }
+                array_splice($vv, 2, 0, $vv[0][0] == '*' ? '是' : '');
+                $vv[0] = str_replace(['$', '*'], '', $vv[0]);
+                $paramList[$kk] = $vv;
+            }
+            $docList[$v->name]['param'] = $paramList;
+
+            preg_match('/@return((.|\n)*)/', $method_doc, $matches);
+            $docList[$v->name]['return'] = isset($matches[1]) ? $matches[1] : [];
         }
 
-        $doc_name = [
-            '@name' => '功能',
-            '@url' => '地址',
-            '@param' => '请求参数',
-            '@return' => '返回',
-        ];
-        $rs = [];
-        foreach ($docList as $k => $v) {
-            foreach ($v as $kk => $vv) {
-                $title = isset($doc_name[$kk]) ? $doc_name[$kk] : $kk;
-                $rs[] = '<h2>' . $title . '</h2>';
-                $rs[] = '<p>' . (is_array($vv) ? implode('', $vv) : $vv) . '</p>';
-            }
-        }
-
-        echo '
-        <!DOCTYPE html>
-        <html>
-        <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <style>
-            
-        </style>
-        </head>
-        <body>
-        '.implode('', $rs).'
-        </body>
-        </html>
-        ';
-        exit(0);
+        $this->render('help.html', compact('title', 'docList'), 'default');
     }
 
     public function render ($tplName, $params = null, $style = null)

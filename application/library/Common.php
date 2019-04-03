@@ -295,7 +295,7 @@ function burl ($param = null)
 function gurl($url, $param = [])
 {
     if (0 !== strpos($url, 'http')) {
-        $url = APPLICATION_URL . '/' . $url;
+        $url = APPLICATION_URL . '/' . ltrim($url, '/');
     }
     $output = [];
     is_string($param) && parse_str($param, $output);

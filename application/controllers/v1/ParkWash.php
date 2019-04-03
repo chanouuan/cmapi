@@ -10,17 +10,18 @@ use app\models\UserModel;
 use app\models\TradeModel;
 
 /**
- * 停车场洗车
- * @cyq
+ * 停车场洗车前端接口
+ * @Date 2019-04-03
  */
 class ParkWash extends ActionPDO {
 
     /**
      * 登录
-     * @param $telephone 用户手机号
-     * @param $msgcode 短信验证码 ( msgcode 与 password 任选其一)
-     * @param $password 车秘密码 ( msgcode 与 password 任选其一)
-     * @param $code 小程序登录凭证
+     * @description 账号密码登录或验证是否绑定小程序
+     * @param *telephone 用户手机号
+     * @param *msgcode 短信验证码(msgcode与password任选其一)
+     * @param *password 车秘密码(msgcode与password任选其一)
+     * @param *code 小程序登录凭证
      * @return array
      * {
      * "errNo":0, // 错误码 0成功 -1失败 500未绑定小程序
@@ -75,7 +76,6 @@ class ParkWash extends ActionPDO {
     /**
      * 获取用户信息
      * @login
-     * @param uid 用户ID
      * @return array
      * {
      * "errNo":0, // 错误码 0成功 -1失败
@@ -110,7 +110,7 @@ class ParkWash extends ActionPDO {
 
     /**
      * 发送短信验证码
-     * @param $telephone 手机号
+     * @param *telephone 手机号
      * @return array
      * {
      * "errNo":0, // 错误码 0成功 -1失败
@@ -124,10 +124,10 @@ class ParkWash extends ActionPDO {
 
     /**
      * 获取洗车店列表
-     * @param $adcode 城市代码 (贵阳 520100)
-     * @param $lon 经度 (精确到 6 位)
-     * @param $lon 维度 (精确到 6 位)
-     * @param $lastpage 分页参数
+     * @param *adcode 城市代码(贵阳520100)
+     * @param *lon 经度(精确到6位)
+     * @param *lon 维度(精确到6位)
+     * @param lastpage 分页参数
      * @return array
      * {
      * "errNo":0,
@@ -160,10 +160,10 @@ class ParkWash extends ActionPDO {
 
     /**
      * 获取附近洗车店
-     * @param $adcode 城市代码 (贵阳 520100)
-     * @param $lon 经度 (精确到 6 位)
-     * @param $lon 维度 (精确到 6 位)
-     * @param $distance 搜索范围最大公里数 (可选 1-50 公里)
+     * @param *adcode 城市代码(贵阳520100)
+     * @param *lon 经度(精确到6位)
+     * @param *lon 维度(精确到6位)
+     * @param distance 搜索范围最大公里数(可选1-50公里，默认1公里)
      * @return array
      * {
      * "errNo":0,
@@ -192,10 +192,10 @@ class ParkWash extends ActionPDO {
 
     /**
      * 获取自助洗车机列表
-     * @param $adcode 城市代码 (贵阳 520100)
-     * @param $lon 经度 (精确到 6 位)
-     * @param $lon 维度 (精确到 6 位)
-     * @param $lastpage 分页参数
+     * @param *adcode 城市代码(贵阳520100)
+     * @param *lon 经度(精确到6位)
+     * @param *lon 维度(精确到6位)
+     * @param lastpage 分页参数
      * @return array
      * {
      * "errNo":0,
@@ -243,7 +243,7 @@ class ParkWash extends ActionPDO {
 
     /**
      * 获取汽车车系
-     * @param $brand_id 品牌ID
+     * @param *brand_id 品牌ID
      * @return array
      * {
      * "errNo":0,
@@ -304,9 +304,9 @@ class ParkWash extends ActionPDO {
     /**
      * 添加车辆
      * @login
-     * @param $car_number 车牌号
-     * @param $brand_id 品牌ID
-     * @param $series_id 车系ID
+     * @param *car_number 车牌号
+     * @param *brand_id 品牌ID
+     * @param *series_id 车系ID
      * @return array
      * {
      * "errNo":0, // 错误码 0成功 -1失败
@@ -321,11 +321,11 @@ class ParkWash extends ActionPDO {
     /**
      * 编辑车辆
      * @login
-     * @param $id 车辆ID
-     * @param $car_number 车牌号
-     * @param $brand_id 品牌ID
-     * @param $series_id 车系ID
-     * @param $area_id 区域ID
+     * @param *id 车辆ID
+     * @param *car_number 车牌号
+     * @param *brand_id 品牌ID
+     * @param *series_id 车系ID
+     * @param *area_id 区域ID
      * @param $place 车位号
      * @param $isdefault 是否设置默认车
      * @return array
@@ -342,7 +342,7 @@ class ParkWash extends ActionPDO {
     /**
      * 删除车辆
      * @login
-     * @param $id 车辆ID
+     * @param *id 车辆ID
      * @return array
      * {
      * "errNo":0, // 错误码 0成功 -1失败
@@ -356,7 +356,7 @@ class ParkWash extends ActionPDO {
 
     /**
      * 获取预约排班
-     * @param $store_id 门店ID
+     * @param *store_id 门店ID
      * @return array
      * {
      * "errNo":0,
@@ -376,7 +376,7 @@ class ParkWash extends ActionPDO {
 
     /**
      * 获取洗车店洗车套餐
-     * @param $store_id 门店ID
+     * @param *store_id 门店ID
      * @return array
      * {
      * "errNo":0,
@@ -395,13 +395,13 @@ class ParkWash extends ActionPDO {
     /**
      * 下单
      * @login
-     * @param store_id 门店ID
-     * @param carport_id 车辆ID
-     * @param area_id 区域ID
+     * @param *store_id 门店ID
+     * @param *carport_id 车辆ID
+     * @param *area_id 区域ID
      * @param place 车位号
-     * @param pool_id 排班ID
-     * @param items 套餐ID (多个用逗号分隔)
-     * @param payway 支付方式 (cbpay车币支付 wxpayjs小程序支付)
+     * @param *pool_id 排班ID
+     * @param *items 套餐ID(多个用逗号分隔)
+     * @param *payway 支付方式(cbpay车币支付wxpayjs小程序支付)
      * @return array
      * {
      * "errNo":0,
@@ -417,7 +417,7 @@ class ParkWash extends ActionPDO {
     /**
      * 查询支付是否成功
      * @login
-     * @param tradeid 交易单ID ( createCard 接口获取)
+     * @param *tradeid 交易单ID(createCard接口获取)
      * @return array
      * {
      * "errNo":0, // 错误码 0支付成功 -1未支付成功
@@ -456,7 +456,7 @@ class ParkWash extends ActionPDO {
     /**
      * 用户取消订单
      * @login
-     * @param orderid 订单ID
+     * @param *orderid 订单ID
      * @return array
      * {
      * "errNo":0, //错误码
@@ -471,7 +471,7 @@ class ParkWash extends ActionPDO {
     /**
      * 我的订单
      * @login
-     * @param status 订单状态 (-1已取消 1已支付 2已接单 3服务中 4已完成)
+     * @param status 订单状态(-1已取消1已支付2已接单3服务中4已完成)
      * @param lastorder 分页参数
      * @return array
      * {
@@ -508,7 +508,7 @@ class ParkWash extends ActionPDO {
     /**
      * 获取订单详情
      * @login
-     * @param orderid 订单ID
+     * @param *orderid 订单ID
      * @return array
      * {
      * "errNo":0, //错误码
