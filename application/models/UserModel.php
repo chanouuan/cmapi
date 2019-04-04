@@ -188,7 +188,7 @@ class UserModel extends Crud {
             'telephone' => $userInfo['member_name'],
             'avatar' => $userInfo['member_avatar'] ? ('http://park.chemi.ren/mobile/data/upload/shop/mobile/avatar/' . $userInfo['member_avatar']) : '',
             'nickname' => strval(get_real_val($userInfo['nickname'], $userInfo['member_name'])),
-            'sex' => intval($userInfo['member_sex']),
+            'gender' => intval($userInfo['member_sex']),
             'money' => floatval($userInfo['available_predeposit']) * 100,
             'ispw' => $userInfo['member_passwd'] ? 1 : 0
         ];
@@ -203,7 +203,8 @@ class UserModel extends Crud {
     public function regCm ($post) {
         if (!$this->getDb('chemiv2')->insert('chemi_member', [
             'member_name' => $post['telephone'],
-            'nickname' => $post['nickname'],
+            'nickname' => strval($post['nickname']),
+            'member_sex' => intval($post['gender']),
             'member_time' => TIMESTAMP,
             'member_old_login_time'=>0,
             'member_login_time'=>0,
@@ -223,7 +224,7 @@ class UserModel extends Crud {
                 return false;
             }
             if (!$db->insert('chemi_member', [
-                'member_name' => $post['telephone'], 'nickname' => $post['nickname'], 'member_time' => TIMESTAMP, 'member_old_login_time' => 0, 'member_login_time' => 0, 'member_login_num' => 0
+                'member_name' => $post['telephone'], 'nickname' => strval($post['nickname']), 'member_sex' => intval($post['gender']), 'member_time' => TIMESTAMP, 'member_old_login_time' => 0, 'member_login_time' => 0, 'member_login_num' => 0
             ])) {
                 return false;
             }
@@ -260,12 +261,7 @@ class UserModel extends Crud {
         $post['telephone'] = trim($post['telephone']);
         $post['msgcode'] = addslashes($post['msgcode']); // 短信验证码
         $post['password'] = addslashes($post['password']); // 用户密码
-        $post['nopw'] = isset($post['nopw']) ? true :false; // 是否免密、免验证码
-
-        // 公司平台不验证
-        if ($post['platform'] == 2 && $post['msgcode'] == '111111') {
-            $post['nopw'] = true;
-        }
+        $post['nopw'] = isset($post['nopw']) && $post['nopw'] ? true :false; // 是否免密、免验证码
 
         if (empty($post['authcode'])) {
             return error('参数错误：authcode不能为空！');

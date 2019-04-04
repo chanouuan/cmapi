@@ -188,8 +188,7 @@ function pass_string ($str)
 function trim_space ($string)
 {
     return $string ? str_replace(array(
-            '　',
-            ' '
+            '　', ' '
     ), '', trim($string)) : $string;
 }
 
@@ -971,5 +970,10 @@ function array_key_clean (array $input, array $only = [], array $except = [])
         }
     }
     return $input;
+}
+
+function get_short_array ($input, $delimiter = ',', $length = 200)
+{
+    return is_string($input) ? explode($delimiter, trim(msubstr($input, 0, $length), $delimiter)) : [];
 }
 

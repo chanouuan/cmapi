@@ -9,13 +9,76 @@ use app\library\Geohash;
 class ParkWashModel extends Crud {
 
     /**
+     * 小程序登录
+     */
+    public function miniprogramLogin ($post) {
+
+        if (!validate_telephone($post['telephone'])) {
+            return error('手机号为空或格式不正确！');
+        }
+
+        // 加载模型
+        $userModel = new UserModel();
+        $xicheModel = new XicheModel();
+
+        // 获取用户
+        $userInfo = $userModel->getUserInfoCondition([
+            'member_name' => $post['telephone']
+        ]);
+
+        // 注册新用户
+        if (empty($userInfo)) {
+            if (!$regUid = $userModel->regCm($post)) {
+                return error('注册失败');
+            }
+            $userInfo['member_id'] = $regUid;
+        }
+
+        // 限制重复绑定微信
+        if ($post['__authcode']) {
+            if ($xicheModel->getWxOpenid($userInfo['member_id'])) {
+                return error('该手机号已绑定，请先解绑或填写其他手机号');
+            }
+        }
+
+        // 绑定用户
+        $post['nopw'] = 1; // 不验证密码
+        $post['platform'] = 3; // 固定平台代码
+        $post['type'] = 'xc';
+        $post['authcode'] = $userInfo['member_id'];
+        $post['telephone'] =  $userInfo['member_name'];
+        $userInfo = $userModel->loginBinding($post);
+        if ($userInfo['errorcode'] !== 0) {
+            return $userInfo;
+        }
+        $userInfo = $userInfo['result'];
+
+        // 登录成功
+        $loginret = $userModel->setloginstatus($userInfo['uid'], uniqid(), [
+            'clienttype' => 'mp'
+        ]);
+        if ($loginret['errorcode'] !== 0) {
+            return $loginret;
+        }
+        $userInfo['token'] = $loginret['result']['token'];
+
+        // 绑定微信小程序
+        $xicheModel->bindingLogin($post['__authcode'], $userInfo['uid']);
+
+        return success($userInfo);
+    }
+
+    /**
      * 我的订单
      */
     public function getOrderList ($uid, $post) {
 
         // 最后排序字段
         $post['lastpage'] = intval($post['lastpage']);
-        $post['status'] = intval($post['status']);
+        // 状态为空表示所有
+        if ($post['status'] !== '') {
+            $post['status'] = get_short_array($post['status']);
+        }
 
         // 结果返回
         $result = [
@@ -30,7 +93,7 @@ class ParkWashModel extends Crud {
         ];
 
         if ($post['status']) {
-            $condition['status'] = $post['status'];
+            $condition['status'] = isset($post['status'][1]) ? ['in', $post['status']] : $post['status'][0];
         }
 
         if ($post['lastpage'] > 0) {
@@ -176,6 +239,35 @@ class ParkWashModel extends Crud {
         unset($orderInfo['xc_trade_id']);
 
         return success($orderInfo);
+    }
+
+    /**
+     * 修改订单车位，订单状态服务中之前
+     */
+    public function updatePlace ($uid, $post) {
+
+        $post['orderid'] = intval($post['orderid']);
+        $post['place'] = trim_space($post['place']);
+
+        if (!$post['place'] || strlen($post['place']) > 10) {
+            return error('车位号最多10个字符');
+        }
+
+        if (!$orderInfo = $this->findOrderInfo([
+            'id' => $post['orderid'], 'uid' => $uid, 'status' => ['in', [1, 2]]
+        ], 'id,place')) {
+            return error('订单不存在或无效');
+        }
+
+        if ($orderInfo['place'] == $post['place']) {
+            return error('已设置该车位号，不用重复设置');
+        }
+
+        if (!$this->getDb()->update('parkwash_order', ['place' => $post['place']], 'id = ' . $post['orderid'])) {
+            return error('更新失败');
+        }
+
+        return success('OK');
     }
 
     /**
@@ -361,7 +453,24 @@ class ParkWashModel extends Crud {
      * 获取用户信息
      */
     public function getUserInfo ($uid) {
-        return (new UserModel())->getUserInfo($uid);
+
+        // 用户车秘用户信息
+        $userInfo = (new UserModel())->getUserInfo($uid);
+        if ($userInfo['errorcode'] !== 0) {
+            return $userInfo;
+        }
+        return $userInfo;
+    }
+
+    /**
+     * 获取最近一个订单的状态
+     */
+    public function getLastOrderInfo ($uid) {
+
+        $orderInfo = $this->findOrderInfo([
+            'uid' => $uid, 'status' => ['<>', 0], 'xc_trade_id' => 0
+        ], 'id,status,create_time', 'id desc');
+        return success($orderInfo);
     }
 
     /**
@@ -386,6 +495,7 @@ class ParkWashModel extends Crud {
         $post['brand_id'] = intval($post['brand_id']);
         $post['series_id'] = intval($post['series_id']);
         $post['area_id'] = intval($post['area_id']);
+        $post['place'] = trim_space($post['place']);
         $post['isdefault'] = $post['isdefault'] == 1 ? 1 : 0;
 
         if (!check_car_license($post['car_number'])) {
@@ -868,9 +978,9 @@ class ParkWashModel extends Crud {
         $post['store_id'] = intval($post['store_id']); // 门店
         $post['carport_id'] = intval($post['carport_id']); // 车辆
         $post['area_id'] = intval($post['area_id']); // 区域
-        $post['place'] = trim($post['place']); // 车位号
+        $post['place'] = trim_space($post['place']); // 车位号
         $post['pool_id'] = intval($post['pool_id']); // 排班
-        $post['items'] = array_filter(explode(',', substr(trim($post['items']), 0, 200))); // 套餐 逗号分隔
+        $post['items'] = array_filter(get_short_array($post['items'])); // 套餐 逗号分隔
 
         if (!$post['store_id']) {
             return error('请选择门店');
@@ -1196,9 +1306,9 @@ class ParkWashModel extends Crud {
      * @param $field 查询字段
      * @return array
      */
-    protected function findOrderInfo ($condition, $field = null) {
+    protected function findOrderInfo ($condition, $field = null, $order = null) {
 
-        return $this->getDb()->table('parkwash_order')->field($field)->where($condition)->limit(1)->find();
+        return $this->getDb()->table('parkwash_order')->field($field)->where($condition)->order($order)->limit(1)->find();
     }
 
     /**
@@ -1301,14 +1411,15 @@ class ParkWashModel extends Crud {
      */
     protected function buildTestStore () {
 
+        set_time_limit(0);
         $operator = ['-', '+'];
         $status = [1, 0];
         $lon = 106.713478;
         $lat = 26.578343;
         $geohash = new Geohash();
-        for ($i = 0; $i < 100000; $i ++) {
-            $_lon = $lon + ($operator[array_rand($operator)] . (rand(1,100000) / 100000));
-            $_lat = $lat + ($operator[array_rand($operator)] . (rand(1,100000) / 100000));
+        for ($i = 0; $i < 10000; $i ++) {
+            $_lon = $lon + ($operator[array_rand($operator)] . (rand(1,10000) / 10000));
+            $_lat = $lat + ($operator[array_rand($operator)] . (rand(1,10000) / 10000));
             $hash = $geohash->encode($_lat, $_lon);
             $data[] = [
                 'adcode' => 520100,
@@ -1326,6 +1437,17 @@ class ParkWashModel extends Crud {
                 'item_id' => 1,
                 'price' => rand(100, 10000)
             ];
+            $pool = [];
+            for ($j = 0; $j < 30; $j ++) {
+                $pool[] = [
+                    'store_id' => $i+1,
+                    'today' => date('Y-m-d', strtotime("+{$j} day")),
+                    'start_time' => '09:00:00',
+                    'end_time' => '10:00:00',
+                    'amount' => 100
+                ];
+            }
+            $this->getDb()->insert('parkwash_pool', $pool);
         }
         $this->getDb()->insert('parkwash_store', $data);
         $this->getDb()->insert('parkwash_store_item', $item);

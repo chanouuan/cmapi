@@ -387,6 +387,8 @@ class DbMysql extends Db {
     {
         if (empty($query)) {
             $query = $this->parseSql();
+        } else {
+            $this->_options = [];
         }
         if (!empty($parameters)) {
             $this->bindValue($parameters);

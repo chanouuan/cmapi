@@ -18,6 +18,85 @@ class JSSDK {
     }
 
     /**
+     * 微信小程序开放数据校验与解密
+     * @param
+     * {
+     *     "code":"小程序登录凭证"
+     *     "getPhoneNumber":{
+     *         "encryptedData":"",
+     *         "iv":""
+     *     },
+     *     "getUserInfo":{
+     *         "rawData":"",
+     *         "signature":"",
+     *         "encryptedData":"",
+     *         "iv":""
+     *     }
+     * }
+     * @return
+     * {
+     *     "openid":"",
+     *     "session_key":"",
+     *     "unionid":"",
+     *     "authcode":"",
+     *     "type":"wx",
+     *     "telephone":"",
+     *     "nickname":"",
+     *     "gender":"",
+     *     "avatarurl":""
+     * }
+     */
+    public function wXBizDataCrypt ($post)
+    {
+        // 获取session_key
+        $result = $this->code2Session($post['code']);
+        if ($result['errorcode'] !== 0) {
+            return $result;
+        }
+        $result = $result['result'];
+
+        // 生成authcode
+        $result['type'] = 'wx';
+        $result['authcode'] = (isset($result['unionid']) && $result['unionid']) ? $result['unionid'] : $result['openid'];
+
+        // 小程序解密类
+        $pc = new WXBizDataCrypt($this->appId, $result['session_key']);
+
+        // 解密手机号
+        if (isset($post['getPhoneNumber']) && $post['getPhoneNumber']['encryptedData'] && $post['getPhoneNumber']['iv']) {
+            // aes 解密
+            $errCode = $pc->decryptData($post['getPhoneNumber']['encryptedData'], $post['getPhoneNumber']['iv'], $data);
+            if ($errCode !== 0) {
+                return error('getPhoneNumber解密失败！[' . $errCode . ']');
+            }
+            // {"phoneNumber": "13580006666","purePhoneNumber": "13580006666","countryCode": "86","watermark": {"appid": "APPID","timestamp": TIMESTAMP}}
+            $data = json_decode($data, true);
+            $result['telephone'] = $data['purePhoneNumber']; // 手机号
+        }
+
+        // 解密用户信息
+        if (isset($post['getUserInfo']) && $post['getUserInfo']['encryptedData'] && $post['getUserInfo']['iv']) {
+            // 数据签名校验
+            $signature = sha1($post['getUserInfo']['rawData'] . $result['session_key']);
+            if ($signature != $post['getUserInfo']['signature']) {
+                return error('getUserInfo签名验证失败！');
+            }
+            // aes 解密
+            $errCode = $pc->decryptData($post['getUserInfo']['encryptedData'], $post['getUserInfo']['iv'], $data);
+            if ($errCode !== 0) {
+                return error('getUserInfo解密失败！[' . $errCode . ']');
+            }
+            // {"openId":"oGZUI0egBJY1zhBYw2KhdUfwVJJE","nickName":"Band","gender":1,"language":"zh_CN","city":"Guangzhou","province":"Guangdong","country":"CN","avatarUrl":"","unionId":"ocMvos6NjeKLIBqg5Mr9QjxrP1FA","watermark":{"timestamp":1477314187,"appid":"wx4f4bc4dec97d474b"}}
+            foreach ($data as $k => $v) {
+                $result[strtolower($k)] = $v; // 转成小写
+            }
+        }
+
+        unset($data);
+        return success($result);
+    }
+
+    /**
      * 小程序登录凭证校验
      * @param string $code 小程序 wx.login
      * @return array
@@ -36,30 +115,7 @@ class JSSDK {
             return error($reponse['errmsg']);
         }
 
-        // 数据签名校验
-        $signature = sha1($reponse['rawData'] . $reponse['session_key']);
-        if ($signature != $reponse['signature']) {
-            return error('code2Session签名验证失败！');
-        }
-
-        // aes 解密
-        $pc = new WXBizDataCrypt($this->appId, $reponse['session_key']);
-        $errCode = $pc->decryptData($reponse['encryptedData'], $reponse['iv'], $data);
-
-        if ($errCode !== 0) {
-            return error('code2Session解密失败！[' . $errCode . ']');
-        }
-
-        // {"openId":"oGZUI0egBJY1zhBYw2KhdUfwVJJE","nickName":"Band","gender":1,"language":"zh_CN","city":"Guangzhou","province":"Guangdong","country":"CN","avatarUrl":"","unionId":"ocMvos6NjeKLIBqg5Mr9QjxrP1FA","watermark":{"timestamp":1477314187,"appid":"wx4f4bc4dec97d474b"}}
-        $data = json_decode($data, true);
-        // 转成小写
-        foreach ($data as $k => $v) {
-            $data[strtolower($k)] = $v;
-        }
-
-        $data['authcode'] = (isset($data['unionid']) && $data['unionid']) ? $data['unionid'] : $data['openid'];
-        $data['type'] = 'wx';
-        return success($data);
+        return success($reponse);
     }
 
     /**

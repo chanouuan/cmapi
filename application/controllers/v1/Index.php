@@ -1,18 +1,110 @@
 <?php
+/**
+ * @SWG\Swagger(
+ *     swagger="2.0",
+ *     schemes={"http"},
+ *     basePath="/v1/",
+ *     @SWG\Info(
+ *          title="App客户端接口",
+ *          version="1.0",
+ *          description="说明：{用户头像:uid 取余 32}/{用户ID}/avatar/origin.jpg
+车辆行驶证:{uid 取余 32}/{用户ID}/travel_license/16位随机码.jpg
+身份认证:{uid 取余 32}/{用户ID}/idcard/16位随机码.jpg
+共享车位图片：{uid 取余 32}/{用户ID}/shareparkinglot/16位随机码.jpg
+驾驶证：{uid 取余 32}/{用户ID}/driving_licence/16位随机码.jpg
+例如张三用户ID为12，头像路径为：12/12/avatar/origin.jpg"
+ *     )
+ * )
+ */
+
+/**
+ * @SWG\Definition(
+ *   definition="ReturnStatus",
+ *              @SWG\Property(
+ *                  property="status",
+ *                  type="integer",
+ *                  description="1成功，0失败"
+ *              ),
+ *              @SWG\Property(
+ *                  property="msg",
+ *                  type="string",
+ *                  description="错误原因"
+ *              )
+ * )
+ */
 
 namespace app\controllers;
 
 use app\library\DB;
+use function Swagger\scan;
 
 class Index extends \ActionPDO {
 
     public function __init ()
     {
-
+        header('Access-Control-Allow-Origin: *'); // 允许任意域名发起的跨域请求
+        header('Access-Control-Allow-Headers: X-Requested-With,X_Requested_With');
     }
 
+    /**
+     * @SWG\Tag(
+     *   name="公共接口",
+     *   description="公共调用接口",
+     * )
+     */
+
+    /**
+     *
+     * @SWG\Post(
+     *     path="/public/trafficviolation",
+     *     summary="违章查询",
+     *     tags={"公共接口"},
+     *     @SWG\Parameter(
+     *         name="city",
+     *         type="string",
+     *         in="query",
+     *         required=true,
+     *         description="城市代码"
+     *     ),
+     *     @SWG\Parameter(
+     *         name="carNo",
+     *         type="integer",
+     *         in="query",
+     *         required=true,
+     *         description="号牌号码完整7位"
+     *     ),
+     *     @SWG\Parameter(
+     *         name="buyer",
+     *         type="array",
+     *         in="query",
+     *         description="购买方信息",
+     *         @SWG\Items(
+     *             type="string",
+     *             description="图片链接"
+     *         )
+     *     ),
+     *     @SWG\Response(
+     *          response=200,
+     *          description="Example extended response",
+     *          ref="$/responses/Json",
+     *          @SWG\Schema(
+     *              @SWG\Property(
+     *                  property="data",
+     *                  ref="$/definitions/ReturnStatus"
+     *              )
+     *          )
+     *     ),
+     *     @SWG\Response(
+     *         response="404",
+     *         description="接口地址错误"
+     *     ),
+     * )
+     */
     public function index () {
-        print_r($_GET);
+
+//        $swagger = scan(dirname(__DIR__) . '/../', ['exclude'=>['AdminController.php']]);
+//        $swagger = json_encode($swagger);
+//        echo $swagger;
     }
 
     public function total () {

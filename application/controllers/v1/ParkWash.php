@@ -17,58 +17,64 @@ class ParkWash extends ActionPDO {
 
     /**
      * 登录
-     * @description 账号密码登录或验证是否绑定小程序
-     * @param *telephone 用户手机号
-     * @param *msgcode 短信验证码(msgcode与password任选其一)
-     * @param *password 车秘密码(msgcode与password任选其一)
+     * @description 只支持微信小程序登录
+     * @param *encryptedData 手机号加密数据
+     * @param *iv 加密算法的初始向量
      * @param *code 小程序登录凭证
      * @return array
      * {
-     * "errNo":0, // 错误码 0成功 -1失败 500未绑定小程序
+     * "errNo":0, // 错误码 0成功 -1失败
      * "message":"", //错误消息
      * "result":{
      *     "uid":10, //用户ID
      *     "telephone":"", //手机号
      *     "avatar":"", //头像地址
      *     "nickname":"", //昵称
-     *     "sex":1, //性别 0未知 1男 2女
+     *     "gender":1, //性别 0未知 1男 2女
      *     "money":0, //余额 (分)
      *     "ispw":0, //是否已设置密码
-     *     "token":"", //登录效验码
+     *     "token":"", //登录凭证
      * }}
      */
     public function login () {
 
         // 客户端是微信
-        if (CLIENT_TYPE == 'wx') {
-            // 小程序登录
-            $code = getgpc('code');
-            if ($code) {
-                $wxConfig = getSysConfig('xiche', 'wx');
-                $jssdk = new JSSDK($wxConfig['appid'], $wxConfig['appsecret']);
-                $reponse = $jssdk->code2Session($code);
-                if ($reponse['errorcode'] !== 0) {
-                    return $reponse;
-                }
-                if ($loginInfo = (new XicheModel())->checkLogin($reponse['result'])) {
-                    (new ParkWashModel())->saveUserCount($loginInfo['uid']);
-                    $userInfo = (new UserModel())->getUserInfo($loginInfo['uid']);
-                    $userInfo['result']['token'] = $loginInfo['token'];
-                    return $userInfo;
-                }
-                // 未绑定小程序就将 openid 传给账号密码登录执行绑定
-                $_POST['__authcode'] = $reponse['result']['authcode'];
-            }
+        if (CLIENT_TYPE != 'wx') {
+            return error('当前环境不支持登录');
         }
 
-        // 账号密码登录
-        $result = (new XicheModel())->login($_POST);
+        $code = getgpc('code');
+        if (empty($code)) {
+            return error('请填写小程序登录凭证');
+        }
+
+        $wxConfig = getSysConfig('xiche', 'wx');
+        $jssdk = new JSSDK($wxConfig['appid'], $wxConfig['appsecret']);
+        $reponse = $jssdk->wXBizDataCrypt([
+            'code' => $code,
+            'getPhoneNumber' => [
+                'encryptedData' => getgpc('encryptedData'),
+                'iv' => getgpc('iv')
+            ]
+        ]);
+        if ($reponse['errorcode'] !== 0) {
+            return $reponse;
+        }
+        if ($loginInfo = (new XicheModel())->checkLogin($reponse['result'])) {
+            (new ParkWashModel())->saveUserCount($loginInfo['uid']);
+            $userInfo = (new UserModel())->getUserInfo($loginInfo['uid']);
+            $userInfo['result']['token'] = $loginInfo['token'];
+            return $userInfo;
+        }
+
+        // 绑定小程序
+        $post = $reponse['result'];
+        $post['__authcode'] = $post['authcode'];
+        $parkwashModel = new ParkWashModel();
+        $result = $parkwashModel->miniprogramLogin($post);
         if ($result['errorcode'] === 0) {
             // 插入 userCount 表
-            (new ParkWashModel())->saveUserCount($result['result']['uid']);
-        } else {
-            // 返回错误码为未绑定小程序
-            $result['errNo'] = 500;
+            $parkwashModel->saveUserCount($result['result']['uid']);
         }
         return $result;
     }
@@ -85,13 +91,30 @@ class ParkWash extends ActionPDO {
      *     "telephone":"", //手机号
      *     "avatar":"", //头像地址
      *     "nickname":"", //昵称
-     *     "sex":1, //性别 0未知 1男 2女
+     *     "gender":1, //性别 0未知 1男 2女
      *     "money":0, //余额 (分)
      *     "ispw":0, //是否已设置密码
      * }}
      */
     public function getUserInfo () {
         return (new ParkWashModel())->getUserInfo($this->_G['user']['uid']);
+    }
+
+    /**
+     * 获取用户最近一个订单的状态
+     * @login
+     * @return array
+     * {
+     * "errNo":0, // 错误码 0成功 -1失败
+     * "message":"", //错误消息
+     * "result":{
+     *     "id":5, //订单ID
+     *     "status":1, //最近一个停车场洗车订单状态(-1已取消1已支付2已接单3服务中4已完成)
+     *     "create_time":"" //下单时间
+     * }}
+     */
+    public function getLastOrderInfo () {
+        return (new ParkWashModel())->getLastOrderInfo($this->_G['user']['uid']);
     }
 
     /**
@@ -130,7 +153,7 @@ class ParkWash extends ActionPDO {
      * @param lastpage 分页参数
      * @return array
      * {
-     * "errNo":0,
+     * "errNo":0, //错误码 0成功 -1失败
      * "message":"",
      * "result":{
      *     "limit":10, //每页最大显示数
@@ -166,7 +189,7 @@ class ParkWash extends ActionPDO {
      * @param distance 搜索范围最大公里数(可选1-50公里，默认1公里)
      * @return array
      * {
-     * "errNo":0,
+     * "errNo":0, //错误码 0成功 -1失败
      * "message":"",
      * "result":[{
      *      "id":1, //门店ID
@@ -198,7 +221,7 @@ class ParkWash extends ActionPDO {
      * @param lastpage 分页参数
      * @return array
      * {
-     * "errNo":0,
+     * "errNo":0, //错误码 0成功 -1失败
      * "message":"",
      * "result":{
      *     "limit":10, //每页最大显示数
@@ -227,7 +250,7 @@ class ParkWash extends ActionPDO {
      * 获取汽车品牌
      * @return array
      * {
-     * "errNo":0,
+     * "errNo":0, //错误码 0成功 -1失败
      * "message":"",
      * "result":[{
      *      "id":1, //品牌ID
@@ -246,7 +269,7 @@ class ParkWash extends ActionPDO {
      * @param *brand_id 品牌ID
      * @return array
      * {
-     * "errNo":0,
+     * "errNo":0, //错误码 0成功 -1失败
      * "message":"",
      * "result":[{
      *      "id":1, //车系ID
@@ -254,7 +277,6 @@ class ParkWash extends ActionPDO {
      * }]}
      */
     public function getSeriesList () {
-        $_POST['brand_id'] = 1;
         return (new ParkWashModel())->getSeriesList($_POST);
     }
 
@@ -262,12 +284,12 @@ class ParkWash extends ActionPDO {
      * 获取停车场区域
      * @return array
      * {
-     * "errNo":0,
+     * "errNo":0, //错误码 0成功 -1失败
      * "message":"",
      * "result":[{
      *      "id":1, //区域ID
      *      "floor":"负一楼", //楼层
-     *      "area":"A区", //区域名称
+     *      "name":"A区", //区域名称
      * }]}
      */
     public function getParkArea () {
@@ -279,7 +301,7 @@ class ParkWash extends ActionPDO {
      * @login
      * @return array
      * {
-     * "errNo":0,
+     * "errNo":0, //错误码 0成功 -1失败
      * "message":"",
      * "result":[{
      *      id:10, //车辆ID
@@ -359,7 +381,7 @@ class ParkWash extends ActionPDO {
      * @param *store_id 门店ID
      * @return array
      * {
-     * "errNo":0,
+     * "errNo":0, //错误码 0成功 -1失败
      * "message":"",
      * "result":[{
      *      "id":1, //排班ID
@@ -370,7 +392,6 @@ class ParkWash extends ActionPDO {
      * }]}
      */
     public function getPoolList () {
-        $_POST['store_id'] = 1;
         return (new ParkWashModel())->getPoolList($_POST);
     }
 
@@ -379,7 +400,7 @@ class ParkWash extends ActionPDO {
      * @param *store_id 门店ID
      * @return array
      * {
-     * "errNo":0,
+     * "errNo":0, //错误码 0成功 -1失败
      * "message":"",
      * "result":[{
      *      "id":1, //套餐项目ID
@@ -388,7 +409,6 @@ class ParkWash extends ActionPDO {
      * }]}
      */
     public function getStoreItem () {
-        $_POST['store_id'] = 1;
         return (new ParkWashModel())->getStoreItem($_POST);
     }
 
@@ -404,7 +424,7 @@ class ParkWash extends ActionPDO {
      * @param *payway 支付方式(cbpay车币支付wxpayjs小程序支付)
      * @return array
      * {
-     * "errNo":0,
+     * "errNo":0, //错误码 0成功 -1失败
      * "message":"",
      * "result":[{
      *      "tradeid":1, //交易单ID (用于后续发起支付)
@@ -432,10 +452,10 @@ class ParkWash extends ActionPDO {
     /**
      * 获取通知列表
      * @login
-     * @param $lastorder 分页参数
+     * @param lastpage 分页参数
      * @return array
      * {
-     * "errNo":0,
+     * "errNo":0, //错误码 0成功 -1失败
      * "message":"",
      * "result":{
      *     "limit":10, //每页最大显示数
@@ -459,7 +479,7 @@ class ParkWash extends ActionPDO {
      * @param *orderid 订单ID
      * @return array
      * {
-     * "errNo":0, //错误码
+     * "errNo":0, //错误码 0成功 -1失败
      * "message":"", //返回信息
      * "result":[]
      * }
@@ -471,11 +491,11 @@ class ParkWash extends ActionPDO {
     /**
      * 我的订单
      * @login
-     * @param status 订单状态(-1已取消1已支付2已接单3服务中4已完成)
-     * @param lastorder 分页参数
+     * @param status 订单状态(-1已取消1已支付2已接单3服务中4已完成)，搜索多个状态用逗号分隔，默认为所有
+     * @param lastpage 分页参数
      * @return array
      * {
-     * "errNo":0,
+     * "errNo":0, //错误码 0成功 -1失败
      * "message":"",
      * "result":{
      *     "limit":10, //每页最大显示数
@@ -511,7 +531,7 @@ class ParkWash extends ActionPDO {
      * @param *orderid 订单ID
      * @return array
      * {
-     * "errNo":0, //错误码
+     * "errNo":0, //错误码 0成功 -1失败
      * "message":"", //返回信息
      * "result":{
      *      "id":4, //订单ID
@@ -543,6 +563,23 @@ class ParkWash extends ActionPDO {
      */
     public function getOrderInfo () {
         return (new ParkWashModel())->getOrderInfo($this->_G['user']['uid'], $_POST);
+    }
+
+    /**
+     * 修改订单车位
+     * @login
+     * @description 订单状态为已支付或已接单才能修改订单车位
+     * @param *orderid 订单ID
+     * @param *place 车位号
+     * @return array
+     * {
+     * "errNo":0, //错误码 0成功 -1失败
+     * "message":"", //返回信息
+     * "result":[]
+     * }
+     */
+    public function updatePlace () {
+        return (new ParkWashModel())->updatePlace($this->_G['user']['uid'], $_POST);
     }
 
 }
