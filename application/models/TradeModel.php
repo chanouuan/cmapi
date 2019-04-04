@@ -77,6 +77,7 @@ class TradeModel extends Crud {
         $className = 'app\\controllers\\' . ucwords($tradeInfo['payway']);
         $referer = new $className();
         $referer->_module = $tradeInfo['payway'];
+        $referer->__init();
         $result = call_user_func([$referer, 'query']);
 
         if ($result['errorcode'] !== 0) {

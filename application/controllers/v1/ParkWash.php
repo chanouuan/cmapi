@@ -48,7 +48,7 @@ class ParkWash extends ActionPDO {
             return error('请填写小程序登录凭证');
         }
 
-        $wxConfig = getSysConfig('xiche', 'wx');
+        $wxConfig = getSysConfig('parkwash', 'wx');
         $jssdk = new JSSDK($wxConfig['appid'], $wxConfig['appsecret']);
         $reponse = $jssdk->wXBizDataCrypt([
             'code' => $code,
@@ -421,7 +421,7 @@ class ParkWash extends ActionPDO {
      * @param place 车位号
      * @param *pool_id 排班ID
      * @param *items 套餐ID(多个用逗号分隔)
-     * @param *payway 支付方式(cbpay车币支付wxpayjs小程序支付)
+     * @param *payway 支付方式(cbpay车币支付wxpaywash小程序支付)
      * @return array
      * {
      * "errNo":0, //错误码 0成功 -1失败

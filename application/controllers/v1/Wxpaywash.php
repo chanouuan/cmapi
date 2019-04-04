@@ -5,11 +5,11 @@
 
 namespace app\controllers;
 
-class Wxpayjsbx extends Wxpayjs {
+class Wxpaywash extends Wxpayjs {
 
     public function __init () {
         import_library('WxPayPubHelper');
-        $wxConfig = getSysConfig('xiche', 'wx');
+        $wxConfig = getSysConfig('parkwash', 'wx');
         define('APPID', $wxConfig['appid']);
         define('APPSECRET', $wxConfig['appsecret']);
         define('MCHID', $wxConfig['pay_mchid']);

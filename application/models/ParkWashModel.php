@@ -118,7 +118,7 @@ class ParkWashModel extends Crud {
 
         // 枚举支付方式
         $payway = [
-            'cbpay' => '车币', 'wxpayjs' => '微信', 'wxpayh5' => '微信H5'
+            'cbpay' => '车币', 'wxpayjs' => '微信', 'wxpayh5' => '微信H5', 'wxpaywash' => '微信'
         ];
 
         // 处理洗车订单
@@ -199,7 +199,7 @@ class ParkWashModel extends Crud {
 
         // 枚举支付方式
         $payway = [
-            'cbpay' => '车币', 'wxpayjs' => '微信', 'wxpayh5' => '微信H5'
+            'cbpay' => '车币', 'wxpayjs' => '微信', 'wxpayh5' => '微信H5', 'wxpaywash' => '微信'
         ];
 
         // xc_trade_id > 0 为自助洗车交易单ID
