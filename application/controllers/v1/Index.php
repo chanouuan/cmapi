@@ -44,6 +44,13 @@ class Index extends \ActionPDO {
     {
         header('Access-Control-Allow-Origin: *'); // 允许任意域名发起的跨域请求
         header('Access-Control-Allow-Headers: X-Requested-With,X_Requested_With');
+        if (!isset($_SERVER['PHP_AUTH_USER']) ||
+            !isset($_SERVER['PHP_AUTH_PW']) ||
+            $_SERVER['PHP_AUTH_USER'] != 'admin' ||
+            $_SERVER['PHP_AUTH_PW'] != 'chemi') {
+            header('HTTP/1.1 401 Unauthorized');
+            header('WWW-Authenticate: Basic realm="Administrator Secret"');
+        }
     }
 
     /**
@@ -170,6 +177,28 @@ class Index extends \ActionPDO {
 
         $table_exists = DB::getInstance('park')->query('SELECT table_name FROM information_schema.TABLES WHERE table_name = "' . $table_name . '" LIMIT 1');
 
+    }
+
+    public function logger () {
+
+        $path = trim_space(ltrim($_GET['path'], '/'));
+        $path = ltrim(str_replace('.', '', $path), '/');
+        $path = $path ? $path : (date('Ym') . '/' . date('Ymd') . '_debug');
+        $path = APPLICATION_PATH . '/log/' . $path . '.log';
+        ?>
+        <!doctype html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title></title>
+            <meta name="viewport" content="width=device-width,user-scalable=yes, minimum-scale=1, initial-scale=1"/>
+        </head>
+        <body>
+            <pre><?=file_exists($path)?file_get_contents($path):'404'?></pre>
+        </body>
+        </html>
+        <?php
+        exit(0);
     }
 
 }
