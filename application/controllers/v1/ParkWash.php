@@ -450,6 +450,25 @@ class ParkWash extends ActionPDO {
     }
 
     /**
+     * 获取微信支付JSAPI支付参数
+     * @route wxpayjs/api
+     * @param *tradeid 交易单ID(createCard接口获取)
+     * @return array
+     * {
+     * "errNo":0, // 错误码 0成功 -1失败
+     * "message":"", // 返回信息
+     * "result":{
+     *     "appId":"",
+     *     "timestamp":"",
+     *     "nonceStr":"",
+     *     "package":"",
+     *     "signType":"",
+     *     "paySign":""
+     * }}
+     */
+    protected function wxpayjs () {}
+
+    /**
      * 获取通知列表
      * @login
      * @param lastpage 分页参数
