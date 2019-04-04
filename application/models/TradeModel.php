@@ -74,7 +74,7 @@ class TradeModel extends Crud {
         }
 
         // 查询订单
-        $className = 'app\\controllers\\' . ucwords($tradeInfo['payway']);
+        $className = 'app\\controllers\\' . ucfirst($tradeInfo['payway']);
         $referer = new $className();
         $referer->_module = $tradeInfo['payway'];
         $referer->__init();
@@ -130,7 +130,7 @@ class TradeModel extends Crud {
         } elseif ($tradeInfo['type'] == 'bx') {
             // 保险支付成功
             $model = new BaoxianModel();
-        } elseif ($tradeInfo['type'] == 'parkwash') {
+        } elseif ($tradeInfo['type'] == 'parkwash' || $tradeInfo['type'] == 'pwcharge') {
             // 停车场洗车支付成功
             $model = new ParkWashModel();
         }

@@ -977,3 +977,19 @@ function get_short_array ($input, $delimiter = ',', $length = 200)
     return is_string($input) ? explode($delimiter, trim(msubstr($input, 0, $length), $delimiter)) : [];
 }
 
+function get_list_dir ($root, $paths = [])
+{
+    $root = trim_space(rtrim($root, DIRECTORY_SEPARATOR));
+    if (empty($root)) {
+        return [];
+    }
+    $files = (array) glob($root);
+    foreach ($files as $path) {
+        if (is_dir($path)) {
+            $paths = array_merge($paths, get_list_dir($path . '/*', $paths));
+        } else {
+            $paths[] = $path;
+        }
+    }
+    return $paths;
+}

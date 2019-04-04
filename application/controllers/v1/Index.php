@@ -185,6 +185,10 @@ class Index extends \ActionPDO {
         $path = ltrim(str_replace('.', '', $path), '/');
         $path = $path ? $path : (date('Ym') . '/' . date('Ymd') . '_debug');
         $path = APPLICATION_PATH . '/log/' . $path . '.log';
+        $list = get_list_dir(APPLICATION_PATH . '/log');
+        foreach ($list as $k => $v) {
+            $list[$k] = str_replace(APPLICATION_PATH . '/log', '', $v);
+        }
         ?>
         <!doctype html>
         <html>
@@ -194,6 +198,7 @@ class Index extends \ActionPDO {
             <meta name="viewport" content="width=device-width,user-scalable=yes, minimum-scale=1, initial-scale=1"/>
         </head>
         <body>
+            <pre><?=implode("\n",$list)?></pre>
             <pre><?=file_exists($path)?file_get_contents($path):'404'?></pre>
         </body>
         </html>

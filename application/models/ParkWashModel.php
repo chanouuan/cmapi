@@ -69,6 +69,40 @@ class ParkWashModel extends Crud {
     }
 
     /**
+     * 获取个人交易记录
+     */
+    public function getTradeList ($uid, $post) {
+
+        // 最后排序字段
+        $post['lastpage'] = intval($post['lastpage']);
+
+        // 结果返回
+        $result = [
+            'limit' => 10,
+            'lastpage' => '',
+            'list' => []
+        ];
+
+        $condition = [
+            'uid' => $uid
+        ];
+
+        if ($post['lastpage'] > 0) {
+            $condition['id'] = ['<', $post['lastpage']];
+        }
+
+        // 获取记录
+        if (!$tradeList = $this->getDb()->table('parkwash_trades')->field('id,mark,money,title,create_time')->where($condition)->order('id desc')->limit($result['limit'])->select()) {
+            return success($result);
+        }
+
+        $result['lastpage'] = end($tradeList)['id'];
+        $result['list'] = $tradeList;
+        unset($tradeList);
+        return success($result);
+    }
+
+    /**
      * 我的订单
      */
     public function getOrderList ($uid, $post) {
@@ -319,7 +353,7 @@ class ParkWashModel extends Crud {
         ]);
 
         // 退费为车币
-        if ($tradeParam > 0) {
+        if ($tradeParam['refundpay'] > 0) {
             // 用户充值
             $result = (new UserModel())->recharge([
                 'platform' => 3,
@@ -971,6 +1005,59 @@ class ParkWashModel extends Crud {
     }
 
     /**
+     * 充值
+     */
+    public function recharge ($uid, $post) {
+
+        $post['money'] = intval($post['money']);
+        $post['payway'] = trim_space($post['payway']);
+
+        if ($post['money'] <= 0) {
+            return error('请输入充值金额');
+        }
+        // 在线支付不能用车币支付
+        if (!$post['payway'] || $post['payway'] == 'cbpay') {
+            return error('请选择支付方式');
+        }
+
+        // 订单号
+        $orderCode = $this->generateOrderCode($uid);
+
+        // 防止重复下单
+        $tradeModel = new TradeModel();
+        if ($lastTradeInfo = $tradeModel->get(null, [
+            'trade_id' => $uid, 'status' => 0, 'type' => 'pwcharge'
+        ], 'id,createtime,payway')) {
+            // 支付方式相同，返回上次生成的订单
+            if ($lastTradeInfo['payway'] == $post['payway']) {
+                if (strtotime($lastTradeInfo['createtime']) < TIMESTAMP - 600) {
+                    if (false === $tradeModel->update([
+                            'ordercode' => $orderCode, 'createtime' => date('Y-m-d H:i:s', TIMESTAMP)
+                        ], 'id = ' . $lastTradeInfo['id'])) {
+                        return error('更新订单失败');
+                    }
+                }
+                return success([
+                    'tradeid' => $lastTradeInfo['id']
+                ]);
+            }
+        }
+
+        // 生成交易单
+        if (!$this->getDb()->insert('__tablepre__payments', [
+            'type' => 'pwcharge', 'uses' => '余额充值', 'trade_id' => $uid, 'pay' => $post['money'], 'money' => $post['money'], 'payway' => $post['payway'], 'ordercode' => $orderCode, 'createtime' => date('Y-m-d H:i:s', TIMESTAMP)
+        ])) {
+            return error('订单生成失败');
+        }
+
+        $cardId = $this->getDb()->getlastid();
+
+        return success([
+            'tradeid' => $cardId
+        ]);
+    }
+
+    /**
      * 下单
      */
     public function createCard ($uid, $post) {
@@ -1205,18 +1292,25 @@ class ParkWashModel extends Crud {
     public function handleCardSuc ($cardId, $tradeParam = []) {
 
         if (!$tradeInfo = $this->getDb()->table('__tablepre__payments')
-            ->field('id,trade_id,param_id,voucher_id,pay,money,ordercode,payway')
+            ->field('id,type,trade_id,param_id,voucher_id,pay,money,ordercode,payway')
             ->where(['id' => $cardId])
             ->limit(1)
             ->find()) {
             return error('交易单不存在');
         }
 
+        $tradeParam = array_merge($tradeParam, [
+            'status' => 1, 'paytime' => date('Y-m-d H:i:s', TIMESTAMP)
+        ]);
+
+        // 判断是否为充值订单
+        if ($tradeInfo['type'] == 'pwcharge') {
+            return $this->rechargeSuc($tradeInfo, $tradeParam);
+        }
+
         // 更新交易单状态
         if (!$this->getDb()->transaction(function ($db) use($tradeInfo, $tradeParam) {
-            $tradeParam = array_merge($tradeParam, [
-                'status' => 1, 'paytime' => date('Y-m-d H:i:s', TIMESTAMP)
-            ]);
+
             if (!$db->update('__tablepre__payments', $tradeParam, [
                 'id' => $tradeInfo['id'], 'status' => 0
             ])) {
@@ -1282,6 +1376,55 @@ class ParkWashModel extends Crud {
             'title' => '下单通知',
             'content' => template_replace('{$car_number}已下单，预约时间:{$order_time}', [
                 'car_number' => $orderInfo['car_number'], 'order_time' => $orderInfo['order_time']
+            ])
+        ]);
+
+        return success('OK');
+    }
+
+    /**
+     * 充值成功
+     */
+    protected function rechargeSuc ($tradeInfo, $tradeParam) {
+
+        // 更新交易单状态
+        if (!$this->getDb()->update('__tablepre__payments', $tradeParam, [
+            'id' => $tradeInfo['id'], 'status' => 0
+        ])) {
+            return error('更新交易失败');
+        }
+
+        // 用户充值
+        $result = (new UserModel())->recharge([
+            'platform' => 3,
+            'authcode' => $tradeInfo['trade_id'],
+            'trade_no' => $tradeInfo['ordercode'],
+            'money' => $tradeInfo['money'],
+            'remark' => '余额充值'
+        ]);
+        if ($result['errorcode'] !== 0) {
+            // 回滚订单状态
+            $this->getDb()->update('__tablepre__payments', [
+                'status' => 0
+            ], [
+                'id' => $tradeInfo['id'], 'status' => 1
+            ]);
+            return $result;
+        }
+
+        // 记录资金变动
+        $this->pushTrades([
+            'uid' => $tradeInfo['trade_id'], 'mark' => '+', 'money' => $tradeInfo['money'], 'title' => '余额充值'
+        ]);
+
+        // 通知用户
+        $this->pushNotice([
+            'receiver' => 1,
+            'notice_type' => 0,
+            'uid' => $tradeInfo['trade_id'],
+            'title' => '充值成功',
+            'content' => template_replace('成功充值 {$money} 元', [
+                'money' => round_dollar($tradeInfo['money'])
             ])
         ]);
 

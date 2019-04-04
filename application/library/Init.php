@@ -80,7 +80,7 @@ class Controller {
             list($module, $action) = $this->dispatch();
         }
 
-        $module = empty($module) ? 'Index' : ucwords($module);
+        $module = empty($module) ? 'Index' : ucfirst($module);
         $action = empty($action) ? 'index' : $action;
 
         $className = '\\app\\controllers\\' . $module;
@@ -202,7 +202,7 @@ abstract class ActionPDO {
             $method_doc = trim(str_replace(['/**', ' * ', ' */'], '', $method_doc));
 
             preg_match('/@route(.+)/', $method_doc, $matches);
-            $docList[$v->name]['url'] = gurl($matches[1] ? trim($matches[1]) : ($this->_module . '/' . $v->name));
+            $docList[$v->name]['url'] = gurl($matches[1] ? trim($matches[1]) : (lcfirst($this->_module) . '/' . $v->name));
 
             preg_match('/(.+)[^\n]/', $method_doc, $matches);
             $docList[$v->name]['name'] = isset($matches[1]) ? trim($matches[1]) : '';

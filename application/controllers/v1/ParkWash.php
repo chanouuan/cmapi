@@ -437,7 +437,7 @@ class ParkWash extends ActionPDO {
     /**
      * 查询支付是否成功
      * @login
-     * @param *tradeid 交易单ID(createCard接口获取)
+     * @param *tradeid 交易单ID(createCard/recharge接口获取)
      * @return array
      * {
      * "errNo":0, // 错误码 0支付成功 -1未支付成功
@@ -452,7 +452,7 @@ class ParkWash extends ActionPDO {
     /**
      * 获取微信支付JSAPI支付参数
      * @route wxpaywash/api
-     * @param *tradeid 交易单ID(createCard接口获取)
+     * @param *tradeid 交易单ID(createCard/recharge接口获取)
      * @return array
      * {
      * "errNo":0, // 错误码 0成功 -1失败
@@ -599,6 +599,47 @@ class ParkWash extends ActionPDO {
      */
     public function updatePlace () {
         return (new ParkWashModel())->updatePlace($this->_G['user']['uid'], $_POST);
+    }
+
+    /**
+     * 充值
+     * @login
+     * @param *money 充值金额(分)
+     * @param *payway 支付方式(wxpaywash小程序支付)
+     * @return array
+     * {
+     * "errNo":0, //错误码 0成功 -1失败
+     * "message":"",
+     * "result":[{
+     *      "tradeid":1, //交易单ID (用于后续发起支付)
+     * }]}
+     */
+    public function recharge () {
+        return (new ParkWashModel())->recharge($this->_G['user']['uid'], $_POST);
+    }
+
+    /**
+     * 获取个人交易记录
+     * @login
+     * @param lastpage 分页参数
+     * @return array
+     * {
+     * "errNo":0, //错误码 0成功 -1失败
+     * "message":"",
+     * "result":{
+     *     "limit":10, //每页最大显示数
+     *     "lastpage":"", //分页参数 (下一页携带的参数)
+     *     "list":[{
+     *          "id":5, //交易ID
+     *          "mark":"+", //交易类型 +余额增加 -余额减少
+     *          "money":100, //变动金额 (分)
+     *          "title":"充值成功", //标题
+     *          "create_time":"", //创建时间
+     *      }]
+     * }}
+     */
+    public function getTradeList () {
+        return (new ParkWashModel())->getTradeList($this->_G['user']['uid'], $_POST);
     }
 
 }
