@@ -175,9 +175,9 @@ class ParkWash extends ActionPDO {
      * }}
      */
     public function getStoreList () {
-        $_POST['adcode'] = '520100';
-        $_POST['lon'] = '105.989078';
-        $_POST['lat'] = '26.704543';
+//        $_POST['adcode'] = '520100';
+//        $_POST['lon'] = '105.989078';
+//        $_POST['lat'] = '26.704543';
         return (new ParkWashModel())->getStoreList($_POST);
     }
 
@@ -207,9 +207,9 @@ class ParkWash extends ActionPDO {
      * }]}
      */
     public function getNearbyStore () {
-        $_POST['adcode'] = '520100';
-        $_POST['lon'] = '105.989078';
-        $_POST['lat'] = '26.704543';
+//        $_POST['adcode'] = '520100';
+//        $_POST['lon'] = '105.989078';
+//        $_POST['lat'] = '26.704543';
         return (new ParkWashModel())->getNearbyStore($_POST);
     }
 
@@ -240,9 +240,9 @@ class ParkWash extends ActionPDO {
      * }}
      */
     public function getXicheDeviceList () {
-        $_POST['adcode'] = '520100';
-        $_POST['lon'] = '105.989078';
-        $_POST['lat'] = '26.704543';
+//        $_POST['adcode'] = '520100';
+//        $_POST['lon'] = '105.989078';
+//        $_POST['lat'] = '26.704543';
         return (new ParkWashModel())->getXicheDeviceList($_POST);
     }
 
@@ -451,7 +451,7 @@ class ParkWash extends ActionPDO {
 
     /**
      * 获取微信支付JSAPI支付参数
-     * @route wxpayjs/api
+     * @route wxpaywash/api
      * @param *tradeid 交易单ID(createCard接口获取)
      * @return array
      * {
