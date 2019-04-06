@@ -71,7 +71,7 @@ class LocationUtils {
         $scan = 'http://restapi.amap.com/v3/config/district?key=93970d0444d2abd81cf00c2c59ae096e&keywords=' . $city_name . '&subdistrict=0&extensions=base';
         try {
             $result = https_request($scan);
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return null;
         }
         if ($result['status'] != 1 || !$result['districts'][0]['center']) {
