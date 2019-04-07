@@ -344,7 +344,7 @@ class Crud {
     public function __construct() {
         if (empty($this->table)) {
             $this->table = get_class($this);
-            $this->table = substr($this->table, strrpos($this->table, '\\') + 1, -5);
+            $this->table = '__tablepre__' . substr($this->table, strrpos($this->table, '\\') + 1, -5);
         }
     }
 
@@ -390,7 +390,7 @@ class Crud {
         }
 
         if($fieldsvals) {
-            return $this->getDb()->update('__tablepre__' . $this->table, $fieldsvals,  '`' . $this->pk . '` = :' . $this->pk, $this->variables);
+            return $this->getDb()->update($this->table, $fieldsvals,  '`' . $this->pk . '` = :' . $this->pk, $this->variables);
         }
         return null;
     }
@@ -404,7 +404,7 @@ class Crud {
         }
 
         if($fieldsvals) {
-            return $this->getDb()->insert('__tablepre__' . $this->table, $fieldsvals, $this->variables);
+            return $this->getDb()->insert($this->table, $fieldsvals, $this->variables);
         }
         return null;
     }
@@ -413,7 +413,7 @@ class Crud {
         $id = (empty($this->variables[$this->pk])) ? $id : $this->variables[$this->pk];
 
         if(!empty($id)) {
-            return $this->getDb()->delete('__tablepre__' . $this->table, '`' . $this->pk . '` = :' . $this->pk, [$this->pk => $id]);
+            return $this->getDb()->delete($this->table, '`' . $this->pk . '` = :' . $this->pk, [$this->pk => $id]);
         }
         return null;
     }
@@ -422,7 +422,7 @@ class Crud {
         $id = $id ? $id : $this->variables[$this->pk];
 
         if(!empty($id)) {
-            $this->variables = $this->getDb()->field('*')->table('__tablepre__' . $this->table)->where('`' . $this->pk . '` = :' . $this->pk)->bindValue([$this->pk => $id])->find();
+            $this->variables = $this->getDb()->field('*')->table($this->table)->where('`' . $this->pk . '` = :' . $this->pk)->bindValue([$this->pk => $id])->find();
         }
         return $this->variables;
     }
