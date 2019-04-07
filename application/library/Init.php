@@ -427,6 +427,14 @@ class Crud {
         return $this->variables;
     }
 
+    public function find ($condition, $field = null, $order = null) {
+        return $this->getDb()->table($this->table)->field($field)->where($condition)->order($order)->limit(1)->find();
+    }
+
+    public function select ($condition, $field = null, $order = null, $limit = null) {
+        return $this->getDb()->table($this->table)->field($field)->where($condition)->order($order)->limit($limit)->select();
+    }
+
 }
 
 class ComposerAutoloader {
