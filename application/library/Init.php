@@ -71,8 +71,20 @@ class Controller {
         }
     }
 
+    public function raw () {
+        if (isset($_SERVER['CONTENT_TYPE']) && $_SERVER['CONTENT_TYPE'] == 'application/json') {
+            $data = file_get_contents('php://input');
+            if ($data) {
+                $_POST = json_decode($data, true);
+            }
+            unset($data);
+        }
+    }
+
     public function run ()
     {
+        $this->raw();
+
         $module = getgpc('c');
         $action = getgpc('a');
 
@@ -541,8 +553,8 @@ class DebugLog {
         if (isset($_SERVER['HTTP_HOST'])) {
             self::$info[] = 'HTTP_HOST: ' . $_SERVER['HTTP_HOST'];
         }
-        if (isset($_SERVER['HTTP_ACCEPT'])) {
-            self::$info[] = 'HTTP_ACCEPT: ' . $_SERVER['HTTP_ACCEPT'];
+        if (isset($_SERVER['CONTENT_TYPE'])) {
+            self::$info[] = 'CONTENT_TYPE: ' . $_SERVER['CONTENT_TYPE'];
         }
         if (isset($_SERVER['HTTP_USER_AGENT'])) {
             self::$info[] = 'HTTP_USER_AGENT: ' . $_SERVER['HTTP_USER_AGENT'];
