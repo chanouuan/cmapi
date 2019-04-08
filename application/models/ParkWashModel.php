@@ -807,7 +807,7 @@ class ParkWashModel extends Crud {
 
         // 查询字段
         $field = [
-            'id', 'name', 'logo', 'address', 'location', 'score', 'business_hours', 'market', 'price', 'order_count', 'status'
+            'id', 'name', 'logo', 'address', 'tel', 'location', 'score', 'business_hours', 'market', 'price', 'order_count', 'status'
         ];
         $field[] = $geohash . ' as geohash';
 
@@ -945,7 +945,7 @@ class ParkWashModel extends Crud {
 
         // 查询字段
         $field = [
-            'id', 'name', 'logo', 'address', 'location', 'score', 'business_hours', 'market', 'price', 'order_count', 'status', 'sort'
+            'id', 'name', 'logo', 'address', 'tel', 'location', 'score', 'business_hours', 'market', 'price', 'order_count', 'status', 'sort'
         ];
         // 结果返回
         $result = [
@@ -968,6 +968,8 @@ class ParkWashModel extends Crud {
 
         // 分页参数
         list($lastid, $lastorder) = explode(',', $post['lastpage']);
+        $lastid = intval($lastid);
+        $lastorder = intval($lastorder);
 
         $condition = [
             'adcode = ' . $post['adcode']

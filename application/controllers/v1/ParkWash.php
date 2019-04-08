@@ -149,7 +149,7 @@ class ParkWash extends ActionPDO {
      * 获取洗车店列表
      * @param *adcode 城市代码(贵阳520100)
      * @param *lon 经度(精确到6位)
-     * @param *lon 维度(精确到6位)
+     * @param *lat 维度(精确到6位)
      * @param lastpage 分页参数
      * @return array
      * {
@@ -163,6 +163,7 @@ class ParkWash extends ActionPDO {
      *         "name":"洗车", //门店名称
      *         "logo":"", //门店图片地址
      *         "address":"地址", //门店地址
+     *         "tel":"", //电话号码
      *         "market":"洗车半价", //活动描述
      *         "score":5, //评分
      *         "business_hours":"09:00-21:00", //营业时间
@@ -185,7 +186,7 @@ class ParkWash extends ActionPDO {
      * 获取附近洗车店
      * @param *adcode 城市代码(贵阳520100)
      * @param *lon 经度(精确到6位)
-     * @param *lon 维度(精确到6位)
+     * @param *lat 维度(精确到6位)
      * @param distance 搜索范围最大公里数(可选1-50公里，默认1公里)
      * @return array
      * {
@@ -196,6 +197,7 @@ class ParkWash extends ActionPDO {
      *      "name":"洗车", //门店名称
      *      "logo":"", //门店图片地址
      *      "address":"地址", //门店地址
+     *      "tel":"", //电话号码
      *      "market":"洗车半价", //活动描述
      *      "score":5, //评分
      *      "business_hours":"09:00-21:00", //营业时间
@@ -217,7 +219,7 @@ class ParkWash extends ActionPDO {
      * 获取自助洗车机列表
      * @param *adcode 城市代码(贵阳520100)
      * @param *lon 经度(精确到6位)
-     * @param *lon 维度(精确到6位)
+     * @param *lat 维度(精确到6位)
      * @param lastpage 分页参数
      * @return array
      * {
