@@ -32,6 +32,7 @@ class ParkWashModel extends Crud {
                 return error('注册失败');
             }
             $userInfo['member_id'] = $regUid;
+            $userInfo['member_name'] = $post['telephone'];
         }
 
         // 限制重复绑定微信
