@@ -39,6 +39,13 @@ class XicheManage extends ActionPDO {
     }
 
     /**
+     * home页
+     */
+    public function welcome () {
+        return [];
+    }
+
+    /**
      * 获取设备列表
      */
     public function getDev () {

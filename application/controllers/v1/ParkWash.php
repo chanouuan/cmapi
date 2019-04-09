@@ -212,7 +212,10 @@ class ParkWash extends ActionPDO {
      *         "location":“106.925389,27.728654”, //经纬度
      *     }],
      *     "xiches":[{
-     *         "location":"106.618478,25.953443", //由于洗车机可能挨得很近，100米范围内的洗车机会合并为一组，此值为组内中心点
+     *         "location":"106.618478,25.953443", //同一组洗车机中心点坐标
+     *         "distance":0, //距离(公里)
+     *         "name":"A", //场地
+     *         "use_state":1 //状态 0不空闲 1空闲 (组内洗车机有一台空闲，此状态就为空闲，否则为不空闲)
      *         "list":[{
      *             "id":1, //洗车机ID
      *             "areaname":"", //洗车机名称
@@ -222,15 +225,15 @@ class ParkWash extends ActionPDO {
      *             "order_count":1000, //下单数
      *             "distance":0.81, //距离(公里)
      *             "location":“106.925389,27.728654”, //经纬度
-     *             "use_state":0 //状态 0离线 1空闲 2使用中
+     *             "use_state":1 //状态 0离线 1空闲 2使用中
      *         }]
      *     }]
      * }}
      */
     public function getNearbyStore () {
 //        $_POST['adcode'] = '520100';
-//        $_POST['lon'] = '106.618478';
-//        $_POST['lat'] = '25.953443';
+//        $_POST['lon'] = '106.649778';
+//        $_POST['lat'] = '26.663843';
         $model = new ParkWashModel();
         $stores = $model->getNearbyStore($_POST);
         $xiches = $model->getNearbyXicheDevice($_POST);

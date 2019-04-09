@@ -873,7 +873,7 @@ class ParkWashModel extends Crud {
 
         // 查询字段
         $field = [
-            'id', 'geohash as _geohash', 'areaname', 'address', 'location', 'usetime', 'isonline', 'price', 'order_count', 'parameters', 'sort'
+            'id', 'areaname', 'site', 'address', 'location', 'usetime', 'isonline', 'price', 'order_count', 'parameters', 'sort'
         ];
         $field[] = $geohash . ' as geohash';
 
@@ -919,28 +919,29 @@ class ParkWashModel extends Crud {
             unset($list[$k]['isonline'], $list[$k]['usetime'], $list[$k]['geohash'], $list[$k]['sort'], $list[$k]['parameters']);
         }
 
-        // 根据最近距离分组
-        // geohash-length km-error
-        // 6              ±0.61
-        // 7              ±0.076
-        // 8              ±0.019
-        $groupList = [];
+        // 根据场地分组
+        $site = [];
         foreach ($list as $k => $v) {
-            $len = substr($v['_geohash'], 0, 7);
-            unset($v['_geohash']);
-            $groupList[$len][] = $v;
+            $siteName = $v['site'];
+            unset($v['site']);
+            $site[$siteName][] = $v;
         }
         unset($list);
 
         // 获取每组的中心点
         $list = [];
-        foreach ($groupList as $k => $v) {
+        foreach ($site as $k => $v) {
+            $location = implode(',', LocationUtils::getCenterFromDegrees(array_column($v, 'location')));
+            $use_state = false === array_search(1, array_column($v, 'use_state')) ? 0 : 1; // 有一台机器空闲，状态就为空闲，否则其他
             $list[] = [
-                'location' => implode(',', LocationUtils::getCenterFromDegrees(array_column($v, 'location'))),
+                'location' => $location,
+                'name' => $k,
+                'distance' => round(LocationUtils::getDistance($location, $post) / 1000, 2),
+                'use_state' => $use_state,
                 'list' => $v
             ];
         }
-        unset($groupList);
+        unset($site);
 
         return success($list);
     }
