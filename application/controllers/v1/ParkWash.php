@@ -168,6 +168,7 @@ class ParkWash extends ActionPDO {
      *         "market":"洗车半价", //活动描述
      *         "score":5, //评分
      *         "business_hours":"09:00-21:00", //营业时间
+     *         "is_business_hour":1, //是否在营业时间 1是 0否
      *         "price":10, //洗车价(分)
      *         "order_count":1000, //下单数
      *         "status":1, //门店状态 1正常 0建设中
@@ -203,6 +204,7 @@ class ParkWash extends ActionPDO {
      *         "market":"洗车半价", //活动描述
      *         "score":5, //评分
      *         "business_hours":"09:00-21:00", //营业时间
+     *         "is_business_hour":1, //是否在营业时间 1是 0否
      *         "price":10, //洗车价(分)
      *         "order_count":1000, //下单数
      *         "status":1, //门店状态 1正常 0建设中
@@ -229,7 +231,6 @@ class ParkWash extends ActionPDO {
 //        $_POST['adcode'] = '520100';
 //        $_POST['lon'] = '106.618478';
 //        $_POST['lat'] = '25.953443';
-//        $_POST['distance'] = 1;
         $model = new ParkWashModel();
         $stores = $model->getNearbyStore($_POST);
         $xiches = $model->getNearbyXicheDevice($_POST);

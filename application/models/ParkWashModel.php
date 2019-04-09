@@ -846,6 +846,8 @@ class ParkWashModel extends Crud {
                 $v['logo'] = json_decode($v['logo'], true);
                 $list[$k]['logo'] = httpurl(getthumburl($v['logo'][0]));
             }
+            // 是否在营业时间
+            $list[$k]['is_business_hour'] = $this->checkBusinessHoursRange($v['business_hours']);
             unset($list[$k]['geohash']);
         }
 
@@ -1093,6 +1095,8 @@ class ParkWashModel extends Crud {
                 // 获取距离公里
                 $list[$k]['distance'] = round(LocationUtils::getDistance($v['location'], $post) / 1000, 2);
             }
+            // 是否在营业时间
+            $list[$k]['is_business_hour'] = $this->checkBusinessHoursRange($v['business_hours']);
             unset($list[$k]['geohash'], $list[$k]['sort']);
         }
 
@@ -1645,6 +1649,56 @@ class ParkWashModel extends Crud {
         }
         $put = implode(' ', $put);
         return $put;
+    }
+
+    /**
+     * 检查现在是否在营业时间内
+     * @param $business_hours 营业时间 9:00-10:00
+     * @return int 1是 0否
+     */
+    protected function checkBusinessHoursRange ($business_hours) {
+
+        if (!$business_hours) {
+            return 0;
+        }
+
+        $currentHour = date('G', TIMESTAMP);
+        $currentMinute = date('i', TIMESTAMP);
+
+        list($start, $end) = explode('-', $business_hours);
+        list($startHour, $startMinute) = explode(':', $start);
+        list($endHour, $endMinute) = explode(':', $end);
+        $startHour = intval($startHour);
+        $startMinute = intval($startMinute);
+        $endHour = intval($endHour);
+        $endMinute = intval($endMinute);
+
+        $hourRange = $endHour - $startHour;
+        $hourRange = $hourRange <= 0 ? (24 + $hourRange) : $hourRange;
+        $hourRange = range($startHour, $startHour + $hourRange);
+
+        array_walk($hourRange, function (&$v) {
+            $v = $v > 23 ?  $v - 24 : $v;
+        });
+
+        // 检查小时
+        if (!in_array($currentHour, $hourRange)) {
+            return 0;
+        }
+
+        // 检查分钟
+        if ($currentHour == $startHour) {
+            if ($currentMinute < $startMinute) {
+                return 0;
+            }
+        }
+        if ($currentHour == $endHour) {
+            if ($currentMinute > $endMinute) {
+                return 0;
+            }
+        }
+
+        return 1;
     }
 
     /**
