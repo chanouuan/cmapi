@@ -197,7 +197,7 @@ class ParkWash extends ActionPDO {
      * "result":{
      *     "stores":[{
      *         "id":1, //门店ID
-     *         "name":"洗车", //门店名称
+     *         "store_name":"洗车", //门店名称
      *         "logo":"", //门店图片地址
      *         "address":"地址", //门店地址
      *         "tel":"", //电话号码
@@ -214,7 +214,7 @@ class ParkWash extends ActionPDO {
      *     "xiches":[{
      *         "location":"106.618478,25.953443", //同一组洗车机中心点坐标
      *         "distance":0, //距离(公里)
-     *         "name":"A", //场地
+     *         "store_name":"A", //场地
      *         "use_state":1 //状态 0不空闲 1空闲 (组内洗车机有一台空闲，此状态就为空闲，否则为不空闲)
      *         "list":[{
      *             "id":1, //洗车机ID

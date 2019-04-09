@@ -807,7 +807,7 @@ class ParkWashModel extends Crud {
 
         // 查询字段
         $field = [
-            'id', 'name', 'logo', 'address', 'tel', 'location', 'score', 'business_hours', 'market', 'price', 'order_count', 'status'
+            'id', 'name as store_name', 'logo', 'address', 'tel', 'location', 'score', 'business_hours', 'market', 'price', 'order_count', 'status'
         ];
         $field[] = $geohash . ' as geohash';
 
@@ -935,7 +935,7 @@ class ParkWashModel extends Crud {
             $use_state = false === array_search(1, array_column($v, 'use_state')) ? 0 : 1; // 有一台机器空闲，状态就为空闲，否则其他
             $list[] = [
                 'location' => $location,
-                'name' => $k,
+                'store_name' => $k,
                 'distance' => round(LocationUtils::getDistance($location, $post) / 1000, 2),
                 'use_state' => $use_state,
                 'list' => $v
