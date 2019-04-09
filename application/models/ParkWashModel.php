@@ -807,7 +807,7 @@ class ParkWashModel extends Crud {
 
         // 查询字段
         $field = [
-            'id', 'name as store_name', 'logo', 'address', 'tel', 'location', 'score', 'business_hours', 'market', 'price', 'order_count', 'status'
+            'id', 'name as store_name', 'logo', 'address', 'tel', 'location', 'score', 'business_hours', 'market', 'price', '(order_count * order_count_ratio) as order_count', 'status'
         ];
         $field[] = $geohash . ' as geohash';
 
@@ -1042,7 +1042,7 @@ class ParkWashModel extends Crud {
 
         // 查询字段
         $field = [
-            'id', 'name', 'logo', 'address', 'tel', 'location', 'score', 'business_hours', 'market', 'price', 'order_count', 'status', 'sort'
+            'id', 'name', 'logo', 'address', 'tel', 'location', 'score', 'business_hours', 'market', 'price', '(order_count * order_count_ratio) as order_count', 'status', 'sort'
         ];
         // 结果返回
         $result = [

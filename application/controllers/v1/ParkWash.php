@@ -61,7 +61,7 @@ class ParkWash extends ActionPDO {
         if ($reponse['errorcode'] !== 0) {
             return $reponse;
         }
-        if ($loginInfo = (new XicheModel())->checkLogin($reponse['result'])) {
+        if ($loginInfo = (new XicheModel())->checkLogin($reponse['result'], ['clienttype' => 'mp'])) {
             (new ParkWashModel())->saveUserCount($loginInfo['uid']);
             $userInfo = (new UserModel())->getUserInfo($loginInfo['uid']);
             $userInfo['result']['token'] = $loginInfo['token'];

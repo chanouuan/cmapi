@@ -677,7 +677,7 @@ class XicheModel extends Crud {
     /**
      * 检查绑定
      */
-    public function checkLogin ($post) {
+    public function checkLogin ($post, $opt = []) {
         if (!$post['authcode']) {
             return [];
         }
@@ -703,7 +703,7 @@ class XicheModel extends Crud {
         } else {
             // 登录
             $userModel = new UserModel();
-            $loginret = $userModel->setloginstatus($result['uid'], uniqid());
+            $loginret = $userModel->setloginstatus($result['uid'], uniqid(), $opt);
             if ($loginret['errorcode'] !== 0) {
                 return [];
             }
