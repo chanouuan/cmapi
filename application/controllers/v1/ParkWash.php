@@ -4,6 +4,7 @@ namespace app\controllers;
 
 use ActionPDO;
 use app\library\JSSDK;
+use app\library\LocationUtils;
 use app\models\ParkWashModel;
 use app\models\XicheModel;
 use app\models\UserModel;
@@ -183,7 +184,7 @@ class ParkWash extends ActionPDO {
     }
 
     /**
-     * 获取附近洗车店
+     * 获取附近洗车店与洗车机
      * @param *adcode 城市代码(贵阳520100)
      * @param *lon 经度(精确到6位)
      * @param *lat 维度(精确到6位)
@@ -192,27 +193,50 @@ class ParkWash extends ActionPDO {
      * {
      * "errNo":0, //错误码 0成功 -1失败
      * "message":"",
-     * "result":[{
-     *      "id":1, //门店ID
-     *      "name":"洗车", //门店名称
-     *      "logo":"", //门店图片地址
-     *      "address":"地址", //门店地址
-     *      "tel":"", //电话号码
-     *      "market":"洗车半价", //活动描述
-     *      "score":5, //评分
-     *      "business_hours":"09:00-21:00", //营业时间
-     *      "price":10, //洗车价(分)
-     *      "order_count":1000, //下单数
-     *      "status":1, //门店状态 1正常 0建设中
-     *      "distance":0.81, //距离(公里)
-     *      "location":“106.925389,27.728654”, //经纬度
-     * }]}
+     * "result":{
+     *     "stores":[{
+     *         "id":1, //门店ID
+     *         "name":"洗车", //门店名称
+     *         "logo":"", //门店图片地址
+     *         "address":"地址", //门店地址
+     *         "tel":"", //电话号码
+     *         "market":"洗车半价", //活动描述
+     *         "score":5, //评分
+     *         "business_hours":"09:00-21:00", //营业时间
+     *         "price":10, //洗车价(分)
+     *         "order_count":1000, //下单数
+     *         "status":1, //门店状态 1正常 0建设中
+     *         "distance":0.81, //距离(公里)
+     *         "location":“106.925389,27.728654”, //经纬度
+     *     }],
+     *     "xiches":[{
+     *         "location":"106.618478,25.953443", //由于洗车机可能挨得很近，100米范围内的洗车机会合并为一组，此值为组内中心点
+     *         "list":[{
+     *             "id":1, //洗车机ID
+     *             "areaname":"", //洗车机名称
+     *             "address":"地址", //洗车机地址
+     *             "price":10, //洗车价(分)
+     *             "duration":20, //洗车时长 (分钟)
+     *             "order_count":1000, //下单数
+     *             "distance":0.81, //距离(公里)
+     *             "location":“106.925389,27.728654”, //经纬度
+     *             "use_state":0 //状态 0离线 1空闲 2使用中
+     *         }]
+     *     }]
+     * }}
      */
     public function getNearbyStore () {
 //        $_POST['adcode'] = '520100';
-//        $_POST['lon'] = '105.989078';
-//        $_POST['lat'] = '26.704543';
-        return (new ParkWashModel())->getNearbyStore($_POST);
+//        $_POST['lon'] = '106.618478';
+//        $_POST['lat'] = '25.953443';
+//        $_POST['distance'] = 1;
+        $model = new ParkWashModel();
+        $stores = $model->getNearbyStore($_POST);
+        $xiches = $model->getNearbyXicheDevice($_POST);
+        return success([
+            'stores' => $stores['result'],
+            'xiches' => $xiches['result']
+        ]);
     }
 
     /**

@@ -11,6 +11,71 @@ class LocationUtils {
 
     public static $earthRadius = 6372.796924;
 
+    public static function getCenterFromDegrees(array $data)
+    {
+        foreach ($data as $k => $v) {
+            $data[$k] = self::checkLocation($v);
+            if (empty($data[$k])) {
+                unset($data[$k]);
+            }
+        }
+
+        $num_coords = count($data);
+
+        if ($num_coords == 0) {
+            return null;
+        }
+        if ($num_coords == 1) {
+            $data = current($data);
+            if (!is_array($data)) {
+                list ($lon, $lat) = explode(',', $data);
+            } else {
+                $lon = isset($data['lon']) ? $data['lon'] : $data[0];
+                $lat = isset($data['lat']) ? $data['lat'] : $data[1];
+            }
+            return [
+                'lon' => $lon, 'lat' => $lat
+            ];
+        }
+
+        $X = 0.0;
+        $Y = 0.0;
+        $Z = 0.0;
+
+        foreach ($data as $coord){
+
+            if (!is_array($coord)) {
+                list ($lon, $lat) = explode(',', $coord);
+            } else {
+                $lon = isset($coord['lon']) ? $coord['lon'] : $coord[0];
+                $lat = isset($coord['lat']) ? $coord['lat'] : $coord[1];
+            }
+
+            $lon = deg2rad($lon);
+            $lat = deg2rad($lat);
+
+            $a = cos($lat) * cos($lon);
+            $b = cos($lat) * sin($lon);
+            $c = sin($lat);
+
+            $X += $a;
+            $Y += $b;
+            $Z += $c;
+        }
+
+        $X /= $num_coords;
+        $Y /= $num_coords;
+        $Z /= $num_coords;
+
+        $lon = atan2($Y, $X);
+        $hyp = sqrt($X * $X + $Y * $Y);
+        $lat = atan2($Z, $hyp);
+
+        return [
+            'lon' => self::formatGPS(rad2deg($lon)), 'lat' => self::formatGPS(rad2deg($lat))
+        ];
+    }
+
     public static function getRandomLocation ($center, $distance = 1000)
     {
         if (!$center = self::checkLocation($center)) {
