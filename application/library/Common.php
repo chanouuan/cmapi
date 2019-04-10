@@ -627,12 +627,18 @@ function json_mysql_encode ($data)
 
 function uploadfile ($upfile, $allow_type = 'jpg,jpeg,gif,png,bmp', $width = 80, $height = 0)
 {
-    $upload_path = APPLICATION_PATH . DIRECTORY_SEPARATOR . 'upload';
-    if (!$file_exe = strtolower(substr(strrchr($upfile['name'], '.'), 1))) {return '-文件格式错误';}
+    $upload_path = APPLICATION_PATH . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR . 'upload';
+    if (!$file_exe = strtolower(substr(strrchr($upfile['name'], '.'), 1))) {
+        return error('文件格式错误');
+    }
     if ($allow_type && $allow_type != '*') {
-        if (false === strpos($allow_type, $file_exe)) {return '-文件类型不允许';}
+        if (false === strpos($allow_type, $file_exe)) {
+            return error('文件类型不允许');
+        }
     } else {
-        if (false !== strpos('php,js,css,exe,asp,aspx,vbs', $file_exe)) {return '-文件类型不允许';}
+        if (false !== strpos('php,js,css,exe,asp,aspx,vbs', $file_exe)) {
+            return error('文件类型不允许');
+        }
     }
     $file_type = 0;
     if (false !== strpos('jpg,jpeg,gif,png,bmp', $file_exe)) {
@@ -647,7 +653,9 @@ function uploadfile ($upfile, $allow_type = 'jpg,jpeg,gif,png,bmp', $width = 80,
     $url = $file_path . DIRECTORY_SEPARATOR . $file_name;
     mkdirm($upload_path . DIRECTORY_SEPARATOR . $file_path);
     if (is_uploaded_file($upfile['tmp_name'])) {
-        if (!move_uploaded_file($upfile['tmp_name'], $upload_path . DIRECTORY_SEPARATOR . $url)) {return '-upload error';}
+        if (!move_uploaded_file($upfile['tmp_name'], $upload_path . DIRECTORY_SEPARATOR . $url)) {
+            return error('上传失败');
+        }
     } else {
         rename($upfile['tmp_name'], $upload_path . DIRECTORY_SEPARATOR . $url);
     }
@@ -659,7 +667,7 @@ function uploadfile ($upfile, $allow_type = 'jpg,jpeg,gif,png,bmp', $width = 80,
     $files['file_ext'] = $file_exe;
     $files['type'] = $file_type;
     $files['thumburl'] = $thumburl ? getthumburl($files['url']) : '';
-    return $files;
+    return success($files);
 }
 
 function getthumburl ($url)

@@ -30,9 +30,7 @@ class XicheManage extends ActionPDO {
             'platform = 3',
             'uid = ' . $this->_G['user']['uid']
         ]);
-        if ($userList) {
-            $this->_G['user']['telephone'] = $userList[0]['tel'];
-        }
+        $this->_G['user']['nickname'] = get_real_val($userList[0]['tel'], $this->_G['user']['uid']);
         return [
             'user_info' => $this->_G['user']
         ];
@@ -42,7 +40,127 @@ class XicheManage extends ActionPDO {
      * home页
      */
     public function welcome () {
+        $userList = (new UserModel())->getUserByBinding([
+            'platform = 3',
+            'uid = ' . $this->_G['user']['uid']
+        ]);
+        $this->_G['user']['nickname'] = get_real_val($userList[0]['tel'], $this->_G['user']['uid']);
+        return [
+            'user_info' => $this->_G['user']
+        ];
+    }
+
+    /**
+     * 套餐列表
+     */
+    public function item () {
+
+        $list = (new XicheManageModel())->getList('parkwash_item', null, null, null);
+
+        return [
+            'list' => $list
+        ];
+    }
+
+    /**
+     * 套餐添加
+     */
+    public function itemAdd () {
+
+        if (submitcheck()) {
+            return (new XicheManageModel())->itemAdd($_POST);
+        }
+
         return [];
+    }
+
+    /**
+     * 套餐编辑
+     */
+    public function itemUpdate () {
+
+        if (submitcheck()) {
+            return (new XicheManageModel())->itemUpdate($_POST);
+        }
+
+        $info = (new XicheManageModel())->getInfo('parkwash_item', ['id' => getgpc('id')]);
+        return [
+            'info' => $info
+        ];
+    }
+
+    /**
+     * 套餐删除
+     */
+    public function itemDelete () {
+
+        return (new XicheManageModel())->itemDelete(getgpc('id'));
+    }
+
+    /**
+     * 门店管理
+     */
+    public function store () {
+
+        $condition = [];
+        if ($_GET['name']) {
+            $condition['name'] = ['like', '%' . $_GET['name'] . '%'];
+        }
+
+        $modle = new XicheManageModel();
+        $count = $modle->getCount('parkwash_store', $condition);
+        $pagesize = getPageParams($_GET['page'], $count);
+        $list = $modle->getList('parkwash_store', $condition, $pagesize['limitstr']);
+        foreach ($list as $k => $v) {
+            $list[$k]['logo'] = $v['logo'] ? json_decode($v['logo'], true) : [];
+            $list[$k]['logo'] = $list[$k]['logo'] ? '<img height="30" src="' . httpurl($list[$k]['logo'][0]) . '">' : '';
+            $list[$k]['str_status'] = $v['status'] ? '正常营业' : '建设中';
+        }
+
+        return [
+            'pagesize' => $pagesize,
+            'list' => $list
+        ];
+    }
+
+    /**
+     * 门店添加
+     */
+    public function storeAdd () {
+
+        if (submitcheck()) {
+            return (new XicheManageModel())->storeAdd($_POST);
+        }
+
+        $items = (new XicheManageModel())->getList('parkwash_item', null, null, null);
+        return [
+            'items' => $items
+        ];
+    }
+
+    /**
+     * 门店编辑
+     */
+    public function storeUpdate () {
+
+        if (submitcheck()) {
+            return (new XicheManageModel())->storeUpdate($_POST);
+        }
+
+        $model = new XicheManageModel();
+        $info = $model->getInfo('parkwash_store', ['id' => getgpc('id')]);
+        $info['logo'] = $info['logo'] ? json_decode($info['logo'], true) : [];
+        $info['logo'] = $info['logo'] ? '<img height="30" src="' . httpurl($info['logo'][0]) . '">' : '';
+        $items = $model->getList('parkwash_item', null, null, null);
+        $storeItems = $model->getList('parkwash_store_item', ['store_id' => getgpc('id')]);
+        $storeItems = array_column($storeItems, 'price', 'item_id');
+        foreach ($items as $k => $v) {
+            $items[$k]['price'] = isset($storeItems[$v['id']]) ? $storeItems[$v['id']] : 0;
+        }
+        return [
+            'info' => $info,
+            'items' => $items
+        ];
     }
 
     /**

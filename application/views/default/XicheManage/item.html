@@ -1,0 +1,71 @@
+<?php include('header.html'); ?>
+
+<body>
+<div class="x-nav">
+      <span class="layui-breadcrumb">
+        <a><cite>套餐设置</cite></a>
+      </span>
+    <a class="layui-btn layui-btn-small" style="line-height:1.6em;margin-top:3px;float:right" href="javascript:location.replace(location.href);" title="刷新"><i class="layui-icon" style="line-height:30px">ဂ</i></a>
+</div>
+<div class="x-body">
+    <xblock>
+        <button class="layui-btn" onclick="x_admin_show('添加店铺','<?=gurl('xicheManage/itemAdd')?>')"><i class="layui-icon"></i>添加</button>
+    </xblock>
+    <table class="layui-table">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>项目名</th>
+            <th>建议价 (元)</th>
+            <th>操作</th>
+        </tr>
+        </thead>
+        <tbody>
+        <?php foreach($list as $k=>$v){ ?>
+        <tr>
+            <td><?=$v['id']?></td>
+            <td><?=$v['name']?></td>
+            <td><?=round_dollar($v['price'])?></td>
+            <td class="td-manage">
+                <button class="layui-btn layui-btn layui-btn-xs" onclick="x_admin_show('编辑项目','<?=gurl('xicheManage/itemUpdate',['id'=>$v['id']])?>')"><i class="layui-icon"></i>编辑</button>
+                <button class="layui-btn-danger layui-btn layui-btn-xs" onclick="del(<?=$v['id']?>)"><i class="layui-icon"></i>删除</button>
+            </td>
+        </tr>
+        <?php } ?>
+        </tbody>
+    </table>
+</div>
+
+<script>
+    function del(id){
+        layer.confirm('确定要删除吗？删除后将同步删除店铺关联的该套餐项目',function(index){
+            $.ajax({
+                type: 'POST',
+                url: '<?=gurl('xicheManage/itemDelete')?>',
+                data: {id: id},
+                dataType: 'json',
+                timeout: 5000,
+                success: function(res){
+                    layer.closeAll();
+                    if(res.errorcode != 0) {
+                        return layer.msg(res.message);
+                    }
+                    layer.msg('删除成功',{icon:1,time:1000});
+                    window.location.reload();
+                },
+                beforeSend: function(xhr){
+                    layer.load();
+                },
+                error: function(xhr, type){
+                    layer.closeAll();
+                    layer.msg('网络错误，请重试!');
+                }
+            });
+            return;
+        });
+    }
+</script>
+
+</body>
+
+</html>

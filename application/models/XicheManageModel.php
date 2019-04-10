@@ -3,15 +3,279 @@
 namespace app\models;
 
 use Crud;
+use app\library\Geohash;
+use app\library\LocationUtils;
 
 class XicheManageModel extends Crud {
 
     /**
+     * 套餐删除
+     */
+    public function itemDelete ($id) {
+        $id = intval($id);
+        if ($id == 1) {
+            return error('该套餐项目已锁定，不能删除');
+        }
+        if (!$this->getDb()->delete('parkwash_item', ['id' => $id])) {
+            return error('删除失败');
+        }
+        // 关联删除所有门店套餐
+        $this->getDb()->delete('parkwash_store_item', ['item_id' => $id]);
+        return success('OK');
+    }
+
+    /**
+     * 套餐编辑
+     */
+    public function itemUpdate ($post) {
+        $post['name'] = trim_space($post['name']);
+        $post['price'] = intval($post['price']);
+        $post['price'] = $post['price'] < 0 ? 0 : $post['price'];
+        $post['price'] = $post['price'] * 100;
+
+        if (empty($post['name'])) {
+            return error('项目名不能为空');
+        }
+
+        if (false === $this->getDb()->update('parkwash_item', [
+            'name' => $post['name'], 'price' => $post['price']
+        ], ['id' => $post['id']])) {
+            return error('修改失败');
+        }
+
+        return success('OK');
+    }
+
+    /**
+     * 套餐添加
+     */
+    public function itemAdd ($post) {
+        $post['name'] = trim_space($post['name']);
+        $post['price'] = intval($post['price']);
+        $post['price'] = $post['price'] < 0 ? 0 : $post['price'];
+        $post['price'] = $post['price'] * 100;
+
+        if (empty($post['name'])) {
+            return error('项目名不能为空');
+        }
+
+        if (!$this->getDb()->insert('parkwash_item', [
+            'name' => $post['name'], 'price' => $post['price']
+        ])) {
+            return error('添加失败');
+        }
+
+        return success('OK');
+    }
+
+    /**
+     * 编辑门店
+     */
+    public function storeUpdate ($post) {
+        $post['adcode'] = intval($post['adcode']);
+        $post['name'] = trim_space($post['name']);
+        $post['market'] = trim_space($post['market']);
+        $post['location'] = trim_space($post['location']);
+        $post['location'] = str_replace('，', ',', $post['location']); // 将中文逗号换成英文
+        $post['location'] = LocationUtils::checkLocation($post['location']);
+        $post['daily_cancel_limit'] = intval($post['daily_cancel_limit']);
+        $post['daily_cancel_limit'] = $post['daily_cancel_limit'] < 0 ? 0 : $post['daily_cancel_limit'];
+        $post['order_count_ratio'] = intval($post['order_count_ratio']);
+        $post['order_count_ratio'] = $post['order_count_ratio'] < 0 ? 0 : $post['order_count_ratio'];
+        $post['status'] = $post['status'] ? 1 : 0;
+
+        // 套餐
+        $post['item'] = $post['item'] ? $post['item'] : [];
+        foreach ($post['item'] as $k => $v) {
+            $post['item'][$k] = $v > 0 ? $v : 0;
+        }
+        $post['item'] = array_filter($post['item']);
+
+        if (strlen($post['adcode']) != 6) {
+            return error('区域代码不正确');
+        }
+        if (empty($post['name'])) {
+            return error('店名不能为空');
+        }
+        if (!validate_telephone($post['tel'])) {
+            return error('联系手机号不正确');
+        }
+        if (empty($post['address'])) {
+            return error('地址不能为空');
+        }
+        list($lon, $lat) = explode(',', $post['location']);
+        if (!$lon || !$lat || $lat > $lon) {
+            return error('经纬度坐标不正确,格式为“经度,纬度”,坐标系为gcj02');
+        }
+        if (!preg_match('/^\d{1,2}\:\d{1,2}-\d{1,2}\:\d{1,2}$/', $post['business_hours'])) {
+            return error('请填写营业时间,格式为:9:00-10:00');
+        }
+        if (empty($post['item'])) {
+            return error('请至少设置一项洗车套餐');
+        }
+
+        $param = [
+            'adcode' => $post['adcode'],
+            'name' => $post['name'],
+            'tel' => $post['tel'],
+            'address' => $post['address'],
+            'location' => $post['location'],
+            'geohash' => (new Geohash())->encode($lat, $lon),
+            'business_hours' => $post['business_hours'],
+            'market' => $post['market'],
+            'status' => $post['status'],
+            'price' => min($post['item']) * 100,
+            'daily_cancel_limit' => $post['daily_cancel_limit'],
+            'order_count_ratio' => $post['order_count_ratio'],
+            'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
+        ];
+
+        // 上传图片
+        if ($_FILES['logo'] && $_FILES['logo']['error'] == 0) {
+            if ($_FILES['logo']['size'] > 1048576) {
+                return error('最大上传不超过1M');
+            }
+            $result = uploadfile($_FILES['logo'], 'jpg,jpeg,png', 0, 0);
+            if ($result['errorcode'] !== 0) {
+                return $result;
+            }
+            $result = $result['result'];
+            $param['logo'] = json_encode([$result['url']]);
+        }
+
+        // 编辑门店
+        if (false === $this->getDb()->update('parkwash_store', $param, ['id' => $post['id']])) {
+            return error('编辑失败');
+        }
+
+        // 更新套餐
+        $item = [];
+        foreach ($post['item'] as $k => $v) {
+            $item[] = [
+                'store_id' => $post['id'], 'item_id' => $k, 'price' => $v * 100
+            ];
+        }
+        $this->getDb()->delete('parkwash_store_item', ['store_id' => $post['id']]);
+        $this->getDb()->insert('parkwash_store_item', $item);
+
+        return success('OK');
+    }
+
+    /**
+     * 添加门店
+     */
+    public function storeAdd ($post) {
+        $post['adcode'] = intval($post['adcode']);
+        $post['name'] = trim_space($post['name']);
+        $post['market'] = trim_space($post['market']);
+        $post['location'] = trim_space($post['location']);
+        $post['location'] = str_replace('，', ',', $post['location']); // 将中文逗号换成英文
+        $post['location'] = LocationUtils::checkLocation($post['location']);
+        $post['daily_cancel_limit'] = intval($post['daily_cancel_limit']);
+        $post['daily_cancel_limit'] = $post['daily_cancel_limit'] < 0 ? 0 : $post['daily_cancel_limit'];
+        $post['order_count_ratio'] = intval($post['order_count_ratio']);
+        $post['order_count_ratio'] = $post['order_count_ratio'] < 0 ? 0 : $post['order_count_ratio'];
+        $post['status'] = $post['status'] ? 1 : 0;
+
+        // 套餐
+        $post['item'] = $post['item'] ? $post['item'] : [];
+        foreach ($post['item'] as $k => $v) {
+            $post['item'][$k] = $v > 0 ? $v : 0;
+        }
+        $post['item'] = array_filter($post['item']);
+
+        if (strlen($post['adcode']) != 6) {
+            return error('区域代码不正确');
+        }
+        if (empty($post['name'])) {
+            return error('店名不能为空');
+        }
+        if (!validate_telephone($post['tel'])) {
+            return error('联系手机号不正确');
+        }
+        if (empty($post['address'])) {
+            return error('地址不能为空');
+        }
+        list($lon, $lat) = explode(',', $post['location']);
+        if (!$lon || !$lat || $lat > $lon) {
+            return error('经纬度坐标不正确,格式为“经度,纬度”,坐标系为gcj02');
+        }
+        if (!preg_match('/^\d{1,2}\:\d{1,2}-\d{1,2}\:\d{1,2}$/', $post['business_hours'])) {
+            return error('请填写营业时间,格式为:9:00-10:00');
+        }
+        if (empty($post['item'])) {
+            return error('请至少设置一项洗车套餐');
+        }
+
+        // 上传图片
+        if ($_FILES['logo'] && $_FILES['logo']['error'] == 0) {
+            if ($_FILES['logo']['size'] > 1048576) {
+                return error('最大上传不超过1M');
+            }
+            $result = uploadfile($_FILES['logo'], 'jpg,jpeg,png', 0, 0);
+            if ($result['errorcode'] !== 0) {
+                return $result;
+            }
+            $result = $result['result'];
+            $post['logo'] = json_encode([$result['url']]);
+        }
+
+        // 新增门店
+        if (!$this->getDb()->insert('parkwash_store', [
+            'adcode' => $post['adcode'],
+            'name' => $post['name'],
+            'logo' => $post['logo'],
+            'tel' => $post['tel'],
+            'address' => $post['address'],
+            'location' => $post['location'],
+            'geohash' => (new Geohash())->encode($lat, $lon),
+            'business_hours' => $post['business_hours'],
+            'market' => $post['market'],
+            'status' => $post['status'],
+            'price' => min($post['item']) * 100,
+            'daily_cancel_limit' => $post['daily_cancel_limit'],
+            'order_count_ratio' => $post['order_count_ratio'],
+            'create_time' => date('Y-m-d H:i:s', TIMESTAMP),
+            'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
+        ])) {
+            return error('添加失败');
+        }
+
+        $store_id = $this->getDb()->getlastid();
+
+        // 新增套餐
+        $item = [];
+        foreach ($post['item'] as $k => $v) {
+            $item[] = [
+                'store_id' => $store_id, 'item_id' => $k, 'price' => $v * 100
+            ];
+        }
+        $this->getDb()->insert('parkwash_store_item', $item);
+
+        return success('OK');
+    }
+
+    /**
+     * 获取单条数据
+     */
+    public function getInfo ($table, $condition, $field = null) {
+        return $this->getDb()
+            ->table($table)
+            ->field($field)
+            ->where($condition)
+            ->limit(1)
+            ->find();
+    }
+
+    /**
      * 获取设备列表
      */
-    public function getList ($table, $condition, $limit, $order = 'id desc') {
+    public function getList ($table, $condition, $limit = null, $order = 'id desc') {
+        if (0 !== strpos($table, 'parkwash_')) {
+            $table = '__tablepre__' . $table;
+        }
         return $this->getDb()
-            ->table('__tablepre__' . $table)
+            ->table($table)
             ->field('*')
             ->where($condition)
             ->order($order)
@@ -23,8 +287,11 @@ class XicheManageModel extends Crud {
      * 获取设备数量
      */
     public function getCount ($table, $condition) {
+        if (0 !== strpos($table, 'parkwash_')) {
+            $table = '__tablepre__' . $table;
+        }
         return $this->getDb()
-            ->table('__tablepre__' . $table)
+            ->table($table)
             ->field('count(1)')
             ->where($condition)
             ->count();

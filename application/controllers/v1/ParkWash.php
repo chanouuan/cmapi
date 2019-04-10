@@ -4,11 +4,9 @@ namespace app\controllers;
 
 use ActionPDO;
 use app\library\JSSDK;
-use app\library\LocationUtils;
 use app\models\ParkWashModel;
 use app\models\XicheModel;
 use app\models\UserModel;
-use app\models\TradeModel;
 
 /**
  * 停车场洗车前端接口
@@ -472,11 +470,12 @@ class ParkWash extends ActionPDO {
      * {
      * "errNo":0, // 错误码 0支付成功 -1未支付成功
      * "message":"", // 返回信息
-     * "result":[]
-     * }
+     * "result":{
+     *     "orderid":1 //洗车订单ID (只有支付成功才会返回该值)
+     * }}
      */
     public function payQuery () {
-        return (new TradeModel())->payQuery($this->_G['user']['uid'], getgpc('tradeid'));
+        return (new ParkWashModel())->payQuery($this->_G['user']['uid'], $_POST);
     }
 
     /**

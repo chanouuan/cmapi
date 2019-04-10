@@ -529,7 +529,7 @@ class ParkWashModel extends Crud {
 
         $post['brand_id'] = intval($post['brand_id']);
         $post['series_id'] = intval($post['series_id']);
-        $post['area_id'] = intval($post['area_id']);
+        $post['area_id'] = trim_space($post['area_id']);
         $post['place'] = trim_space($post['place']);
         $post['isdefault'] = $post['isdefault'] == 1 ? 1 : 0;
 
@@ -581,6 +581,10 @@ class ParkWashModel extends Crud {
         if (!isset($post['place'])) {
             unset($post['place']);
         }
+        // 区域为 null 就不更新
+        if (!isset($post['area_id'])) {
+            unset($post['area_id']);
+        }
 
         $post['update_time'] = date('Y-m-d H:i:s', TIMESTAMP);
 
@@ -591,9 +595,13 @@ class ParkWashModel extends Crud {
         }
 
         // 更新默认车
-        if ($post['isdefault']) {
-            $this->getDb()->update('parkwash_carport', ['isdefault' => 0], ['uid' => $uid, 'id' => ['<>', $post['id']]]);
+        $carports = $this->getDb()->table('parkwash_carport')->field('id,isdefault')->where(['uid' => $uid])->select();
+        if ($carports) {
+            if (empty(array_filter(array_column($carports, 'isdefault', 'id')))) {
+                $this->getDb()->update('parkwash_carport', ['isdefault' => 1], ['id' => $carports[0]['id']]);
+            }
         }
+        unset($carports);
 
         return true;
     }
@@ -610,10 +618,13 @@ class ParkWashModel extends Crud {
         }
 
         // 更新默认车
-        if ($carportInfo = $this->getDb()->table('parkwash_carport')->field('id')->where(['uid' => $uid])->order('id desc')->limit(1)->find()) {
-            $this->getDb()->update('parkwash_carport', ['isdefault' => 0], ['uid' => $uid]);
-            $this->getDb()->update('parkwash_carport', ['isdefault' => 1], ['id' => $carportInfo['id']]);
+        $carports = $this->getDb()->table('parkwash_carport')->field('id,isdefault')->where(['uid' => $uid])->select();
+        if ($carports) {
+            if (empty(array_filter(array_column($carports, 'isdefault', 'id')))) {
+                $this->getDb()->update('parkwash_carport', ['isdefault' => 1], ['id' => $carports[0]['id']]);
+            }
         }
+        unset($carports);
 
         return success('OK');
     }
@@ -718,11 +729,19 @@ class ParkWashModel extends Crud {
             return success([]);
         }
 
+        $date = [
+            date('Y-m-d', TIMESTAMP) => '今天',
+            date('Y-m-d', TIMESTAMP + 86400) => '明天',
+            date('Y-m-d', TIMESTAMP + 2 * 86400) => '后天'
+        ];
+
         foreach ($poolList as $k => $v) {
             // 去掉已过期的排班
             if (strtotime($v['today'] . ' ' . $v['end_time']) < TIMESTAMP) {
                 unset($poolList[$k]);
+                continue;
             }
+            $poolList[$k]['today'] = isset($date[$v['today']]) ? $date[$v['today']] : $v['today'];
         }
 
         return success(array_values($poolList));
@@ -1361,6 +1380,24 @@ class ParkWashModel extends Crud {
 
         return success([
             'tradeid' => $cardId
+        ]);
+    }
+
+    /**
+     * 查询支付是否成功
+     */
+    public function payQuery ($uid, $post) {
+
+        $tradeModel = new TradeModel();
+        $result = $tradeModel->payQuery($uid, $post['tradeid']);
+        if ($result['errorcode'] !== 0) {
+            return $result;
+        }
+
+        // 支付成功返回订单ID
+        $tradeInfo = $tradeModel->get($post['tradeid'], null, 'param_id');
+        return success([
+            'orderid' => $tradeInfo['param_id']
         ]);
     }
 

@@ -9,7 +9,7 @@
         </div>
         <ul class="layui-nav right" lay-filter="">
           <li class="layui-nav-item">
-            <a href="javascript:;"><?=$user_info['telephone']?></a>
+            <a href="javascript:;"><?=$user_info['nickname']?></a>
             <dl class="layui-nav-child"> <!-- 二级菜单 -->
                 <dd><a href="<?=gurl('xicheManage/logout')?>">退出</a></dd>
             </dl>
@@ -23,6 +23,20 @@
     <div class="left-nav">
       <div id="side-nav">
         <ul id="nav">
+            <li>
+                <a _href="<?=gurl('xicheManage/store')?>">
+                    <i class="iconfont">&#xe722;</i>
+                    <cite>店铺管理</cite>
+                    <i class="iconfont nav_right">&#xe6a7;</i>
+                </a>
+            </li>
+            <li>
+                <a _href="<?=gurl('xicheManage/item')?>">
+                    <i class="iconfont">&#xe6f6;</i>
+                    <cite>套餐设置</cite>
+                    <i class="iconfont nav_right">&#xe6a7;</i>
+                </a>
+            </li>
             <li>
                 <a _href="<?=gurl('xicheManage/device')?>">
                     <i class="iconfont">&#xe6da;</i>
