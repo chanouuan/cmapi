@@ -113,10 +113,9 @@ class XicheManage extends ActionPDO {
         $list = $modle->getList('parkwash_store', $condition, $pagesize['limitstr']);
         foreach ($list as $k => $v) {
             $list[$k]['logo'] = $v['logo'] ? json_decode($v['logo'], true) : [];
-            $list[$k]['logo'] = $list[$k]['logo'] ? '<img height="30" src="' . httpurl($list[$k]['logo'][0]) . '">' : '';
+            $list[$k]['logo'] = $list[$k]['logo'] ? '<a onclick="x_admin_show(\'IMG\',\'' . httpurl($list[$k]['logo'][0]) . '\')" href="javascript:;" target="_blank"><img height="30" src="' . httpurl($list[$k]['logo'][0]) . '"></a>' : '';
             $list[$k]['str_status'] = $v['status'] ? '正常营业' : '建设中';
         }
-
         return [
             'pagesize' => $pagesize,
             'list' => $list
@@ -151,6 +150,7 @@ class XicheManage extends ActionPDO {
         $info = $model->getInfo('parkwash_store', ['id' => getgpc('id')]);
         $info['logo'] = $info['logo'] ? json_decode($info['logo'], true) : [];
         $info['logo'] = $info['logo'] ? '<img height="30" src="' . httpurl($info['logo'][0]) . '">' : '';
+        $info['time_day'] = str_split($info['time_day']);
         $items = $model->getList('parkwash_item', null, null, null);
         $storeItems = $model->getList('parkwash_store_item', ['store_id' => getgpc('id')]);
         $storeItems = array_column($storeItems, 'price', 'item_id');

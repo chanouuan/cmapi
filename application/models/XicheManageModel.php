@@ -83,6 +83,11 @@ class XicheManageModel extends Crud {
         $post['order_count_ratio'] = intval($post['order_count_ratio']);
         $post['order_count_ratio'] = $post['order_count_ratio'] < 0 ? 0 : $post['order_count_ratio'];
         $post['status'] = $post['status'] ? 1 : 0;
+        $post['time_interval'] = intval($post['time_interval']);
+        $post['time_amount'] = intval($post['time_amount']);
+        $post['time_day'] = array_filter($post['time_day']);
+        sort($post['time_day']);
+        $post['time_day'] = implode('', $post['time_day']);
 
         // 套餐
         $post['item'] = $post['item'] ? $post['item'] : [];
@@ -113,6 +118,15 @@ class XicheManageModel extends Crud {
         if (empty($post['item'])) {
             return error('请至少设置一项洗车套餐');
         }
+        if ($post['time_interval'] < 20 || $post['time_interval'] > 60) {
+            return error('请选择排班时段,20-60分钟');
+        }
+        if ($post['time_amount'] <= 0) {
+            return error('排班时段下单量不能为空');
+        }
+        if (empty($post['time_day'])) {
+            return error('请选择排班工作日');
+        }
 
         $param = [
             'adcode' => $post['adcode'],
@@ -127,6 +141,9 @@ class XicheManageModel extends Crud {
             'price' => min($post['item']) * 100,
             'daily_cancel_limit' => $post['daily_cancel_limit'],
             'order_count_ratio' => $post['order_count_ratio'],
+            'time_interval' => $post['time_interval'],
+            'time_amount' => $post['time_amount'],
+            'time_day' => $post['time_day'],
             'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
         ];
 
@@ -176,6 +193,11 @@ class XicheManageModel extends Crud {
         $post['order_count_ratio'] = intval($post['order_count_ratio']);
         $post['order_count_ratio'] = $post['order_count_ratio'] < 0 ? 0 : $post['order_count_ratio'];
         $post['status'] = $post['status'] ? 1 : 0;
+        $post['time_interval'] = intval($post['time_interval']);
+        $post['time_amount'] = intval($post['time_amount']);
+        $post['time_day'] = array_filter($post['time_day']);
+        sort($post['time_day']);
+        $post['time_day'] = implode('', $post['time_day']);
 
         // 套餐
         $post['item'] = $post['item'] ? $post['item'] : [];
@@ -206,6 +228,15 @@ class XicheManageModel extends Crud {
         if (empty($post['item'])) {
             return error('请至少设置一项洗车套餐');
         }
+        if ($post['time_interval'] < 20 || $post['time_interval'] > 60) {
+            return error('请选择排班时段,20-60分钟');
+        }
+        if ($post['time_amount'] <= 0) {
+            return error('排班时段下单量不能为空');
+        }
+        if (empty($post['time_day'])) {
+            return error('请选择排班工作日');
+        }
 
         // 上传图片
         if ($_FILES['logo'] && $_FILES['logo']['error'] == 0) {
@@ -235,6 +266,9 @@ class XicheManageModel extends Crud {
             'price' => min($post['item']) * 100,
             'daily_cancel_limit' => $post['daily_cancel_limit'],
             'order_count_ratio' => $post['order_count_ratio'],
+            'time_interval' => $post['time_interval'],
+            'time_amount' => $post['time_amount'],
+            'time_day' => $post['time_day'],
             'create_time' => date('Y-m-d H:i:s', TIMESTAMP),
             'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
         ])) {

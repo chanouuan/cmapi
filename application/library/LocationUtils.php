@@ -181,7 +181,7 @@ class LocationUtils {
 
     private static function formatGPS ($gps)
     {
-        return $gps ? round($gps, 6) : '';
+        return $gps ? sprintf("%01.6f", round($gps, 6)) : '';
     }
 
 }

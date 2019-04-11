@@ -7,12 +7,12 @@
         <div id="darkbannerwrap"></div>
 
         <form method="post" class="layui-form" >
-            <input autocomplete="off" maxlength="11" name="telephone" type="tel" placeholder="请输入手机号" lay-verify="required" class="layui-input">
+            <input style="height: 50px;" autocomplete="off" maxlength="11" name="telephone" type="tel" placeholder="请输入手机号" lay-verify="required" class="layui-input">
             <hr class="hr15">
             <input autocomplete="off" name="password" lay-verify="required" placeholder="请输入密码" maxlength="30" type="password" class="layui-input">
             <hr class="hr15">
-            <input style="width: 110px; display: inline-block; margin-right: 10px" autocomplete="off" name="imgcode" maxlength="4" lay-verify="required" type="tel" placeholder="请输入验证码" class="layui-input">
-            <img id="imgcode" style="display: inline-block; height: 38px" src="<?=gurl('xicheManage/checkImgCode')?>?t=" onclick="this.src=this.src+parseInt(Math.random()*10)">
+            <input style="height: 50px; width: 110px; display: inline-block; margin-right: 10px" autocomplete="off" name="imgcode" maxlength="4" lay-verify="required" type="tel" placeholder="请输入验证码" class="layui-input">
+            <img id="imgcode" style="display: inline-block; height: 50px" src="<?=gurl('xicheManage/checkImgCode')?>?t=" onclick="this.src=this.src+parseInt(Math.random()*10)">
             <hr class="hr15">
             <input value="登录" lay-submit lay-filter="login" style="width:100%;" type="submit">
             <hr class="hr20" >

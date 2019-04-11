@@ -454,9 +454,9 @@ class ParkWash extends ActionPDO {
      * {
      * "errNo":0, //错误码 0成功 -1失败
      * "message":"",
-     * "result":[{
+     * "result":{
      *      "tradeid":1, //交易单ID (用于后续发起支付)
-     * }]}
+     * }}
      */
     public function createCard () {
         return (new ParkWashModel())->createCard($this->_G['user']['uid'], $_POST);
@@ -603,6 +603,7 @@ class ParkWash extends ActionPDO {
      *      "area_name":"A区", //区域
      *      "store_name":"门店0" //服务网点
      *      "location":"106.328468,25.844113", //经纬度
+     *      "status":1, //订单状态 (-1已取消 1已支付 2已接单 3服务中 4已完成)
      *      "sequence":[{
      *          "title":"下单成功，等待商家接单", //订单状态改变事件
      *          "create_time":"2019-04-02 16:38:43" //事件时间
@@ -639,9 +640,9 @@ class ParkWash extends ActionPDO {
      * {
      * "errNo":0, //错误码 0成功 -1失败
      * "message":"",
-     * "result":[{
+     * "result":{
      *      "tradeid":1, //交易单ID (用于后续发起支付)
-     * }]}
+     * }}
      */
     public function recharge () {
         return (new ParkWashModel())->recharge($this->_G['user']['uid'], $_POST);
