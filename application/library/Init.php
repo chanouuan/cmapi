@@ -549,7 +549,7 @@ class DebugLog {
         if (isset($_SERVER['HTTP_HOST'])) {
             self::$info[] = 'HTTP_HOST: ' . $_SERVER['HTTP_HOST'];
         }
-        if (isset($_SERVER['CONTENT_TYPE'])) {
+        if (isset($_SERVER['CONTENT_TYPE']) && $_SERVER['CONTENT_TYPE']) {
             self::$info[] = 'CONTENT_TYPE: ' . $_SERVER['CONTENT_TYPE'];
         }
         if (isset($_SERVER['HTTP_USER_AGENT'])) {

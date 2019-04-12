@@ -55,7 +55,7 @@ class Wxpayjs extends ActionPDO {
 
         // 获取openid
         if ($tradeInfo['type'] == 'xc' || $tradeInfo['type'] == 'parkwash' || $tradeInfo['type'] == 'pwcharge') {
-            $openid = (new XicheModel())->getWxOpenid($tradeInfo['trade_id']);
+            $openid = (new XicheModel())->getWxOpenid($tradeInfo['trade_id'], $tradeInfo['type'] == 'xc' ? 'wx' : 'mp');
         } else if ($tradeInfo['type'] == 'bx') {
             $openid = (new BaoxianModel())->getWxOpenid($tradeInfo['trade_id']);
         }

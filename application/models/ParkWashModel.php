@@ -37,7 +37,7 @@ class ParkWashModel extends Crud {
 
         // 限制重复绑定微信
         if ($post['__authcode']) {
-            if ($xicheModel->getWxOpenid($userInfo['member_id'])) {
+            if ($xicheModel->getWxOpenid($userInfo['member_id'], 'mp')) {
                 return error('该手机号已绑定，请先解绑或填写其他手机号');
             }
         }

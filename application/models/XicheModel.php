@@ -716,10 +716,10 @@ class XicheModel extends Crud {
     /**
      * 解绑微信
      */
-    public function unbind ($uid) {
+    public function unbind ($uid, $type = 'wx') {
         if (false === $this->getDb()->update('__tablepre__xiche_login', [
             'uid' => 0
-        ], 'uid = :uid and type = "wx"', ['uid' => $uid])) {
+        ], ['uid' => $uid, 'type' => $type])) {
             return error('解绑失败');
         }
         // 注销登录
@@ -742,12 +742,11 @@ class XicheModel extends Crud {
     /**
      * 获取微信openid
      */
-    public function getWxOpenid ($uid) {
+    public function getWxOpenid ($uid, $type = 'wx') {
         return $this->getDb()
             ->table('__tablepre__xiche_login')
             ->field('openid')
-            ->where('uid = ? and type = "wx"')
-            ->bindValue($uid)
+            ->where(['uid' => $uid, 'type' => $type])
             ->limit(1)
             ->count();
     }

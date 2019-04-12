@@ -58,7 +58,9 @@ class ParkWash extends ActionPDO {
         if ($reponse['errorcode'] !== 0) {
             return $reponse;
         }
-        if ($loginInfo = (new XicheModel())->checkLogin($reponse['result'], ['clienttype' => 'mp'])) {
+        $reponse = $reponse['result'];
+        $reponse['type'] = 'mp';
+        if ($loginInfo = (new XicheModel())->checkLogin($reponse, ['clienttype' => 'mp'])) {
             (new ParkWashModel())->saveUserCount($loginInfo['uid']);
             $userInfo = (new UserModel())->getUserInfo($loginInfo['uid']);
             $userInfo['result']['token'] = $loginInfo['token'];
@@ -126,7 +128,7 @@ class ParkWash extends ActionPDO {
      * }
      */
     public function unbindMiniprogram () {
-        return (new XicheModel())->unbind($this->_G['user']['uid']);
+        return (new XicheModel())->unbind($this->_G['user']['uid'], 'mp');
     }
 
     /**
