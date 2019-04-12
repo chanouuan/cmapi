@@ -3,7 +3,6 @@
 namespace app\controllers;
 
 use ActionPDO;
-use app\library\JSSDK;
 use app\models\ParkWashModel;
 use app\models\XicheModel;
 use app\models\UserModel;
@@ -48,7 +47,7 @@ class ParkWash extends ActionPDO {
         }
 
         $wxConfig = getSysConfig('parkwash', 'wx');
-        $jssdk = new JSSDK($wxConfig['appid'], $wxConfig['appsecret']);
+        $jssdk = new \app\library\JSSDK($wxConfig['appid'], $wxConfig['appsecret']);
         $reponse = $jssdk->wXBizDataCrypt([
             'code' => $code,
             'getPhoneNumber' => [
@@ -673,7 +672,9 @@ class ParkWash extends ActionPDO {
     }
 
     public function task () {
-        return (new ParkWashModel())->task(getgpc('timer'));
+        $timewheel = new \app\library\TimeWheel();
+        $timer = $timewheel->tick();
+        return (new ParkWashModel())->task(implode('', $timer));
     }
 
 }

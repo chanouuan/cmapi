@@ -620,7 +620,9 @@ class DebugLog {
             self::_post();
         }
         if (DEBUG_LEVEL >= 1) {
-            self::_log(array_merge(self::$info, self::$curl, self::$mysql), 'debug', true, 'Ym_Ymd', true, true);
+            if ($_SERVER['HTTP_USER_AGENT'] != 'Plan-Task' || self::$mysql) {
+                self::_log(array_merge(self::$info, self::$curl, self::$mysql), 'debug', true, 'Ym_Ymd', true, true);
+            }
         }
         if (self::$error) {
             self::_log(self::$error, 'error');

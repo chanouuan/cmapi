@@ -1811,16 +1811,16 @@ class ParkWashModel extends Crud {
 
         set_time_limit(3600);
         // 每天 0 点执行
-        if (false !== strpos($timer, 'today')) {
+        if (false !== strpos($timer, '0h')) {
             $this->taskCleanSchedule();
             $this->taskStoreSchedule();
             $this->taskCleanExpireTrade();
         }
-        // 每 900 秒执行
-        if (false !== strpos($timer, 'big')) {
+        // 每 600 秒执行
+        if (false !== strpos($timer, '600s')) {
             $this->taskCleanExpireOrder();
         }
-        return null;
+        return success(date('Y-m-d H:i:s', TIMESTAMP));
     }
 
     /**
