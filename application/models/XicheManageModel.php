@@ -29,9 +29,9 @@ class XicheManageModel extends Crud {
      */
     public function itemUpdate ($post) {
         $post['name'] = trim_space($post['name']);
-        $post['price'] = intval($post['price']);
+        $post['price'] = floatval($post['price']);
         $post['price'] = $post['price'] < 0 ? 0 : $post['price'];
-        $post['price'] = $post['price'] * 100;
+        $post['price'] = intval($post['price'] * 100);
 
         if (empty($post['name'])) {
             return error('项目名不能为空');
@@ -51,9 +51,9 @@ class XicheManageModel extends Crud {
      */
     public function itemAdd ($post) {
         $post['name'] = trim_space($post['name']);
-        $post['price'] = intval($post['price']);
+        $post['price'] = floatval($post['price']);
         $post['price'] = $post['price'] < 0 ? 0 : $post['price'];
-        $post['price'] = $post['price'] * 100;
+        $post['price'] = intval($post['price'] * 100);
 
         if (empty($post['name'])) {
             return error('项目名不能为空');
@@ -87,7 +87,7 @@ class XicheManageModel extends Crud {
         $post['time_amount'] = intval($post['time_amount']);
         $post['time_day'] = array_filter($post['time_day']);
         sort($post['time_day']);
-        $post['time_day'] = implode('', $post['time_day']);
+        $post['time_day'] = intval(implode('', $post['time_day']));
 
         // 套餐
         $post['item'] = $post['item'] ? $post['item'] : [];
@@ -112,14 +112,15 @@ class XicheManageModel extends Crud {
         if (!$lon || !$lat || $lat > $lon) {
             return error('经纬度坐标不正确,格式为“经度,纬度”,坐标系为gcj02');
         }
-        if (!preg_match('/^\d{1,2}\:\d{1,2}-\d{1,2}\:\d{1,2}$/', $post['business_hours'])) {
-            return error('请填写营业时间,格式为:9:00-10:00');
+        $checkBusinessHours = $this->checkBusinessHours($post['business_hours']);
+        if ($checkBusinessHours['errorcode'] !== 0) {
+            return $checkBusinessHours;
         }
         if (empty($post['item'])) {
             return error('请至少设置一项洗车套餐');
         }
-        if ($post['time_interval'] < 20 || $post['time_interval'] > 60) {
-            return error('请选择排班时段,20-60分钟');
+        if ($post['time_interval'] < 10 || $post['time_interval'] > 120) {
+            return error('请选择排班时段,10-120分钟');
         }
         if ($post['time_amount'] <= 0) {
             return error('排班时段下单量不能为空');
@@ -138,7 +139,7 @@ class XicheManageModel extends Crud {
             'business_hours' => $post['business_hours'],
             'market' => $post['market'],
             'status' => $post['status'],
-            'price' => min($post['item']) * 100,
+            'price' => intval(min($post['item']) * 100),
             'daily_cancel_limit' => $post['daily_cancel_limit'],
             'order_count_ratio' => $post['order_count_ratio'],
             'time_interval' => $post['time_interval'],
@@ -169,7 +170,7 @@ class XicheManageModel extends Crud {
         $item = [];
         foreach ($post['item'] as $k => $v) {
             $item[] = [
-                'store_id' => $post['id'], 'item_id' => $k, 'price' => $v * 100
+                'store_id' => $post['id'], 'item_id' => $k, 'price' => intval($v * 100)
             ];
         }
         $this->getDb()->delete('parkwash_store_item', ['store_id' => $post['id']]);
@@ -197,7 +198,7 @@ class XicheManageModel extends Crud {
         $post['time_amount'] = intval($post['time_amount']);
         $post['time_day'] = array_filter($post['time_day']);
         sort($post['time_day']);
-        $post['time_day'] = implode('', $post['time_day']);
+        $post['time_day'] = intval(implode('', $post['time_day']));
 
         // 套餐
         $post['item'] = $post['item'] ? $post['item'] : [];
@@ -222,14 +223,15 @@ class XicheManageModel extends Crud {
         if (!$lon || !$lat || $lat > $lon) {
             return error('经纬度坐标不正确,格式为“经度,纬度”,坐标系为gcj02');
         }
-        if (!preg_match('/^\d{1,2}\:\d{1,2}-\d{1,2}\:\d{1,2}$/', $post['business_hours'])) {
-            return error('请填写营业时间,格式为:9:00-10:00');
+        $checkBusinessHours = $this->checkBusinessHours($post['business_hours']);
+        if ($checkBusinessHours['errorcode'] !== 0) {
+            return $checkBusinessHours;
         }
         if (empty($post['item'])) {
             return error('请至少设置一项洗车套餐');
         }
-        if ($post['time_interval'] < 20 || $post['time_interval'] > 60) {
-            return error('请选择排班时段,20-60分钟');
+        if ($post['time_interval'] < 10 || $post['time_interval'] > 120) {
+            return error('请选择排班时段,10-120分钟');
         }
         if ($post['time_amount'] <= 0) {
             return error('排班时段下单量不能为空');
@@ -263,7 +265,7 @@ class XicheManageModel extends Crud {
             'business_hours' => $post['business_hours'],
             'market' => $post['market'],
             'status' => $post['status'],
-            'price' => min($post['item']) * 100,
+            'price' => intval(min($post['item']) * 100),
             'daily_cancel_limit' => $post['daily_cancel_limit'],
             'order_count_ratio' => $post['order_count_ratio'],
             'time_interval' => $post['time_interval'],
@@ -281,12 +283,37 @@ class XicheManageModel extends Crud {
         $item = [];
         foreach ($post['item'] as $k => $v) {
             $item[] = [
-                'store_id' => $store_id, 'item_id' => $k, 'price' => $v * 100
+                'store_id' => $store_id, 'item_id' => $k, 'price' => intval($v * 100)
             ];
         }
         $this->getDb()->insert('parkwash_store_item', $item);
 
         return success('OK');
+    }
+
+    /**
+     * 检查营业时间格式是否正确
+     */
+    protected function checkBusinessHours ($business_hours) {
+
+        if (!preg_match('/^\d{1,2}\:\d{1,2}-\d{1,2}\:\d{1,2}$/', $business_hours)) {
+            return error('请填写营业时间,格式为:9:00-17:00');
+        }
+
+        list($start, $end) = explode('-', $business_hours);
+        $start = strtotime(date('Y-m-d', TIMESTAMP) . ' ' . $start);
+        $end = strtotime(date('Y-m-d', TIMESTAMP) . ' ' . $end);
+        if (!$start) {
+            return error('营业开始时间不正确');
+        }
+        if (!$end) {
+            return error('营业结束时间不正确');
+        }
+        if ($start >= $end) {
+            return error('营业开始时间不能大于等于结束时间');
+        }
+
+        return success('ok');
     }
 
     /**

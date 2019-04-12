@@ -157,9 +157,15 @@ class XicheManage extends ActionPDO {
         foreach ($items as $k => $v) {
             $items[$k]['price'] = isset($storeItems[$v['id']]) ? $storeItems[$v['id']] : 0;
         }
+        $lastPool = $model->getInfo('parkwash_pool', ['store_id' => getgpc('id')], 'max(today) as today');
+        $lastPool = strtotime($lastPool['today']);
+        $lastPool = $lastPool > TIMESTAMP ? $lastPool : TIMESTAMP;
+        $lastPool += 86400;
+        $lastPool = date('Y-m-d', $lastPool);
         return [
             'info' => $info,
-            'items' => $items
+            'items' => $items,
+            'lastPool' => $lastPool
         ];
     }
 

@@ -117,7 +117,7 @@ function getSysConfig ($key = null, $target = 'config')
     return isset($sys_config[$target][$key]) ? $sys_config[$target][$key] : null;
 }
 
-function getConfig ($app = null, $name = null)
+function getConfig ($app = null, $name = null, $default = null)
 {
     if (false === F('config')) {
         $result = \app\library\DB::getInstance()->table('__tablepre__config')->field('app,name,value,type')->select();
@@ -133,13 +133,13 @@ function getConfig ($app = null, $name = null)
         F('config', $config);
     }
     $config = F('config');
-    if (isset($config[$app])) {
-        $config = $config[$app];
+    if (isset($app)) {
+        $config = isset($config[$app]) ? $config[$app] : null;
     }
-    if (isset($config[$name])) {
-        $config = $config[$name];
+    if (isset($name)) {
+        $config = isset($config[$name]) ? $config[$name] : null;
     }
-    return $config;
+    return $config ? $config : $default;
 }
 
 function msubstr ($str, $start = 0, $length = 250, $charset = 'utf-8', $suffix = false)

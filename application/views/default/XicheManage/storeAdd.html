@@ -113,7 +113,7 @@
                         <thead>
                         <tr>
                             <th>套餐名称</th>
-                            <th>价格(元),若关闭套餐,请设置0元</th>
+                            <th>价格(元)，若关闭套餐，请设置0元</th>
                         </tr>
                         </thead>
                         <tbody>
@@ -145,16 +145,8 @@
                         </thead>
                         <tbody>
                         <tr>
-                            <td>排班时段</td>
-                            <td><div class="layui-input-inline">
-                                <select name="time_interval">
-                                    <option value="20">20分钟</option>
-                                    <option value="30">30分钟</option>
-                                    <option value="40">40分钟</option>
-                                    <option value="50">50分钟</option>
-                                    <option value="60">60分钟</option>
-                                </select></div>
-                            </td>
+                            <td>排班时段(分钟)，10-120分钟</td>
+                            <td><input name="time_interval" style="width: 50px" type="tel" maxlength="3" value="20" autocomplete="off" class="layui-input"/></td>
                         </tr>
                         <tr>
                             <td>排班时段最大下单量</td>

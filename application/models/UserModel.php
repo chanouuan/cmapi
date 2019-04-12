@@ -435,7 +435,7 @@ class UserModel extends Crud {
         $res = DB::getInstance('chemiv2')->transaction(function  ($db) use($userInfo, $post, $data) {
 
             // 更新用户余额
-            if (!$db->update('chemi_member', ['available_predeposit' => '{!available_predeposit-'.$data['consume_amount'].'}'], 'member_id = ' . $userInfo['uid'] . ' and available_predeposit >= ' . $data['consume_amount'] . ' and available_predeposit = ' . ($userInfo['money'] / 100))) {
+            if (!$db->update('chemi_member', ['available_predeposit' => ['available_predeposit-'.$data['consume_amount']]], 'member_id = ' . $userInfo['uid'] . ' and available_predeposit >= ' . $data['consume_amount'] . ' and available_predeposit = ' . ($userInfo['money'] / 100))) {
                 return false;
             }
 
@@ -544,7 +544,7 @@ class UserModel extends Crud {
             }
 
             // 更新用户余额
-            if (!$db->update('chemi_member', ['available_predeposit' => '{!available_predeposit+'.$data['pdr_amount'].'}'], 'member_id = ' . $userInfo['uid'] . ' and available_predeposit = ' . ($userInfo['money'] / 100))) {
+            if (!$db->update('chemi_member', ['available_predeposit' => ['available_predeposit+'.$data['pdr_amount']]], 'member_id = ' . $userInfo['uid'] . ' and available_predeposit = ' . ($userInfo['money'] / 100))) {
                 return false;
             }
 
@@ -628,7 +628,7 @@ class UserModel extends Crud {
         if ($result['errorcount'] <= 10) {
             // 累计次数
             $this->getDb()->update('__tablepre__smscode', [
-                'errorcount' => '{!errorcount+1}'
+                'errorcount' => ['errorcount+1']
             ], 'id = ' . $result['id']);
         }
         return $result['code'] == $code
@@ -686,14 +686,14 @@ class UserModel extends Crud {
                 if ($resultSms['hour_fc'] >= getSysConfig('hour_fc')) {
                     return error('本时段发送次数已达上限');
                 }
-                $params['hour_fc'] = '{!hour_fc+1}';
+                $params['hour_fc'] = ['hour_fc+1'];
             }
             if (date('Ymd', $resultSms['sendtime']) == date('Ymd', TIMESTAMP)) {
                 // 触发天级流控
                 if ($resultSms['day_fc'] >= getSysConfig('day_fc')) {
                     return error('今日发送次数已达上限');
                 }
-                $params['day_fc'] = '{!day_fc+1}';
+                $params['day_fc'] = ['day_fc+1'];
             }
         }
 

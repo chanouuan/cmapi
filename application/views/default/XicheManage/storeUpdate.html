@@ -116,7 +116,7 @@
                         <thead>
                         <tr>
                             <th>套餐名称</th>
-                            <th>价格(元),若关闭套餐,请设置0元</th>
+                            <th>价格(元)，若关闭套餐，请设置0元</th>
                         </tr>
                         </thead>
                         <tbody>
@@ -143,21 +143,13 @@
                         <thead>
                         <tr>
                             <th>设置项</th>
-                            <th>设置值 <span style="color: red;">(*新的排班设置将在第二天生效)</span></th>
+                            <th>设置值 (*新的排班设置将在「<span style="color: red;"><?=$lastPool?></span>」生效)</th>
                         </tr>
                         </thead>
                         <tbody>
                         <tr>
-                            <td>排班时段</td>
-                            <td><div class="layui-input-inline">
-                                <select name="time_interval">
-                                    <option <?php if($info['time_interval']==20){ ?>selected<?php } ?> value="20">20分钟</option>
-                                    <option <?php if($info['time_interval']==30){ ?>selected<?php } ?> value="30">30分钟</option>
-                                    <option <?php if($info['time_interval']==40){ ?>selected<?php } ?> value="40">40分钟</option>
-                                    <option <?php if($info['time_interval']==50){ ?>selected<?php } ?> value="50">50分钟</option>
-                                    <option <?php if($info['time_interval']==60){ ?>selected<?php } ?> value="60">60分钟</option>
-                                </select></div>
-                            </td>
+                            <td>排班时段(分钟)，10-120分钟</td>
+                            <td><input name="time_interval" style="width: 50px" type="tel" maxlength="3" value="<?=$info['time_interval']?>" autocomplete="off" class="layui-input"/></td>
                         </tr>
                         <tr>
                             <td>排班时段最大下单量</td>

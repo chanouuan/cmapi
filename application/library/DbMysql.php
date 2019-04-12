@@ -203,18 +203,10 @@ class DbMysql extends Db {
     {
         $value = [];
         foreach ($fieldlist as $k => $v) {
-            switch ($v{0}) {
-                case '{':
-                    // 表达式{!}
-                    preg_match('/^\{\!(.+)\}$/', $v, $matches);
-                    if ($matches && isset($matches[1])) {
-                        $value[] = '`' . $k . '` = ' . $matches[1];
-                    } else {
-                        $value[] = '`' . $k . '` = ' . $this->getFieldPrototype($v);
-                    }
-                    break;
-                default:
-                    $value[] = '`' . $k . '` = ' . $this->getFieldPrototype($v, !empty($parameters));
+            if (is_array($v)) {
+                $value[] = '`' . $k . '` = ' . current($v);
+            } else {
+                $value[] = '`' . $k . '` = ' . $this->getFieldPrototype($v, !empty($parameters));
             }
         }
         unset($fieldlist);

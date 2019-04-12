@@ -557,7 +557,7 @@ class ParkWash extends ActionPDO {
      *          "pay":0, //支付金额 (分)
      *          "refundpay":0, //自助洗车退款金额 (分)
      *          "payway":"车币支付", //支付方式
-     *          "items":"[]", //洗车套餐JSON
+     *          "items":[], //洗车套餐JSON
      *          "order_time":"2019-04-01 14:00:00", //预约时间
      *          "create_time":"2019-04-01 09:00:00", //下单时间
      *          "brand_name":"斯柯达", //汽车品牌名
@@ -594,7 +594,7 @@ class ParkWash extends ActionPDO {
      *      "pay":0, //支付金额 (分)
      *      "refundpay":0, //自助洗车退款金额 (分)
      *      "payway":"车币支付", //支付方式
-     *      "items":"[]", //洗车套餐JSON
+     *      "items":[], //洗车套餐JSON
      *      "order_time":"2019-04-01 14:00:00", //预约时间
      *      "create_time":"2019-04-01 09:00:00", //下单时间
      *      "brand_name":"斯柯达", //汽车品牌名
@@ -670,6 +670,10 @@ class ParkWash extends ActionPDO {
      */
     public function getTradeList () {
         return (new ParkWashModel())->getTradeList($this->_G['user']['uid'], $_POST);
+    }
+
+    public function task () {
+        return (new ParkWashModel())->task(getgpc('timer'));
     }
 
 }

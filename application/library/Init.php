@@ -168,12 +168,6 @@ abstract class ActionPDO {
             }
         }
 
-        if (isset($_POST['platform'])) {
-            $this->_G['header']['platform'] = $_POST['platform'];
-        } else {
-            $this->_G['header']['platform'] = 2;
-        }
-
         return $this->_G['header'];
     }
 
@@ -210,7 +204,9 @@ abstract class ActionPDO {
                 continue;
             }
 
-            $method_doc = $reflection->getMethod($v->name)->getDocComment();
+            if (empty($method_doc = $reflection->getMethod($v->name)->getDocComment())) {
+                continue;
+            }
             $method_doc = trim(str_replace(['/**', ' * ', ' */'], '', $method_doc));
 
             preg_match('/@route(.+)/', $method_doc, $matches);
