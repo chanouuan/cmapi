@@ -48,6 +48,47 @@
                 </div>
             </div>
             <div class="layui-form-item">
+                <label class="layui-form-label">
+                    <span class="x-red">*</span>区域代码
+                </label>
+                <div class="layui-input-inline">
+                    <input value="<?=$device_info['adcode']?>" placeholder="请填写区域代码 (贵阳:520100)" type="tel" maxlength="6" id="adcode" name="adcode" required="" lay-verify="required" autocomplete="off" class="layui-input">
+                </div>
+                <div class="layui-input-inline" style="line-height: 30px">
+                    <i class="layui-icon">&#xe60b;</i> <a href="http://www.mca.gov.cn/article/sj/xzqh/1980/2019/201903011116.html" target="_blank">行政区划代码查询</a>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">
+                    <span class="x-red">*</span>设备地址
+                </label>
+                <div class="layui-input-inline">
+                    <input value="<?=$device_info['address']?>" placeholder="请填写设备地址" type="text" maxlength="200" id="address" name="address" required="" lay-verify="required" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">
+                    <span class="x-red">*</span>经纬度
+                </label>
+                <div class="layui-input-inline" style="width: 320px;">
+                    <input value="<?=$device_info['location']?>" placeholder="请输入经纬度坐标,格式为“经度,纬度”,坐标系为gcj02" type="text" maxlength="30" id="location" name="location" required="" lay-verify="required" autocomplete="off" class="layui-input">
+                </div>
+                <div class="layui-input-inline" style="line-height: 30px">
+                    <i class="layui-icon">&#xe60b;</i> <a href="http://www.gpsspg.com/maps.htm" target="_blank">经纬度查询</a>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">
+                    <span class="x-red">*</span>场地名称
+                </label>
+                <div class="layui-input-inline">
+                    <input value="<?=$device_info['site']?>" placeholder="请填写场地名称" type="text" maxlength="20" name="site" required="" lay-verify="required" autocomplete="off" class="layui-input">
+                </div>
+                <div class="layui-input-inline" style="line-height: 30px;width: 300px;">
+                    <i class="layui-icon">&#xe60b;</i> 用于地图显示，相同的场地会合并为一块
+                </div>
+            </div>
+            <div class="layui-form-item">
                 <label class="layui-form-label"></label>
                 <button class="layui-btn" lay-filter="edit" lay-submit="">保存</button>
             </div>

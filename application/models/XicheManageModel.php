@@ -564,6 +564,11 @@ class XicheManageModel extends Crud {
         $post['isonline'] = $post['isonline'] ? 1 : 0;
         $post['price'] = round(floatval($post['price']), 2);
         $post['usetime'] = $post['usetime'] ? 1 : 0;
+        $post['adcode'] = intval($post['adcode']);
+        $post['location'] = trim_space($post['location']);
+        $post['site'] = trim_space($post['site']);
+        $post['location'] = str_replace('，', ',', $post['location']); // 将中文逗号换成英文
+        $post['location'] = LocationUtils::checkLocation($post['location']);
 
         if (!$post['areaname']) {
             return error('请填写区块名称');
@@ -571,11 +576,29 @@ class XicheManageModel extends Crud {
         if ($post['price'] <= 0) {
             return error('价格不能小于等于零');
         }
+        if (strlen($post['adcode']) != 6) {
+            return error('区域代码不正确');
+        }
+        if (empty($post['address'])) {
+            return error('地址不能为空');
+        }
+        list($lon, $lat) = explode(',', $post['location']);
+        if (!$lon || !$lat || $lat > $lon) {
+            return error('经纬度坐标不正确,格式为“经度,纬度”,坐标系为gcj02');
+        }
+        if (empty($post['site'])) {
+            return error('场地不能为空');
+        }
 
         $param = [
             'areaname' => $post['areaname'],
             'isonline' => $post['isonline'],
-            'price' => $post['price'] * 100
+            'price' => $post['price'] * 100,
+            'adcode' => $post['adcode'],
+            'address' => $post['address'],
+            'site' => $post['site'],
+            'location' => $post['location'],
+            'geohash' => (new Geohash())->encode($lat, $lon)
         ];
         if ($post['usetime']) {
             $param['usetime'] = 0;
@@ -626,7 +649,6 @@ class XicheManageModel extends Crud {
             'usestate' => $deviceInfo['UseState'],
             'updated_at' => date('Y-m-d H:i:s', TIMESTAMP),
             'areaid' => $deviceParam['AreaID'],
-            'areaname' => $deviceParam['AreaName'],
             'price' => $deviceParam['Price'] * 100,
             'parameters' => json_unicode_encode($deviceParam)
         ], ['devcode' => $post['devcode']])) {
@@ -641,6 +663,25 @@ class XicheManageModel extends Crud {
      */
     public function deviceAdd ($post) {
         $post['devcode'] = trim($post['devcode']);
+        $post['adcode'] = intval($post['adcode']);
+        $post['location'] = trim_space($post['location']);
+        $post['site'] = trim_space($post['site']);
+        $post['location'] = str_replace('，', ',', $post['location']); // 将中文逗号换成英文
+        $post['location'] = LocationUtils::checkLocation($post['location']);
+
+        if (strlen($post['adcode']) != 6) {
+            return error('区域代码不正确');
+        }
+        if (empty($post['address'])) {
+            return error('地址不能为空');
+        }
+        list($lon, $lat) = explode(',', $post['location']);
+        if (!$lon || !$lat || $lat > $lon) {
+            return error('经纬度坐标不正确,格式为“经度,纬度”,坐标系为gcj02');
+        }
+        if (empty($post['site'])) {
+            return error('场地不能为空');
+        }
 
         if (!preg_match('/^[0-9|a-z|A-Z]{14}$/', $post['devcode'])) {
             return error('请选择设备');
@@ -688,7 +729,12 @@ class XicheManageModel extends Crud {
             'areaid' => $deviceParam['AreaID'],
             'areaname' => $deviceParam['AreaName'],
             'price' => $deviceParam['Price'] * 100,
-            'parameters' => json_unicode_encode($deviceParam)
+            'parameters' => json_unicode_encode($deviceParam),
+            'adcode' => $post['adcode'],
+            'address' => $post['address'],
+            'site' => $post['site'],
+            'location' => $post['location'],
+            'geohash' => (new Geohash())->encode($lat, $lon)
         ])) {
             return error('添加设备失败');
         }

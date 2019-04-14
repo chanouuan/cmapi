@@ -195,6 +195,29 @@ class UserModel extends Crud {
     }
 
     /**
+     * 获取用户列表
+     */
+    public function getUserList ($condition, $field = 'member_id, member_name, member_passwd, member_sex, member_avatar, nickname, available_predeposit', $limit = null, $order = null) {
+        return $this->getDb('chemiv2')
+            ->table('chemi_member')
+            ->field($field)
+            ->where($condition)
+            ->limit($limit)
+            ->order($order)
+            ->select();
+    }
+
+    /**
+     * 获取用户数量
+     */
+    public function getUserCount ($condition) {
+        return $this->getDb('chemiv2')
+            ->table('chemi_member')
+            ->where($condition)
+            ->count();
+    }
+
+    /**
      * 获取用户信息
      */
     public function getUserInfo ($uid) {

@@ -25,10 +25,12 @@
             <th>设备编码</th>
             <th>在线状态</th>
             <th>设备状态</th>
-            <th>使用时间</th>
+            <th>使用状态</th>
             <th>区块ID</th>
             <th>区块名称</th>
+            <th>场地</th>
             <th>售价</th>
+            <th>时长</th>
             <th>设备参数</th>
             <th>操作</th>
         </tr>
@@ -43,20 +45,22 @@
             <td title="<?=$v['usetime']?>"><?=$v['usetime']?'使用中':'未使用'?></td>
             <td><?=$v['areaid']?></td>
             <td><?=$v['areaname']?></td>
-            <td><?=round_dollar($v['price'])?></td>
+            <td><?=$v['site']?></td>
+            <td><?=round_dollar($v['price'],false)?></td>
+            <td><?=$v['duration']?>分钟</td>
             <td onclick="x_admin_show('详情','<?=gurl('xicheManage/deviceParamInfo',['id'=>$v['id']])?>')"><a href="#">查看</a></td>
             <td class="td-manage">
-                <a title="下载二维码" onclick="x_admin_show('查看二维码（下载请右键图片选择“图片另存为”）','<?=gurl('xiche/qrcode',['devcode'=>$v['devcode']])?>')" href="javascript:;">
-                    <i class="layui-icon">&#xe601;</i>
-                </a>
+                <button class="layui-btn layui-btn-xs layui-btn-normal" onclick="x_admin_show('查看二维码（下载请右键图片选择“图片另存为”）','<?=gurl('xiche/qrcode',['devcode'=>$v['devcode']])?>')">
+                    <i class="layui-icon">&#xe601;</i>下载
+                </button>
 
-                <a title="编辑设备" onclick="x_admin_show('编辑设备','<?=gurl('xicheManage/deviceUpdate',['devcode'=>$v['devcode']])?>')" href="javascript:;">
-                    <i class="layui-icon">&#xe642;</i>
-                </a>
+                <button class="layui-btn layui-btn-xs" onclick="x_admin_show('编辑设备','<?=gurl('xicheManage/deviceUpdate',['devcode'=>$v['devcode']])?>')">
+                    <i class="layui-icon">&#xe642;</i>编辑
+                </button>
 
-                <a title="同步设备参数" onclick="sync('<?=$v['devcode']?>')" href="javascript:;">
-                    <i class="layui-icon">&#xe631;</i>
-                </a>
+                <button class="layui-btn layui-btn-xs layui-btn-warm" title="同步设备参数" onclick="sync('<?=$v['devcode']?>')">
+                    <i class="layui-icon">&#xe631;</i>同步
+                </button>
             </td>
         </tr>
         <?php } ?>
@@ -81,7 +85,7 @@
 
 <script>
     function sync(devcode){
-        layer.confirm('确定要同步吗？',function(index){
+        layer.confirm('确定要同步设备参数吗？',function(index){
 
             $.ajax({
                 type: 'POST',

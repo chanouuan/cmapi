@@ -240,7 +240,11 @@ class XicheManage extends ActionPDO {
         $count = $modle->getCount('xiche_device', $condition);
         $pagesize = getPageParams($_GET['page'], $count);
         $list = $modle->getList('xiche_device', $condition, $pagesize['limitstr']);
-
+        foreach ($list as $k => $v) {
+            // 洗车时长
+            $v['parameters'] = json_decode($v['parameters'], true);
+            $list[$k]['duration'] = intval($v['parameters']['WashTotal']);
+        }
         return [
             'pagesize' => $pagesize,
             'list' => $list,
@@ -294,23 +298,23 @@ class XicheManage extends ActionPDO {
         $orderInfo['sequence'] = $modle->getlist('parkwash_order_sequence', ['orderid' => $orderInfo['id']], null, 'id desc', 'title,create_time');
         // 判断状态
         if ($orderInfo['status'] == 2 && $orderInfo['entry_park_id']) {
-            // 已入场
+            // 等待服务
             $orderInfo['status'] = 23;
-            if ($orderInfo['entry_park_id']) {
-                $userModel = new UserModel();
-                $entryPark = $userModel->getCheMiParkingCondition(['id' => $orderInfo['entry_park_id']], 'id,stoping_name', 1);
-                $entryPark = $entryPark[0];
-                $orderInfo['park_name'] = $entryPark['stoping_name'];
-                // 查询出场信息
-                $outPark = $userModel->getCheMiOutParkCondition([
-                    'license_number' => $orderInfo['car_number'], 'order_sn' => $orderInfo['entry_order_sn']
-                ], 'outpark_time', 1);
-                $outParkTime = $outPark ? $outPark[0]['outpark_time'] : 0;
-                $orderInfo['out_park_time'] = $outParkTime ? date('Y-m-d H:i:s', $outParkTime) : '未出场/无出场信息';
-            }
         }
         $orderInfo['status_str'] = $modle->getParkOrderStatus($orderInfo['status']);
-
+        // 获取出入场信息
+        if ($orderInfo['entry_park_id']) {
+            $userModel = new UserModel();
+            $entryPark = $userModel->getCheMiParkingCondition(['id' => $orderInfo['entry_park_id']], 'id,stoping_name', 1);
+            $entryPark = $entryPark[0];
+            $orderInfo['park_name'] = $entryPark['stoping_name'];
+            // 查询出场信息
+            $outPark = $userModel->getCheMiOutParkCondition([
+                'license_number' => $orderInfo['car_number'], 'order_sn' => $orderInfo['entry_order_sn']
+            ], 'outpark_time', 1);
+            $outParkTime = $outPark ? $outPark[0]['outpark_time'] : 0;
+            $orderInfo['out_park_time'] = $outParkTime ? date('Y-m-d H:i:s', $outParkTime) : '未出场/无出场信息';
+        }
         return [
             'info' => $orderInfo
         ];
@@ -415,12 +419,11 @@ class XicheManage extends ActionPDO {
         $userModel = new UserModel();
 
         if ($_GET['telephone']) {
-            $userList = $userModel->getUserByBinding([
-                'platform = 3',
-                'tel = "' . addslashes($_GET['telephone']) . '"'
+            $userInfo = $userModel->getUserInfoCondition([
+                'member_name' => $_GET['telephone']
             ]);
-            if ($userList) {
-                $condition[] = 'trade_id = ' . $userList[0]['uid'];
+            if ($userInfo) {
+                $condition[] = 'trade_id = ' . $userInfo['member_id'];
             }
         }
         if ($_GET['devcode']) {
@@ -459,6 +462,41 @@ class XicheManage extends ActionPDO {
                 $list[$k]['refundpay'] = $v['refundpay'] ? round_dollar($v['refundpay'], false) : '';
             }
         }
+
+        return [
+            'pagesize' => $pagesize,
+            'list' => $list
+        ];
+    }
+
+    /**
+     * 会员管理
+     */
+    public function user () {
+        $modle = new XicheManageModel();
+        $userModel = new UserModel();
+
+        $condition = [];
+        if ($_GET['telephone']) {
+            $userInfo = $userModel->getUserInfoCondition([
+                'member_name' => $_GET['telephone']
+            ]);
+            $condition['uid'] = $userInfo ? $userInfo['member_id'] : 0;
+        }
+        if ($_GET['start_time'] && $_GET['end_time']) {
+            $condition['create_time'] = ['between', [$_GET['start_time'] . ' 00:00:00', $_GET['end_time'] . ' 23:59:59']];
+        }
+
+        $count = $modle->getCount('parkwash_usercount', $condition);
+        $pagesize = getPageParams($_GET['page'], $count);
+        $list = $modle->getList('parkwash_usercount', $condition, $pagesize['limitstr'], 'uid desc');
+        $cmUserList = $userModel->getUserList(['member_id' => ['in', array_column($list, 'uid')]], 'member_id,member_name,available_predeposit');
+        $cmUserList = array_column($cmUserList, null, 'member_id');
+        foreach ($list as $k => $v) {
+            $list[$k]['telephone'] = $cmUserList[$v['uid']]['member_name'];
+            $list[$k]['money'] = $cmUserList[$v['uid']]['available_predeposit'];
+        }
+        unset($cmUserList);
 
         return [
             'pagesize' => $pagesize,
