@@ -145,13 +145,40 @@ class UserModel extends Crud {
     }
 
     /**
+     * 查询车秘入场信息
+     */
+    public function getCheMiEntryParkCondition ($condition, $field = 'id,park_id,enterpark_time,order_sn', $limit = null, $order = null) {
+        return $this->getDb('park')
+            ->table('chemi_stop_entry_log')
+            ->field($field)
+            ->where($condition)
+            ->order($order)
+            ->limit($limit)
+            ->select();
+    }
+
+    /**
+     * 查询车秘出场信息
+     */
+    public function getCheMiOutParkCondition ($condition, $field = 'id,enterpark_time,outpark_time', $limit = null, $order = null) {
+        return $this->getDb('park')
+            ->table('chemi_stop_entry')
+            ->field($field)
+            ->where($condition)
+            ->order($order)
+            ->limit($limit)
+            ->select();
+    }
+
+    /**
      * 获取车秘停车场(搜索条件)
      */
-    public function getCheMiParkingCondition ($condition, $field = 'id, park_code, operator_id, stoping_name, stoping_longitude, stoping_latitude') {
+    public function getCheMiParkingCondition ($condition, $field = 'id, park_code, operator_id, stoping_name, stoping_longitude, stoping_latitude', $limit = null) {
         return $this->getDb('park')
             ->table('chemi_stop_stoping')
             ->field($field)
             ->where($condition)
+            ->limit($limit)
             ->select();
     }
 
@@ -706,7 +733,7 @@ class UserModel extends Crud {
         }
 
         // 发送短信
-        $result = $this->sendSmsServer($post['telephone'], $code);
+        $result = $this->sendSmsServer($post['telephone'], "您的验证码是{".$code."}，5分钟内有效！ #车秘在身边、养车更简单#");
         if ($result['errorcode'] !== 0) {
             return $result;
         }
@@ -717,13 +744,12 @@ class UserModel extends Crud {
     /**
      * 短信服务
      */
-    protected function sendSmsServer ($phone, $code) {
-        $templete = "您的验证码是{".$code."}，5分钟内有效！ #车秘在身边、养车更简单#";
+    public function sendSmsServer ($phone, $message) {
         $param = array(
             'cdkey' => '8SDK-EMY-6699-RJSUN',
             'password' => '275134',
             'phone' => $phone,
-            'message' => $templete
+            'message' => $message
         );
         try{
             $result = https_request('http://hprpt2.eucp.b2m.cn:8080/sdkproxy/sendsms.action', $param, null, 4, 'xml');

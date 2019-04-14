@@ -47,12 +47,6 @@ class Wxpayjs extends ActionPDO {
             return error('交易金额错误');
         }
 
-        // 更新交易单支付参数
-        $model->savePayParam($tradeid, [
-            'payway' => strtolower($this->_module),
-            'mchid' => MCHID
-        ]);
-
         // 获取openid
         if ($tradeInfo['type'] == 'xc' || $tradeInfo['type'] == 'parkwash' || $tradeInfo['type'] == 'pwcharge') {
             $openid = (new XicheModel())->getWxOpenid($tradeInfo['trade_id'], $tradeInfo['type'] == 'xc' ? 'wx' : 'mp');
@@ -69,6 +63,14 @@ class Wxpayjs extends ActionPDO {
         $unifiedOrder->setParameter('notify_url', NOTIFY_URL); // 通知地址
         $unifiedOrder->setParameter('trade_type', 'JSAPI'); // 交易类型
         $prepay_id = $unifiedOrder->getPrepayId();
+
+        // 更新交易单支付参数
+        $model->savePayParam($tradeid, [
+            'payway' => strtolower($this->_module),
+            'mchid' => MCHID,
+            'form_id' => $prepay_id // 用于发送小程序模板消息
+        ]);
+
         // 校验接口返回
         if ($unifiedOrder->result['return_code'] == 'FAIL') {
             return error($unifiedOrder->result['return_msg']);

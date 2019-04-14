@@ -1,0 +1,267 @@
+<?php include('header.html'); ?>
+
+<body>
+<div class="x-nav">
+      <span class="layui-breadcrumb">
+        <a><cite>停车场洗车订单管理</cite></a>
+      </span>
+    <a class="layui-btn layui-btn-small" style="line-height:1.6em;margin-top:3px;float:right" href="javascript:location.replace(location.href);" title="刷新"><i class="layui-icon" style="line-height:30px">ဂ</i></a>
+</div>
+<div class="x-body">
+    <div class="layui-row">
+        <form class="layui-form layui-col-md12 x-so" method="get">
+            <input value="<?=$_GET['order_id']?>" maxlength="50" type="tel" name="order_id"  placeholder="请输入订单号" autocomplete="off" class="layui-input">
+            <input value="<?=$_GET['user_tel']?>" maxlength="11" type="tel" name="user_tel"  placeholder="请输入手机号" autocomplete="off" class="layui-input">
+            <input value="<?=$_GET['car_number']?>" maxlength="10" type="text" name="car_number"  placeholder="请输入车牌" autocomplete="off" class="layui-input">
+            <input value="<?=$_GET['place']?>" maxlength="10" type="text" name="place"  placeholder="请输入车位号" autocomplete="off" class="layui-input">
+            <div class="layui-input-inline">
+                <select name="status">
+                    <option value="">订单状态</option>
+                    <?php foreach($statusList as $k=>$v){ ?>
+                    <option <?php if($_GET['status']==$k){ ?>selected<?php } ?> value="<?=$k?>"><?=$v?></option>
+                    <?php } ?>
+                </select>
+            </div>
+            <input value="<?=$_GET['start_time']?>" class="layui-input" id="start_time" name="start_time" placeholder="预约开始日期" readonly>
+            <input value="<?=$_GET['end_time']?>" class="layui-input" id="end_time" name="end_time" placeholder="预约截止日期" readonly>
+            <button class="layui-btn" lay-submit="" lay-filter="sreach"><i class="layui-icon">&#xe615;</i></button>
+        </form>
+    </div>
+
+    <xblock>
+        <a href="?<?=burl('start_time='.$dateTime['today_start'].'&end_time='.$dateTime['today_end'])?>" class="layui-btn <?php if($dateTime['today_start']==$_GET['start_time']&&$dateTime['today_end']==$_GET['end_time']){ ?>layui-btn-primary<?php } ?>">今日</a>
+        <a href="?<?=burl('start_time='.$dateTime['tomorrow_start'].'&end_time='.$dateTime['tomorrow_end'])?>" class="layui-btn <?php if($dateTime['tomorrow_start']==$_GET['start_time']&&$dateTime['tomorrow_end']==$_GET['end_time']){ ?>layui-btn-primary<?php } ?>">明日</a>
+        <a href="?<?=burl('start_time='.$dateTime['week_start'].'&end_time='.$dateTime['week_end'])?>" class="layui-btn <?php if($dateTime['week_start']==$_GET['start_time']&&$dateTime['week_end']==$_GET['end_time']){ ?>layui-btn-primary<?php } ?>">本周</a>
+        <a href="?<?=burl('start_time='.$dateTime['month_start'].'&end_time='.$dateTime['month_end'])?>" class="layui-btn <?php if($dateTime['month_start']==$_GET['start_time']&&$dateTime['month_end']==$_GET['end_time']){ ?>layui-btn-primary<?php } ?>">本月</a>
+        <a href="?<?=burl('start_time='.$dateTime['lastmonth_start'].'&end_time='.$dateTime['lastmonth_end'])?>" class="layui-btn <?php if($dateTime['lastmonth_start']==$_GET['start_time']&&$dateTime['lastmonth_end']==$_GET['end_time']){ ?>layui-btn-primary<?php } ?>">上月</a>
+        <a href="?<?=burl('start_time='.$dateTime['year_start'].'&end_time='.$dateTime['year_end'])?>" class="layui-btn <?php if($dateTime['year_start']==$_GET['start_time']&&$dateTime['year_end']==$_GET['end_time']){ ?>layui-btn-primary<?php } ?>">本年</a>
+        <span class="x-right" style="line-height:40px">共有数据：<?=$pagesize['totalcount']?> 条</span>
+    </xblock>
+
+    <table class="layui-table">
+        <thead>
+        <tr>
+            <th>订单号</th>
+            <th>店铺</th>
+            <th>下单时间</th>
+            <th>车牌</th>
+            <th>车系</th>
+            <th>用户手机</th>
+            <th>预约时间</th>
+            <th>区域</th>
+            <th>车位号</th>
+            <th>套餐</th>
+            <th>支付金额</th>
+            <th>状态</th>
+            <th>入场信息</th>
+            <th>操作</th>
+        </tr>
+        </thead>
+        <tbody>
+        <?php foreach($list as $k=>$v){ ?>
+        <tr>
+            <td><?=$v['id']?></td>
+            <td><?=$v['store_name']?></td>
+            <td><?=$v['create_time']?></td>
+            <td><?=$v['car_number']?></td>
+            <td><?=$v['car_name']?></td>
+            <td><?=$v['user_tel']?></td>
+            <td><?=$v['order_time']?></td>
+            <td><?=$v['area_name']?> <?=$v['area_floor']?></td>
+            <td><?=$v['place']?></td>
+            <td><?=$v['items']?></td>
+            <td><?=$v['pay']?></td>
+            <td><?=$v['status_str']?></td>
+            <td><?=$v['entry_park']?></td>
+            <td class="td-manage">
+                <button class="layui-btn layui-btn-xs layui-btn-primary" onclick="x_admin_show('查看详情','<?=gurl('xicheManage/parkOrderView',['id'=>$v['id']])?>')"><i class="layui-icon">&#xe60b;</i>详情</button>
+                <?php if($v['status']==1){ ?>
+                <button class="layui-btn layui-btn-xs layui-btn-normal" onclick="take(<?=$v['id']?>)"><i class="layui-icon">&#xe605;</i>接单</button>
+                <?php } ?>
+                <?php if($v['status']==2||$v['status']==23){ ?>
+                <button class="layui-btn layui-btn-xs layui-btn-warm" onclick="service(<?=$v['id']?>)"><i class="layui-icon">&#xe605;</i>开始服务</button>
+                <?php } ?>
+                <?php if($v['status']==3){ ?>
+                <button class="layui-btn layui-btn-xs" onclick="complete(<?=$v['id']?>)"><i class="layui-icon">&#xe605;</i>完成洗车</button>
+                <?php } ?>
+                <?php if($v['status']!=4&&$v['status']!=-1){ ?>
+                <button class="layui-btn layui-btn-xs layui-btn-danger" onclick="fail(<?=$v['id']?>)"><i class="layui-icon">&#x1006;</i>异常</button>
+                <?php } ?>
+            </td>
+        </tr>
+        <?php } ?>
+        </tbody>
+    </table>
+
+    <?php if($pagesize['totalpage']>1){ ?>
+    <div class="page">
+        <div>
+            <?php foreach($pagesize['scrollpage'] as $k=>$v){ ?>
+            <?php if($pagesize['page']==$k){ ?>
+            <span class="current"><?=$v?></span>
+            <?php }else{ ?>
+            <a class="num" href="?<?=burl('page='.$k)?>"><?=$v?></a>
+            <?php } ?>
+            <?php } ?>
+        </div>
+    </div>
+    <?php } ?>
+
+</div>
+
+<script>
+    layui.use(['laydate'], function(){
+        var laydate = layui.laydate;
+        laydate.render({
+            elem: '#start_time'
+        });
+        laydate.render({
+            elem: '#end_time'
+        });
+    });
+    function fail(id){
+        layer.prompt({
+            formType: 2,
+            value: '',
+            title: '请输入异常原因 (注:提交后订单进入已完成状态,且不发送消息提醒)',
+            maxlength: 100,
+            area: ['400px', '150px'] //自定义文本域宽高
+        }, function(value, index, elem){
+            $.ajax({
+                type: 'POST',
+                url: "<?=gurl('xicheManage/parkOrderStatusUpdate')?>",
+                data: {id: id, status: 4, fail_reason:value},
+                dataType: 'json',
+                timeout: 5000,
+                success: function(res){
+                    layer.closeAll();
+                    if(res.errorcode != 0) {
+                        return layer.msg(res.message);
+                    }
+                    layer.msg('操作成功',{icon:1,time:1000});
+                    window.location.reload();
+                },
+                beforeSend: function(xhr){
+                    layer.load();
+                },
+                error: function(xhr, type){
+                    layer.closeAll();
+                    layer.msg('网络错误，请重试!');
+                }
+            });
+            layer.close(index);
+        });
+        var event = event || window.event;
+        if(event.stopPropagation){
+            event.stopPropagation();
+        }else {
+            event.cancelBubble = true;
+        }
+        return false;
+    }
+    function complete(id){
+        layer.confirm('确定已完成洗车吗？完成洗车后不能撤销操作',function(index){
+            $.ajax({
+                type: 'POST',
+                url: "<?=gurl('xicheManage/parkOrderStatusUpdate')?>",
+                data: {id: id, status: 4},
+                dataType: 'json',
+                timeout: 5000,
+                success: function(res){
+                    layer.closeAll();
+                    if(res.errorcode != 0) {
+                        return layer.msg(res.message);
+                    }
+                    layer.msg('操作成功',{icon:1,time:1000});
+                    window.location.reload();
+                },
+                beforeSend: function(xhr){
+                    layer.load();
+                },
+                error: function(xhr, type){
+                    layer.closeAll();
+                    layer.msg('网络错误，请重试!');
+                }
+            });
+            return;
+        });
+        var event = event || window.event;
+        if(event.stopPropagation){
+            event.stopPropagation();
+        }else {
+            event.cancelBubble = true;
+        }
+        return false;
+    }
+    function service(id){
+        layer.confirm('确定要开始服务吗？开始服务后不能撤销操作',function(index){
+            $.ajax({
+                type: 'POST',
+                url: "<?=gurl('xicheManage/parkOrderStatusUpdate')?>",
+                data: {id: id, status: 3},
+                dataType: 'json',
+                timeout: 5000,
+                success: function(res){
+                    layer.closeAll();
+                    if(res.errorcode != 0) {
+                        return layer.msg(res.message);
+                    }
+                    layer.msg('操作成功',{icon:1,time:1000});
+                    window.location.reload();
+                },
+                beforeSend: function(xhr){
+                    layer.load();
+                },
+                error: function(xhr, type){
+                    layer.closeAll();
+                    layer.msg('网络错误，请重试!');
+                }
+            });
+            return;
+        });
+        var event = event || window.event;
+        if(event.stopPropagation){
+            event.stopPropagation();
+        }else {
+            event.cancelBubble = true;
+        }
+        return false;
+    }
+    function take(id){
+        layer.confirm('确定要接单吗？接单后不能撤销操作',function(index){
+            $.ajax({
+                type: 'POST',
+                url: "<?=gurl('xicheManage/parkOrderStatusUpdate')?>",
+                data: {id: id, status: 2},
+                dataType: 'json',
+                timeout: 5000,
+                success: function(res){
+                    layer.closeAll();
+                    if(res.errorcode != 0) {
+                        return layer.msg(res.message);
+                    }
+                    layer.msg('操作成功',{icon:1,time:1000});
+                    window.location.reload();
+                },
+                beforeSend: function(xhr){
+                    layer.load();
+                },
+                error: function(xhr, type){
+                    layer.closeAll();
+                    layer.msg('网络错误，请重试!');
+                }
+            });
+            return;
+        });
+        var event = event || window.event;
+        if(event.stopPropagation){
+            event.stopPropagation();
+        }else {
+            event.cancelBubble = true;
+        }
+        return false;
+    }
+</script>
+</body>
+
+</html>

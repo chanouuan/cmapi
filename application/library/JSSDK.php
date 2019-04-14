@@ -18,6 +18,61 @@ class JSSDK {
     }
 
     /**
+     * 获取小程序模板消息
+     */
+    public function getMiniprogramTemplateList ()
+    {
+        $accessToken = $this->getAccessToken();
+        if ($accessToken['errorcode'] !== 0) {
+            return $accessToken;
+        }
+        $accessToken = $accessToken['result']['access_token'];
+        try {
+            $result = https_request('https://api.weixin.qq.com/cgi-bin/wxopen/template/list?access_token=' . $accessToken, json_encode([
+                'offset' => 0, 'count' => 20
+            ]));
+        } catch (\Exception $e) {
+            return error($e->getMessage());
+        }
+        if ($result['errcode']) {
+            return error($result['errmsg']);
+        }
+        return success($result['list']);
+    }
+
+    /**
+     * 发送小程序模板消息
+     */
+    public function sendMiniprogramTemplateMessage ($info)
+    {
+        $wxcontent = [];
+        $wxcontent['touser'] = $info['openid'];
+        $wxcontent['template_id'] = $info['template_id'];
+        if ($info['page']) {
+            $wxcontent['page'] = $info['page'];
+        }
+        $wxcontent['form_id'] = $info['form_id']; // 表单提交场景下，为 submit 事件带上的 formId；支付场景下，为本次支付的 prepay_id
+        $wxcontent['data'] = $info['data'];
+        if ($info['emphasis_keyword']) {
+            $wxcontent['emphasis_keyword'] = $info['emphasis_keyword'];
+        }
+        $accessToken = $this->getAccessToken();
+        if ($accessToken['errorcode'] !== 0) {
+            return $accessToken;
+        }
+        $accessToken = $accessToken['result']['access_token'];
+        try {
+            $result = https_request('https://api.weixin.qq.com/cgi-bin/message/wxopen/template/send?access_token=' . $accessToken, json_encode($wxcontent));
+        } catch (\Exception $e) {
+            return error($e->getMessage());
+        }
+        if ($result['errcode']) {
+            return error($result['errmsg']);
+        }
+        return success('OK');
+    }
+
+    /**
      * 微信小程序开放数据校验与解密
      * @param
      * {

@@ -9,6 +9,134 @@ use app\library\LocationUtils;
 class XicheManageModel extends Crud {
 
     /**
+     * 更新停车场洗车订单状态
+     */
+    public function parkOrderStatusUpdate ($post) {
+        $post['id'] = intval($post['id']);
+        $post['status'] = intval($post['status']);
+        $post['fail_reason'] = msubstr(trim_space($post['fail_reason']));
+
+        if (!$orderInfo = $this->getInfo('parkwash_order', ['id' => $post['id']], 'id,uid,status,user_tel,store_id,create_time,order_time')) {
+            return error('该订单不存在');
+        }
+        $parkWashModel = new ParkWashModel();
+        $storeInfo = $this->getInfo('parkwash_store', ['id' => $orderInfo['store_id']], 'name');
+        $tradeInfo = (new TradeModel())->get(null, ['trade_id' => $orderInfo['uid'], 'order_id' => $orderInfo['id']], 'form_id,uses');
+
+        if ($post['status'] == 2) {
+            // 接单
+            if ($orderInfo['status'] != 1) {
+                return error('该订单不是待接单状态');
+            }
+            if (!$this->getDb()->update('parkwash_order', [
+                'take_time' => date('Y-m-d H:i:s', TIMESTAMP), 'status' => 2, 'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
+            ], [
+                'id' => $post['id'], 'status' => 1
+            ])) {
+                return error('操作失败');
+            }
+            // 记录订单状态改变
+            $parkWashModel->pushSequence([
+                'orderid' => $orderInfo['id'],
+                'uid' => $orderInfo['uid'],
+                'title' => '商家已接单'
+            ]);
+            // 通知用户
+            $parkWashModel->pushNotice([
+                'receiver' => 1,
+                'notice_type' => 0,
+                'orderid' => $orderInfo['id'],
+                'store_id' => $orderInfo['store_id'],
+                'uid' => $orderInfo['uid'],
+                'tel' => $orderInfo['user_tel'],
+                'title' => '商家已接单',
+                'content' => '您好，「' . $storeInfo['name'] . '」已接单，请留意开始服务提醒！'
+            ]);
+            // 微信模板消息通知用户
+            $result = $parkWashModel->sendTemplateMessage($orderInfo['uid'], 'take_order', $tradeInfo['form_id'], '/pages/orderprofile/orderprofile?order_id=' . $orderInfo['id'], [
+                '已接单', $storeInfo['name'], $tradeInfo['uses'], date('Y-m-d H:i:s', TIMESTAMP), '您好，商家已接单，请留意开始服务提醒！'
+            ]);
+            if ($result['errorcdoe'] !== 0) {
+                // 微信模板消息发送失败，就发送短信
+                (new UserModel())->sendSmsServer($orderInfo['user_tel'], '您好，「' . $storeInfo['name'] . '」已接单，请留意开始服务提醒！');
+            }
+        } else if ($post['status'] == 3) {
+            // 开始服务
+            if ($orderInfo['status'] != 2) {
+                return error('该订单不是已接单状态');
+            }
+            if (!$this->getDb()->update('parkwash_order', [
+                'service_time' => date('Y-m-d H:i:s', TIMESTAMP), 'status' => 3, 'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
+            ], [
+                'id' => $post['id'], 'status' => 2
+            ])) {
+                return error('操作失败');
+            }
+            // 记录订单状态改变
+            $parkWashModel->pushSequence([
+                'orderid' => $orderInfo['id'],
+                'uid' => $orderInfo['uid'],
+                'title' => '商家开始服务'
+            ]);
+            // 通知用户
+            $parkWashModel->pushNotice([
+                'receiver' => 1,
+                'notice_type' => 0,
+                'orderid' => $orderInfo['id'],
+                'store_id' => $orderInfo['store_id'],
+                'uid' => $orderInfo['uid'],
+                'tel' => $orderInfo['user_tel'],
+                'title' => '商家开始服务',
+                'content' => '您好，「' . $storeInfo['name'] . '」正在为您服务，请留意完成洗车提醒！'
+            ]);
+            // 发送短信
+            (new UserModel())->sendSmsServer($orderInfo['user_tel'], '您好，「' . $storeInfo['name'] . '」正在为您服务，请留意完成洗车提醒！');
+        } else if ($post['status'] == 4) {
+            // 完成洗车
+            if ($orderInfo['status'] <= 0) {
+                return error('该订单不是已支付状态');
+            }
+            if (!$this->getDb()->update('parkwash_order', [
+                'service_time' => date('Y-m-d H:i:s', TIMESTAMP), 'status' => 4, 'update_time' => date('Y-m-d H:i:s', TIMESTAMP), 'fail_reason' => strval($post['fail_reason'])
+            ], [
+                'id' => $post['id'], 'status' => ['in', [1,2,3]]
+            ])) {
+                return error('操作失败');
+            }
+            // 记录订单状态改变
+            $parkWashModel->pushSequence([
+                'orderid' => $orderInfo['id'],
+                'uid' => $orderInfo['uid'],
+                'title' => '商家完成洗车'
+            ]);
+            // 通知用户
+            $parkWashModel->pushNotice([
+                'receiver' => 1,
+                'notice_type' => 0,
+                'orderid' => $orderInfo['id'],
+                'store_id' => $orderInfo['store_id'],
+                'uid' => $orderInfo['uid'],
+                'tel' => $orderInfo['user_tel'],
+                'title' => '商家完成洗车',
+                'content' => '您好，「' . $storeInfo['name'] . '」已完成洗车，感谢您的使用！'
+            ]);
+            // 异常完成不发送短信
+            if (!$post['fail_reason']) {
+                // 微信模板消息通知用户
+                $result = $parkWashModel->sendTemplateMessage($orderInfo['uid'], 'complete_order', $tradeInfo['form_id'], '/pages/orderprofile/orderprofile?order_id=' . $orderInfo['id'], [
+                    '已完成', $storeInfo['name'], $tradeInfo['uses'], date('Y-m-d H:i:s', TIMESTAMP)
+                ]);
+                if ($result['errorcdoe'] !== 0) {
+                    // 发送短信
+                    (new UserModel())->sendSmsServer($orderInfo['user_tel'], '您好，「' . $storeInfo['name'] . '」已完成洗车，感谢您的使用！');
+                }
+            }
+        }
+
+        return success('OK');
+    }
+
+    /**
      * 套餐删除
      */
     public function itemDelete ($id) {
@@ -331,13 +459,13 @@ class XicheManageModel extends Crud {
     /**
      * 获取设备列表
      */
-    public function getList ($table, $condition, $limit = null, $order = 'id desc') {
+    public function getList ($table, $condition, $limit = null, $order = 'id desc', $field = null) {
         if (0 !== strpos($table, 'parkwash_')) {
             $table = '__tablepre__' . $table;
         }
         return $this->getDb()
             ->table($table)
-            ->field('*')
+            ->field($field)
             ->where($condition)
             ->order($order)
             ->limit($limit)
@@ -620,6 +748,57 @@ class XicheManageModel extends Crud {
      */
     public function getConfigInfo ($id) {
         return $this->getDb()->table('__tablepre__config')->field('*')->where(['id' => $id])->find();
+    }
+
+    /**
+     * 获取时间区间
+     */
+    public function getSearchDateTime ()
+    {
+        $today_starttime = date('Y-m-d');
+        $today_endtime = $today_starttime;
+        $tomorrow_starttime = date('Y-m-d', TIMESTAMP + 86400);
+        $tomorrow_endtime = $tomorrow_starttime;
+        $week_starttime = mktime(0, 0, 0, date('m'), date('d') - (date('w') ? (date('w') - 1) : 6), date('Y'));
+        $week_starttime = date('Y-m-d', $week_starttime);
+        $week_endtime = date('Y-m-d', strtotime($week_starttime) + 6 * 86400);
+        $lastmonth_starttime = mktime(0, 0, 0, date('m') - 1, 1, date('Y'));
+        $lastmonth_endtime = mktime(0, 0, 0, date('m'), 1, date('Y')) - 1;
+        $lastmonth_starttime = date('Y-m-d', $lastmonth_starttime);
+        $lastmonth_endtime = date('Y-m-d', $lastmonth_endtime);
+        $month_starttime = mktime(0, 0, 0, date('m'), 1, date('Y'));
+        $month_starttime = date('Y-m-d', $month_starttime);
+        $month_endtime = date('Y-m-d', mktime(0, 0, 0, date('m') + 1, 1, date('Y')) - 1);
+        $year_starttime = mktime(0, 0, 0, 1, 1, date('Y'));
+        $year_starttime = date('Y-m-d', $year_starttime);
+        $year_endtime = date('Y-m-d', mktime(0, 0, 0, 1, 1, date('Y') + 1) - 1);
+        return array(
+            'today_start' => $today_starttime,
+            'today_end' => $today_endtime,
+            'tomorrow_start' => $tomorrow_starttime,
+            'tomorrow_end' => $tomorrow_endtime,
+            'week_start' => $week_starttime,
+            'week_end' => $week_endtime,
+            'lastmonth_start' => $lastmonth_starttime,
+            'lastmonth_end' => $lastmonth_endtime,
+            'month_start' => $month_starttime,
+            'month_end' => $month_endtime,
+            'year_start' => $year_starttime,
+            'year_end' => $year_endtime
+        );
+    }
+
+    /**
+     * 获取洗车场订单状态
+     */
+    public function getParkOrderStatus ($status = null) {
+        $arr = [
+            1 => '待接单', -1 => '已取消',  2 => '已接单', 23 => '等待服务', 3 => '服务中', 4 => '已完成'
+        ];
+        if (!isset($status)) {
+            return $arr;
+        }
+        return isset($arr[$status]) ? $arr[$status] : '未知';
     }
 
 }

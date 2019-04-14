@@ -258,9 +258,156 @@ class XicheManage extends ActionPDO {
     }
 
     /**
-     * 订单管理
+     * 更新停车场洗车订单状态
      */
-    public function order () {
+    public function parkOrderStatusUpdate () {
+        return (new XicheManageModel())->parkOrderStatusUpdate($_POST);
+    }
+
+    /**
+     * 查看停车场洗车订单详情
+     */
+    public function parkOrderView (){
+
+        $modle = new XicheManageModel();
+        $orderInfo = $modle->getInfo('parkwash_order', ['id' => getgpc('id')]);
+        $payway = [
+            'cbpay' => '车币', 'wxpayjs' => '微信', 'wxpayh5' => '微信H5', 'wxpaywash' => '微信'
+        ];
+        $brandInfo = $modle->getInfo('parkwash_car_brand', ['id' => $orderInfo['brand_id']], 'name');
+        $seriesInfo = $modle->getInfo('parkwash_car_series', ['id' => $orderInfo['series_id']], 'name');
+        $areaInfo = $modle->getInfo('parkwash_park_area', ['id' => $orderInfo['area_id']], 'floor,name');
+        $storeInfo = $modle->getInfo('parkwash_store', ['id' => $orderInfo['store_id']], 'name,tel,address,order_count,money');
+        $orderInfo['order_code'] = str_replace(['-', ' ', ':'], '', $orderInfo['create_time']) . $orderInfo['id'];
+        $orderInfo['brand_name'] = $brandInfo['name'];
+        $orderInfo['series_name'] = $seriesInfo['name'];
+        $orderInfo['area_floor'] = $areaInfo['floor'];
+        $orderInfo['area_name'] = $areaInfo['name'];
+        $orderInfo['store_name'] = $storeInfo['name'];
+        $orderInfo['store_tel'] = $storeInfo['tel'];
+        $orderInfo['store_address'] = $storeInfo['address'];
+        $orderInfo['store_order_count'] = $storeInfo['order_count'];
+        $orderInfo['store_money'] = $storeInfo['money'];
+        $orderInfo['items'] = json_decode($orderInfo['items'], true);
+        $orderInfo['payway'] = isset($payway[$orderInfo['payway']]) ? $payway[$orderInfo['payway']] : $orderInfo['payway'];
+        // 获取订单时序表
+        $orderInfo['sequence'] = $modle->getlist('parkwash_order_sequence', ['orderid' => $orderInfo['id']], null, 'id desc', 'title,create_time');
+        // 判断状态
+        if ($orderInfo['status'] == 2 && $orderInfo['entry_park_id']) {
+            // 已入场
+            $orderInfo['status'] = 23;
+            if ($orderInfo['entry_park_id']) {
+                $userModel = new UserModel();
+                $entryPark = $userModel->getCheMiParkingCondition(['id' => $orderInfo['entry_park_id']], 'id,stoping_name', 1);
+                $entryPark = $entryPark[0];
+                $orderInfo['park_name'] = $entryPark['stoping_name'];
+                // 查询出场信息
+                $outPark = $userModel->getCheMiOutParkCondition([
+                    'license_number' => $orderInfo['car_number'], 'order_sn' => $orderInfo['entry_order_sn']
+                ], 'outpark_time', 1);
+                $outParkTime = $outPark ? $outPark[0]['outpark_time'] : 0;
+                $orderInfo['out_park_time'] = $outParkTime ? date('Y-m-d H:i:s', $outParkTime) : '未出场/无出场信息';
+            }
+        }
+        $orderInfo['status_str'] = $modle->getParkOrderStatus($orderInfo['status']);
+
+        return [
+            'info' => $orderInfo
+        ];
+    }
+
+    /**
+     * 停车场洗车订单管理
+     */
+    public function parkOrder () {
+
+        $condition = [
+            'xc_trade_id' => 0
+        ];
+        if ($_GET['order_id']) {
+            $condition['id'] = $_GET['order_id'];
+        }
+        if ($_GET['telephone']) {
+            $condition['telephone'] = $_GET['telephone'];
+        }
+        if ($_GET['car_number']) {
+            $condition['car_number'] = ['like', $_GET['car_number'] . '%'];
+        }
+        if ($_GET['place']) {
+            $condition['place'] = ['like', $_GET['place'] . '%'];
+        }
+        if ($_GET['status']) {
+            if ($_GET['status'] == 23) {
+                // 等待服务状态
+                $condition['status'] = 2;
+                $condition['entry_park_id'] = ['>', 0];
+            } else {
+                $condition['status'] = $_GET['status'];
+            }
+        } else {
+            $condition['status'] = ['<>', 0];
+        }
+        if ($_GET['start_time'] && $_GET['end_time']) {
+            $condition['order_time'] = ['between', [$_GET['start_time'] . ' 00:00:00', $_GET['end_time'] . ' 23:59:59']];
+        }
+
+        $modle = new XicheManageModel();
+        $count = $modle->getCount('parkwash_order', $condition);
+        $pagesize = getPageParams($_GET['page'], $count);
+        $list = $modle->getList('parkwash_order', $condition, $pagesize['limitstr'], 'id desc', 'id,entry_park_id,entry_park_time,store_id,create_time,car_number,brand_id,series_id,user_tel,order_time,area_id,place,items,pay,status');
+
+        if ($list) {
+            $brandList = $modle->getList('parkwash_car_brand', ['id' => ['in', array_column($list, 'brand_id')]], null, null, 'id,name');
+            $brandList = array_column($brandList, null, 'id');
+            $seriesList = $modle->getList('parkwash_car_series', ['id' => ['in', array_column($list, 'series_id')]], null, null, 'id,name');
+            $seriesList = array_column($seriesList, null, 'id');
+            $areaList = $modle->getList('parkwash_park_area', ['id' => ['in', array_column($list, 'area_id')]], null, null, 'id,floor,name');
+            $areaList = array_column($areaList, null, 'id');
+            $storeList = $modle->getList('parkwash_store', ['id' => ['in', array_column($list, 'store_id')]], null, null, 'id,name');
+            $storeList = array_column($storeList, null, 'id');
+            $entryPark = [];
+            foreach ($list as $k => $v) {
+                $list[$k]['create_time'] = substr($v['create_time'], 0, -3);
+                $list[$k]['order_time'] = substr($v['order_time'], 0, -3);
+                $list[$k]['car_name'] = $brandList[$v['brand_id']]['name'] . ' ' . $seriesList[$v['series_id']]['name'];
+                $list[$k]['area_floor'] = $areaList[$v['area_id']]['floor'];
+                $list[$k]['area_name'] = $areaList[$v['area_id']]['name'];
+                $list[$k]['store_name'] = $storeList[$v['store_id']]['name'];
+                $list[$k]['items'] = implode(',', array_column(json_decode($v['items'], true), 'name'));
+                $list[$k]['pay'] = round_dollar($v['pay'], false);
+                // 判断等待服务状态
+                if ($v['status'] == 2 && $v['entry_park_id']) {
+                    $list[$k]['status'] = 23; // 等待服务
+                    if ($v['entry_park_id']) {
+                        $entryPark[] = $v['entry_park_id'];
+                    }
+                }
+                $list[$k]['status_str'] = $modle->getParkOrderStatus($list[$k]['status']);
+            }
+            if ($entryPark) {
+                $entryPark = (new UserModel())->getCheMiParkingCondition(['id' => ['in', $entryPark]], 'id,stoping_name');
+                $entryPark = array_column($entryPark, null, 'id');
+                foreach ($list as $k => $v) {
+                    if ($v['status'] == 23) {
+                        $list[$k]['entry_park'] = '「' . $v['entry_park_time'] . '」进入' . $entryPark[$v['entry_park_id']]['stoping_name'];
+                    }
+                }
+            }
+            unset($brandList, $seriesList, $areaList, $storeList, $entryPark);
+        }
+
+        return [
+            'pagesize' => $pagesize,
+            'list' => $list,
+            'dateTime' => $modle->getSearchDateTime(),
+            'statusList' => $modle->getParkOrderStatus()
+        ];
+    }
+
+    /**
+     * 自助洗车订单管理
+     */
+    public function xicheOrder () {
         $condition = [
             'type = "xc"'
         ];

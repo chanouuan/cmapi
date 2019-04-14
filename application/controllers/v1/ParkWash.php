@@ -68,10 +68,9 @@ class ParkWash extends ActionPDO {
         }
 
         // 绑定小程序
-        $post = $reponse['result'];
-        $post['__authcode'] = $post['authcode'];
+        $reponse['__authcode'] = $reponse['authcode'];
         $parkwashModel = new ParkWashModel();
-        $result = $parkwashModel->miniprogramLogin($post);
+        $result = $parkwashModel->miniprogramLogin($reponse);
         if ($result['errorcode'] === 0) {
             // 插入 userCount 表
             $parkwashModel->saveUserCount($result['result']['uid']);

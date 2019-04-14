@@ -166,16 +166,16 @@ function set_cookie ($name, $value, $expire = 0)
     $_COOKIE[$name] = $value;
 }
 
-function template_replace ($template, $value)
+function template_replace ($template, array $value)
 {
     if (empty($template)) {
         return '';
     }
-    if (empty($value)) {
-        return $template;
-    }
     foreach ($value as $k => $v) {
         $template = str_replace('{$' . $k . '}', $v, $template);
+    }
+    if (false !== strpos($template, '{$')) {
+        $template = preg_replace('/(\{\$.+\})/', '', $template);
     }
     return $template;
 }

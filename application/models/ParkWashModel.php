@@ -352,7 +352,7 @@ class ParkWashModel extends Crud {
         ];
         $tradeModel = new TradeModel();
         $tradeModel->update($tradeParam, [
-            'type' => 'parkwash', 'trade_id' => $orderInfo['uid'], 'param_id' => $orderInfo['id'], 'status' => 1
+            'type' => 'parkwash', 'trade_id' => $orderInfo['uid'], 'order_id' => $orderInfo['id'], 'status' => 1
         ]);
 
         // 退费为车币
@@ -375,7 +375,7 @@ class ParkWashModel extends Crud {
                 $tradeModel->update([
                     'status' => 1
                 ], [
-                    'type' => 'parkwash', 'trade_id' => $orderInfo['uid'], 'param_id' => $orderInfo['id'], 'status' => -1
+                    'type' => 'parkwash', 'trade_id' => $orderInfo['uid'], 'order_id' => $orderInfo['id'], 'status' => -1
                 ]);
                 return $result;
             }
@@ -1323,16 +1323,21 @@ class ParkWashModel extends Crud {
         $tradeModel = new TradeModel();
         if ($lastTradeInfo = $tradeModel->get(null, [
             'trade_id' => $uid, 'mark' => md5(json_encode($orderParam)), 'status' => 0
-            ], 'id,createtime,payway')) {
+            ], 'id,order_id,createtime,payway')) {
             // 支付方式相同，返回上次生成的订单
             if ($lastTradeInfo['payway'] == $post['payway']) {
-                if (strtotime($lastTradeInfo['createtime']) < TIMESTAMP - 600) {
-                    if (false === $tradeModel->update([
-                            'ordercode' => $orderCode, 'createtime' => date('Y-m-d H:i:s', TIMESTAMP)
-                        ], 'id = ' . $lastTradeInfo['id'])) {
-                        return error('更新订单失败');
-                    }
+                $param = [
+                    'ordercode' => $orderCode, 'createtime' => date('Y-m-d H:i:s', TIMESTAMP)
+                ];
+                // 更新小程序form_id
+                if ($post['form_id']) {
+                    $param['form_id'] = $post['form_id'];
                 }
+                $tradeModel->update($param, 'id = ' . $lastTradeInfo['id']);
+                // 更新订单时间
+                $this->getDb()->update('parkwash_order', [
+                    'create_time' => $param['createtime'], 'update_time' => $param['createtime'],
+                ], 'id = ' . $lastTradeInfo['order_id']);
                 return success([
                     'tradeid' => $lastTradeInfo['id']
                 ]);
@@ -1358,7 +1363,7 @@ class ParkWashModel extends Crud {
             }
             unset($orderParam['create_time'], $orderParam['update_time']);
             if (!$db->insert('__tablepre__payments', [
-                'type' => 'parkwash', 'uses' => '洗车服务', 'trade_id' => $orderParam['uid'], 'param_id' => $orderid, 'pay' => $totalPrice, 'money' => $totalPrice, 'payway' => $post['payway'] == 'cbpay' ? 'cbpay' : '', 'ordercode' => $orderCode, 'createtime' => date('Y-m-d H:i:s', TIMESTAMP), 'mark' => md5(json_encode($orderParam))
+                'type' => 'parkwash', 'form_id' => $post['form_id'], 'uses' => '洗车服务', 'trade_id' => $orderParam['uid'], 'order_id' => $orderid, 'pay' => $totalPrice, 'money' => $totalPrice, 'payway' => $post['payway'] == 'cbpay' ? 'cbpay' : '', 'ordercode' => $orderCode, 'createtime' => date('Y-m-d H:i:s', TIMESTAMP), 'mark' => md5(json_encode($orderParam))
             ])) {
                 return false;
             }
@@ -1413,9 +1418,9 @@ class ParkWashModel extends Crud {
         }
 
         // 支付成功返回订单ID
-        $tradeInfo = $tradeModel->get($post['tradeid'], null, 'param_id');
+        $tradeInfo = $tradeModel->get($post['tradeid'], null, 'order_id');
         return success([
-            'orderid' => $tradeInfo['param_id']
+            'orderid' => $tradeInfo['order_id']
         ]);
     }
 
@@ -1426,7 +1431,7 @@ class ParkWashModel extends Crud {
     public function handleCardFail ($cardId) {
 
         if (!$tradeInfo = $this->getDb()->table('__tablepre__payments')
-            ->field('id,trade_id,param_id')
+            ->field('id,trade_id,order_id')
             ->where(['id' => $cardId])
             ->limit(1)
             ->find()) {
@@ -1435,7 +1440,7 @@ class ParkWashModel extends Crud {
 
         // 删除交易单与订单
         $this->getDb()->delete('__tablepre__payments', 'status = 0 and id = ' . $cardId);
-        $this->getDb()->delete('parkwash_order', 'status = 0 and id = ' . $tradeInfo['param_id']);
+        $this->getDb()->delete('parkwash_order', 'status = 0 and id = ' . $tradeInfo['order_id']);
 
         return success('OK');
     }
@@ -1449,7 +1454,7 @@ class ParkWashModel extends Crud {
     public function handleCardSuc ($cardId, $tradeParam = []) {
 
         if (!$tradeInfo = $this->getDb()->table('__tablepre__payments')
-            ->field('id,type,trade_id,param_id,voucher_id,pay,money,ordercode,payway')
+            ->field('id,type,trade_id,order_id,form_id,voucher_id,pay,money,ordercode,payway,uses')
             ->where(['id' => $cardId])
             ->limit(1)
             ->find()) {
@@ -1476,7 +1481,7 @@ class ParkWashModel extends Crud {
             if (!$db->update('parkwash_order', [
                 'status' => 1, 'payway' => $tradeInfo['payway'], 'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
             ], [
-                'id' => $tradeInfo['param_id'], 'status' => 0
+                'id' => $tradeInfo['order_id'], 'status' => 0
             ])) {
                 return false;
             }
@@ -1486,10 +1491,10 @@ class ParkWashModel extends Crud {
         }
 
         // 获取订单信息
-        $orderInfo = $this->findOrderInfo(['id' => $tradeInfo['param_id']], 'id,uid,store_id,car_number,order_time');
+        $orderInfo = $this->findOrderInfo(['id' => $tradeInfo['order_id']], 'id,uid,store_id,car_number,order_time,create_time');
 
         // 获取门店信息
-        $storeInfo = $this->findStoreInfo(['id' => $orderInfo['store_id']], 'id,tel');
+        $storeInfo = $this->findStoreInfo(['id' => $orderInfo['store_id']], 'id,name,tel');
 
         // 更新门店下单数、收益
         $this->getDb()->update('parkwash_store', [
@@ -1534,6 +1539,11 @@ class ParkWashModel extends Crud {
             'content' => template_replace('{$car_number}已下单，预约时间:{$order_time}', [
                 'car_number' => $orderInfo['car_number'], 'order_time' => $orderInfo['order_time']
             ])
+        ]);
+
+        // 微信模板消息通知用户
+        $this->sendTemplateMessage($orderInfo['uid'], 'create_order', $tradeInfo['form_id'], '/pages/orderprofile/orderprofile?order_id=' . $orderInfo['id'], [
+            '￥' . round_dollar($tradeInfo['money'], false), $storeInfo['name'], $tradeInfo['uses'], $orderInfo['create_time'], '下单成功，请等待商家接单'
         ]);
 
         return success('OK');
@@ -1589,15 +1599,50 @@ class ParkWashModel extends Crud {
     }
 
     /**
+     * 发送微信模板消息
+     */
+    public function sendTemplateMessage ($uid, $template_name, $form_id, $page, array $value = []) {
+
+        if (!$form_id) {
+            return error('form_id不能为空');
+        }
+        if (!$openid = (new XicheModel())->getWxOpenid($uid, 'mp')) {
+            return error('openid不能为空');
+        }
+        $wxConfig = getSysConfig('parkwash', 'wx');
+        if (!isset($wxConfig['template_id'][$template_name]) ||
+            !$wxConfig['template_id'][$template_name]['id']  ||
+            !$wxConfig['template_id'][$template_name]['data']) {
+            return error('模板消息参数错误');
+        }
+        $jssdk = new \app\library\JSSDK($wxConfig['appid'], $wxConfig['appsecret']);
+        $data = $wxConfig['template_id'][$template_name]['data'];
+        foreach ($data as $k => $v) {
+            $data[$k]['value'] = template_replace($v['value'], $value);
+        }
+        return $jssdk->sendMiniprogramTemplateMessage([
+            'openid' => $openid,
+            'template_id' => $wxConfig['template_id'][$template_name]['id'],
+            'page' => $page,
+            'form_id' => $form_id,
+            'data' => $data,
+            'emphasis_keyword' => $wxConfig['template_id'][$template_name]['emphasis_keyword']
+        ]);
+    }
+
+    /**
      * 自助洗车成功后，加入到停车场洗车订单中
      */
     public function handleXichePaySuc ($param) {
 
-        return $this->getDb()->insert('parkwash_order', array_merge($param, [
+        if (!$this->getDb()->insert('parkwash_order', array_merge($param, [
             'create_time' => date('Y-m-d H:i:s', TIMESTAMP),
             'update_time' => date('Y-m-d H:i:s', TIMESTAMP),
             'status' => 1
-        ]));
+        ]))) {
+            return false;
+        }
+        return $this->getDb()->getlastid();
     }
 
     /**
@@ -1637,7 +1682,7 @@ class ParkWashModel extends Crud {
     /**
      * 写入通知
      */
-    protected function pushNotice ($post) {
+    public function pushNotice ($post) {
 
         return $this->getDb()->insert('parkwash_notice', [
             'receiver' => $post['receiver'], 'notice_type' => $post['notice_type'], 'orderid' => $post['orderid'], 'store_id' => $post['store_id'], 'uid' => $post['uid'], 'tel' => $post['tel'], 'title' => $post['title'], 'url' => $post['url'], 'content' => $post['content'], 'create_time' => date('Y-m-d H:i:s', TIMESTAMP)
@@ -1647,7 +1692,7 @@ class ParkWashModel extends Crud {
     /**
      * 记录订单状态改变
      */
-    protected function pushSequence ($post) {
+    public function pushSequence ($post) {
 
         return $this->getDb()->insert('parkwash_order_sequence', [
             'orderid' => $post['orderid'], 'uid' => $post['uid'], 'title' => $post['title'], 'create_time' => date('Y-m-d H:i:s', TIMESTAMP)
