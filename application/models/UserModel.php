@@ -147,7 +147,7 @@ class UserModel extends Crud {
     /**
      * 查询车秘入场信息
      */
-    public function getCheMiEntryParkCondition ($condition, $field = 'id,park_id,enterpark_time,order_sn', $limit = null, $order = null) {
+    public function getCheMiEntryParkCondition ($condition, $field = 'id,license_number,park_id,enterpark_time,order_sn', $limit = null, $order = null) {
         return $this->getDb('park')
             ->table('chemi_stop_entry_log')
             ->field($field)

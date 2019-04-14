@@ -14,7 +14,11 @@ class XicheManageModel extends Crud {
     public function parkOrderStatusUpdate ($post) {
         $post['id'] = intval($post['id']);
         $post['status'] = intval($post['status']);
+        $is_fail_reason = isset($post['fail_reason']);
         $post['fail_reason'] = msubstr(trim_space($post['fail_reason']));
+        if ($is_fail_reason && !$post['fail_reason']) {
+            return error('异常原因不能为空');
+        }
 
         if (!$orderInfo = $this->getInfo('parkwash_order', ['id' => $post['id']], 'id,uid,status,user_tel,store_id,create_time,order_time')) {
             return error('该订单不存在');

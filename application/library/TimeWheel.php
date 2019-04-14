@@ -16,9 +16,19 @@ class TimeWheel {
         if (!$timewheel) {
             $timewheel = [
                 [
-                    'name' => '10s',
+                    'name' => '5s',
                     'type' => 'polling',
-                    'timeout' => 10
+                    'timeout' => 5
+                ],
+                [
+                    'name' => '60s',
+                    'type' => 'polling',
+                    'timeout' => 60
+                ],
+                [
+                    'name' => '300s',
+                    'type' => 'polling',
+                    'timeout' => 300
                 ],
                 [
                     'name' => '600s',
@@ -35,6 +45,18 @@ class TimeWheel {
                     'name' => '1h',
                     'type' => 'dayofhour',
                     'timeout' => 1,
+                    'lasttime' => ''
+                ],
+                [
+                    'name' => '2h',
+                    'type' => 'dayofhour',
+                    'timeout' => 2,
+                    'lasttime' => ''
+                ],
+                [
+                    'name' => '3h',
+                    'type' => 'dayofhour',
+                    'timeout' => 3,
                     'lasttime' => ''
                 ]
             ];

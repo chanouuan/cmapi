@@ -1861,11 +1861,74 @@ class ParkWashModel extends Crud {
             $this->taskStoreSchedule();
             $this->taskCleanExpireTrade();
         }
+        // 每 300 秒执行
+        if (false !== strpos($timer, '300s')) {
+            $this->taskEntryPark();
+        }
         // 每 600 秒执行
         if (false !== strpos($timer, '600s')) {
             $this->taskCleanExpireOrder();
         }
         return success(date('Y-m-d H:i:s', TIMESTAMP));
+    }
+
+    /**
+     * 入场车辆查询
+     */
+    protected function taskEntryPark () {
+
+        // 获取已接单，且已到预约时间的订单
+        $orderList = $this->getDb()
+            ->table('parkwash_order')
+            ->field('id,car_number')
+            ->where([
+                'order_time' => ['between', [date('Y-m-d H:i:s', TIMESTAMP - 7200), date('Y-m-d H:i:s', TIMESTAMP)]], 'status' => 2, 'entry_park_id' => 0,
+            ])
+            ->limit(1000)
+            ->select();
+        if (!$orderList) {
+            return false;
+        }
+
+        // 查询入场车
+        $entryParkList = (new UserModel())->getCheMiEntryParkCondition([
+            'license_number' => ['in', array_column($orderList, 'car_number')]
+        ]);
+        if (!$entryParkList) {
+            return false;
+        }
+
+        // 组合数据获取最近的进场记录
+        $entryParkData = [];
+        foreach ($entryParkList as $k => $v) {
+            if (isset($entryParkData[$v['license_number']])) {
+                if ($entryParkData[$v['license_number']]['enterpark_time'] < $v['enterpark_time']) {
+                    $entryParkData[$v['license_number']] = $v;
+                }
+            } else {
+                $entryParkData[$v['license_number']] = $v;
+            }
+        }
+        unset($entryParkList);
+
+        // 更新订单入场信息
+        $orderData = [];
+        foreach ($orderList as $k => $v) {
+            $orderData[$v['car_number']][] = $v['id'];
+        }
+        unset($orderList);
+
+        foreach ($orderData as $k => $v) {
+            if (isset($entryParkData[$k])) {
+                $this->getDb()->update('parkwash_order', [
+                    'entry_park_time' => date('Y-m-d H:i:s', $entryParkData[$k]['enterpark_time']),
+                    'entry_park_id' => $entryParkData[$k]['park_id'],
+                    'entry_order_sn' => $entryParkData[$k]['order_sn']
+                ], ['id' => ['in', $v]]);
+            }
+        }
+
+        return true;
     }
 
     /**
