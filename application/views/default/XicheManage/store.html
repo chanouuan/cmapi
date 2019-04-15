@@ -45,9 +45,9 @@
             <td><?=$v['tel']?></td>
             <td><?=$v['address']?></td>
             <td><?=$v['business_hours']?></td>
-            <td><?=round_dollar($v['price'])?></td>
+            <td><?=round_dollar($v['price'],false)?></td>
             <td><?=$v['order_count']?></td>
-            <td><?=round_dollar($v['money'])?></td>
+            <td><?=round_dollar($v['money'],false)?></td>
             <td><?=$v['str_status']?></td>
             <td class="td-manage">
                 <button class="layui-btn layui-btn layui-btn-xs" onclick="x_admin_show('编辑店铺','<?=gurl('xicheManage/storeUpdate',['id'=>$v['id']])?>')"><i class="layui-icon"></i>编辑</button>
