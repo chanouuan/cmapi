@@ -420,6 +420,41 @@ class XicheManageModel extends Crud {
         }
         $this->getDb()->insert('parkwash_store_item', $item);
 
+        // 正常营业状态
+        if ($post['status']) {
+            // 排班天数
+            $scheduleDays = getConfig('xc', 'schedule_days');
+            $scheduleDays = $scheduleDays < 1 ? 1 : $scheduleDays;
+            $scheduleDays = $scheduleDays > 30 ? 30 : $scheduleDays;
+            $date = [];
+            for ($i = 0; $i < $scheduleDays; $i++) {
+                $date[] = date('Y-m-d', TIMESTAMP + 86400 * $i);
+            }
+            // 新增排班
+            if ($duration = (new ParkWashModel())->selectDuration($post['business_hours'], $post['time_interval'])) {
+                $post['time_day'] = str_split($post['time_day']);
+                $pool = [];
+                foreach ($date as $kk => $vv) {
+                    // 跳过不在工作日的
+                    if (!in_array(date('N', $vv), $post['time_day'])) {
+                        continue;
+                    }
+                    foreach ($duration as $kkk => $vvv) {
+                        $pool[] = [
+                            'store_id' => $store_id,
+                            'today' => $vv,
+                            'start_time' => $vvv[0],
+                            'end_time' => $vvv[1],
+                            'amount' => $post['time_amount']
+                        ];
+                    }
+                }
+                if ($pool) {
+                    $this->getDb()->insert('parkwash_pool', $pool);
+                }
+            }
+        }
+
         return success('OK');
     }
 

@@ -1642,7 +1642,16 @@ class ParkWashModel extends Crud {
         ]))) {
             return false;
         }
-        return $this->getDb()->getlastid();
+        $order_id = $this->getDb()->getlastid();
+        // 更新用户下单数、消费
+        $this->getDb()->update('parkwash_usercount', [
+            'coupon_consume' => ['coupon_consume+' . $param['deduct']],
+            'xiche_count' => ['xiche_count+1'],
+            'xiche_consume' => ['xiche_consume+' . $param['pay']]
+        ], [
+            'uid' => $param['uid']
+        ]);
+        return $order_id;
     }
 
     /**
@@ -1859,6 +1868,8 @@ class ParkWashModel extends Crud {
         if (false !== strpos($timer, '0h')) {
             $this->taskCleanSchedule();
             $this->taskStoreSchedule();
+        }
+        if (false !== strpos($timer, '1h')) {
             $this->taskCleanExpireTrade();
         }
         // 每 300 秒执行
@@ -1997,6 +2008,7 @@ class ParkWashModel extends Crud {
         // 排班天数
         $scheduleDays = getConfig('xc', 'schedule_days');
         $scheduleDays = $scheduleDays < 1 ? 1 : $scheduleDays;
+        $scheduleDays = $scheduleDays > 30 ? 30 : $scheduleDays;
 
         $date = [];
         for ($i = 0; $i < $scheduleDays; $i++) {
@@ -2052,7 +2064,7 @@ class ParkWashModel extends Crud {
     /**
      * 获取时间分段
      */
-    protected function selectDuration ($business_hours, $time_interval) {
+    public function selectDuration ($business_hours, $time_interval) {
 
         // 验证营业时间是否正确
         list($start, $end) = explode('-', $business_hours);
