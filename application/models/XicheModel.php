@@ -647,8 +647,11 @@ class XicheModel extends Crud {
         // 获取设备
         $deviceInfo = $this->getDeviceById($tradeInfo['param_id'], 'adcode,devcode');
 
-        // 更新设备使用中
-        $this->updateDevUse($tradeInfo['id'], $tradeInfo['param_id']);
+        // 更新设备使用中、下单数、收益
+        $this->updateDevUse($tradeInfo['id'], $tradeInfo['param_id'], [
+            'order_count' => ['order_count+1'],
+            'money' => ['money+' . $tradeInfo['money']]
+        ]);
 
         // 加入到停车场洗车订单中
         $order_id = (new ParkWashModel())->handleXichePaySuc([
