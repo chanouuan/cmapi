@@ -3,7 +3,6 @@
 namespace app\controllers;
 
 use ActionPDO;
-use app\library\JSSDK;
 use app\models\XicheModel;
 use app\models\TradeModel;
 use app\models\UserModel;
@@ -110,7 +109,7 @@ class Xiche extends ActionPDO {
             // 微信登录
             if (empty($this->_G['user'])) {
                 $wxConfig = getSysConfig('xiche', 'wx');
-                $jssdk = new JSSDK($wxConfig['appid'], $wxConfig['appsecret']);
+                $jssdk = new \app\library\JSSDK($wxConfig['appid'], $wxConfig['appsecret']);
                 $userInfo = $jssdk->connectAuth(gurl('xiche/login', burl()), 'snsapi_base', false);
                 if ($userInfo['errorcode'] === 0) {
                     $this->_G['user'] = $model->checkLogin($userInfo['result']);
@@ -127,7 +126,7 @@ class Xiche extends ActionPDO {
         $this->showVuePage('', [
             'devcode' => getgpc('devcode'),
             'authcode' => (isset($userInfo) && isset($userInfo['result']['authcode'])) ? $userInfo['result']['authcode'] : '',
-            'token' => $this->_G['user'] ? $_COOKIE['token'] : ''
+            'token' => $this->_G['user'] ? $this->_G['user']['token'] : ''
         ]);
 
         if ($this->_G['user']) {
@@ -221,7 +220,7 @@ class Xiche extends ActionPDO {
         if (CLIENT_TYPE == 'wx' && false) {
             // 加载微信JSSDK
             $wxConfig = getSysConfig('xiche', 'wx');
-            $jssdk = new JSSDK($wxConfig['appid'], $wxConfig['appsecret']);
+            $jssdk = new \app\library\JSSDK($wxConfig['appid'], $wxConfig['appsecret']);
             $jssdk = $jssdk->GetSignPackage();
             if ($jssdk['errorcode'] !== 0) {
                 $jssdk = null;

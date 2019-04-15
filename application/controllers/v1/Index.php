@@ -189,6 +189,11 @@ class Index extends \ActionPDO {
         foreach ($list as $k => $v) {
             $list[$k] = str_replace(APPLICATION_PATH . '/log', '', $v);
         }
+        if ($_GET['clear']) {
+            if (file_exists($path)) {
+                unlink($path);
+            }
+        }
         ?>
         <!doctype html>
         <html>
