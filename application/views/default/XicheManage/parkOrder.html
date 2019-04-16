@@ -59,7 +59,7 @@
             <th>套餐</th>
             <th>支付金额</th>
             <th>状态</th>
-            <th>入场信息</th>
+            <th>入场时间</th>
             <th>操作</th>
         </tr>
         </thead>
@@ -78,7 +78,7 @@
             <td><?=$v['items']?></td>
             <td><?=$v['pay']?></td>
             <td><?=$v['status_str']?></td>
-            <td><?=$v['entry_park']?></td>
+            <td><?=$v['status']==23?$v['entry_park_time']:''?></td>
             <td class="td-manage">
                 <button class="layui-btn layui-btn-xs layui-btn-primary" onclick="x_admin_show('查看详情','<?=gurl('xicheManage/parkOrderView',['id'=>$v['id']])?>')"><i class="layui-icon">&#xe60b;</i>详情</button>
                 <?php if($v['status']==1){ ?>

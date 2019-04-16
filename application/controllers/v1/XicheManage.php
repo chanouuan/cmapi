@@ -476,7 +476,6 @@ class XicheManage extends ActionPDO {
             $areaList = array_column($areaList, null, 'id');
             $storeList = $modle->getList('parkwash_store', ['id' => ['in', array_column($list, 'store_id')]], null, null, 'id,name');
             $storeList = array_column($storeList, null, 'id');
-            $entryPark = [];
             foreach ($list as $k => $v) {
                 $list[$k]['create_time'] = substr($v['create_time'], 0, -3);
                 $list[$k]['order_time'] = substr($v['order_time'], 0, -3);
@@ -489,22 +488,10 @@ class XicheManage extends ActionPDO {
                 // 判断等待服务状态
                 if ($v['status'] == 2 && $v['entry_park_id']) {
                     $list[$k]['status'] = 23; // 等待服务
-                    if ($v['entry_park_id']) {
-                        $entryPark[] = $v['entry_park_id'];
-                    }
                 }
                 $list[$k]['status_str'] = $modle->getParkOrderStatus($list[$k]['status']);
             }
-            if ($entryPark) {
-                $entryPark = (new UserModel())->getCheMiParkingCondition(['id' => ['in', $entryPark]], 'id,stoping_name');
-                $entryPark = array_column($entryPark, null, 'id');
-                foreach ($list as $k => $v) {
-                    if ($v['status'] == 23) {
-                        $list[$k]['entry_park'] = '「' . $v['entry_park_time'] . '」进入' . $entryPark[$v['entry_park_id']]['stoping_name'];
-                    }
-                }
-            }
-            unset($brandList, $seriesList, $areaList, $storeList, $entryPark);
+            unset($brandList, $seriesList, $areaList, $storeList);
             // 洗车提醒
             $noPlaceCount = \app\library\DB::getInstance()
                 ->table('parkwash_order')
