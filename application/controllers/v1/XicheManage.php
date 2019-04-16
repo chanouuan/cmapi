@@ -170,6 +170,113 @@ class XicheManage extends ActionPDO {
     }
 
     /**
+     * 车位状态管理
+     */
+    public function parking () {
+        $condition = [];
+        if ($_GET['place']) {
+            $condition['place'] = ['like', '%' . $_GET['place'] . '%'];
+        }
+
+        $modle = new XicheManageModel();
+        $count = $modle->getCount('parkwash_parking', $condition);
+        $pagesize = getPageParams($_GET['page'], $count);
+        $list = $modle->getList('parkwash_parking', $condition, $pagesize['limitstr']);
+        if ($list) {
+            $areaList = $modle->getList('parkwash_park_area', [
+                'id' => ['in', array_column($list, 'area_id')]
+            ]);
+            $areaList = array_column($areaList, null, 'id');
+            foreach ($list as $k => $v) {
+                $list[$k]['area_floor'] = $areaList[$v['area_id']]['floor'];
+                $list[$k]['area_name'] = $areaList[$v['area_id']]['name'];
+            }
+        }
+
+        return [
+            'pagesize' => $pagesize,
+            'list' => $list
+        ];
+    }
+
+    /**
+     * 车位状态添加
+     */
+    public function parkingAdd () {
+        if (submitcheck()) {
+            return (new XicheManageModel())->parkingAdd($_POST);
+        }
+        $modle = new XicheManageModel();
+        $areaList = $modle->getList('parkwash_park_area', ['status' => 1]);
+        return compact('areaList');
+    }
+
+    /**
+     * 车位状态编辑
+     */
+    public function parkingUpdate () {
+        if (submitcheck()) {
+            return (new XicheManageModel())->parkingUpdate($_POST);
+        }
+
+        $model = new XicheManageModel();
+        $info = $model->getInfo('parkwash_parking', ['id' => getgpc('id')]);
+        $areaList = $model->getList('parkwash_park_area', ['status' => 1]);
+        return compact('info', 'areaList');
+    }
+
+    /**
+     * 车位状态删除
+     */
+    public function parkingDelete () {
+        return (new XicheManageModel())->parkingDelete(getgpc('id'));
+    }
+
+    /**
+     * 车位区域管理
+     */
+    public function area () {
+        $condition = [];
+        if ($_GET['name']) {
+            $condition['name'] = ['like', '%' . $_GET['name'] . '%'];
+        }
+
+        $model = new XicheManageModel();
+        $count = $model->getCount('parkwash_park_area', $condition);
+        $pagesize = getPageParams($_GET['page'], $count);
+        $list = $model->getList('parkwash_park_area', $condition, $pagesize['limitstr']);
+
+        return [
+            'pagesize' => $pagesize,
+            'list' => $list
+        ];
+    }
+
+    /**
+     * 车位区域添加
+     */
+    public function areaAdd () {
+        if (submitcheck()) {
+            return (new XicheManageModel())->areaAdd($_POST);
+        }
+
+        return [];
+    }
+
+    /**
+     * 车位区域添加
+     */
+    public function areaUpdate () {
+        if (submitcheck()) {
+            return (new XicheManageModel())->areaUpdate($_POST);
+        }
+
+        $model = new XicheManageModel();
+        $info = $model->getInfo('parkwash_park_area', ['id' => getgpc('id')]);
+        return compact('info');
+    }
+
+    /**
      * 获取设备列表
      */
     public function getDev () {
@@ -398,13 +505,23 @@ class XicheManage extends ActionPDO {
                 }
             }
             unset($brandList, $seriesList, $areaList, $storeList, $entryPark);
+            // 洗车提醒
+            $noPlaceCount = \app\library\DB::getInstance()
+                ->table('parkwash_order')
+                ->where([
+                    'order_time' => ['between', [date('Y-m-d H:i:s', TIMESTAMP - 1800), date('Y-m-d H:i:s', TIMESTAMP)]],
+                    'status' => 2,
+                    'place' => ''
+                ])
+                ->count();
         }
 
         return [
             'pagesize' => $pagesize,
             'list' => $list,
             'dateTime' => $modle->getSearchDateTime(),
-            'statusList' => $modle->getParkOrderStatus()
+            'statusList' => $modle->getParkOrderStatus(),
+            'noPlaceCount' => $noPlaceCount
         ];
     }
 

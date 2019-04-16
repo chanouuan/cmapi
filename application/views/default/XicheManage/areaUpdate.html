@@ -1,0 +1,79 @@
+<?php include('header.html'); ?>
+
+  <body>
+    <div class="x-body">
+        <form id="form" class="layui-form">
+            <div class="layui-form-item">
+                <label class="layui-form-label">
+                  <span class="x-red">*</span>楼层
+                </label>
+                <div class="layui-input-inline">
+                  <input value="<?=$info['floor']?>" placeholder="请填写楼层" type="text" maxlength="20" name="floor" required="" lay-verify="required" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">
+                    <span class="x-red">*</span>区域
+                </label>
+                <div class="layui-input-inline">
+                    <input value="<?=$info['name']?>" placeholder="请填写区域" type="text" maxlength="20" name="name" required="" lay-verify="required" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">
+                    <span class="x-red">*</span>状态
+                </label>
+                <div class="layui-input-inline">
+                    <select name="status">
+                        <option value="1">正常</option>
+                        <option <?php if(!$info['status']){ ?>selected<?php } ?> value="0">禁用</option>
+                    </select>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <input type="hidden" name="id" value="<?=$info['id']?>">
+                <input type="hidden" name="formhash" value="<?=encode_formhash()?>">
+                <label class="layui-form-label"></label>
+                <button class="layui-btn" lay-filter="add" lay-submit="">提交</button>
+            </div>
+      </form>
+    </div>
+    <script>
+        layui.use(['form','layer'], function(){
+            $ = layui.jquery;
+            var form = layui.form, layer = layui.layer;
+
+            //监听提交
+            form.on('submit(add)', function(data){
+                $.ajax({
+                    type: 'POST',
+                    url: '<?=gurl('xicheManage/areaUpdate')?>',
+                    data: data.field,
+                    dataType: 'json',
+                    timeout: 10000,
+                    success: function(list){
+                       layer.closeAll();
+                       if(list.errorcode != 0) {
+                           return layer.msg(list.message);
+                       }
+                       layer.alert("修改成功", {icon: 6},function () {
+                           parent.location.reload();
+                       });
+                    },
+                    beforeSend: function(xhr){
+                       layer.load();
+                    },
+                    error: function(xhr, type){
+                       layer.closeAll();
+                       layer.msg('网络错误，请重试!');
+                    }
+                });
+                return false;
+          });
+
+        });
+    </script>
+
+  </body>
+
+</html>

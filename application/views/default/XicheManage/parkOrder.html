@@ -8,6 +8,12 @@
     <a class="layui-btn layui-btn-small" style="line-height:1.6em;margin-top:3px;float:right" href="javascript:location.replace(location.href);" title="刷新"><i class="layui-icon" style="line-height:30px">ဂ</i></a>
 </div>
 <div class="x-body">
+    <?php if($noPlaceCount){ ?>
+    <blockquote class="layui-elem-quote">
+        <i class="layui-icon">&#xe667;</i> 洗车提醒，有 <?=$noPlaceCount?> 个订单用户未填写车位号，请和用户确认订单信息
+    </blockquote>
+    <?php } ?>
+
     <div class="layui-row">
         <form class="layui-form layui-col-md12 x-so" method="get">
             <input value="<?=$_GET['order_id']?>" maxlength="50" type="tel" name="order_id"  placeholder="请输入订单号" autocomplete="off" class="layui-input">

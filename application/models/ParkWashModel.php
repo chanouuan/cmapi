@@ -1973,7 +1973,7 @@ class ParkWashModel extends Crud {
         $this->getDb()->delete('parkwash_order_queue', [
             'id' => ['in', array_column($queueList, 'id')]
         ]);
-        unset($queueList);
+        unset($data, $queueList);
 
         return true;
     }

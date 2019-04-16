@@ -1,0 +1,93 @@
+<?php include('header.html'); ?>
+
+<body>
+<div class="x-nav">
+      <span class="layui-breadcrumb">
+        <a><cite>车位状态</cite></a>
+      </span>
+    <a class="layui-btn layui-btn-small" style="line-height:1.6em;margin-top:3px;float:right" href="javascript:location.replace(location.href);" title="刷新"><i class="layui-icon" style="line-height:30px">ဂ</i></a>
+</div>
+<div class="x-body">
+    <div class="layui-row">
+        <form class="layui-form layui-col-md12 x-so" method="get">
+            <input value="<?=$_GET['place']?>" maxlength="10" type="text" name="place" placeholder="请输入车位" autocomplete="off" class="layui-input">
+            <button class="layui-btn" lay-submit="" lay-filter="sreach"><i class="layui-icon">&#xe615;</i></button>
+        </form>
+    </div>
+
+    <xblock>
+        <button class="layui-btn" onclick="x_admin_show('添加车位','<?=gurl('xicheManage/parkingAdd')?>')"><i class="layui-icon"></i>添加</button>
+    </xblock>
+    <table class="layui-table">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>区域</th>
+            <th>车位</th>
+            <th>状态</th>
+            <th>操作</th>
+        </tr>
+        </thead>
+        <tbody>
+        <?php foreach($list as $k=>$v){ ?>
+        <tr>
+            <td><?=$v['id']?></td>
+            <td><?=$v['area_floor']?> <?=$v['area_name']?></td>
+            <td><?=$v['place']?></td>
+            <td><?=$v['status']?'正常':'不支持洗车服务'?></td>
+            <td class="td-manage">
+                <button class="layui-btn layui-btn-xs" onclick="x_admin_show('编辑区域','<?=gurl('xicheManage/parkingUpdate',['id'=>$v['id']])?>')"><i class="layui-icon"></i>编辑</button>
+                <button class="layui-btn-danger layui-btn layui-btn-xs" onclick="del(<?=$v['id']?>)"><i class="layui-icon"></i>删除</button>
+            </td>
+        </tr>
+        <?php } ?>
+        </tbody>
+    </table>
+
+    <?php if($pagesize['totalpage']>1){ ?>
+    <div class="page">
+        <div>
+            <?php foreach($pagesize['scrollpage'] as $k=>$v){ ?>
+            <?php if($pagesize['page']==$k){ ?>
+            <span class="current"><?=$v?></span>
+            <?php }else{ ?>
+            <a class="num" href="?<?=burl('page='.$k)?>"><?=$v?></a>
+            <?php } ?>
+            <?php } ?>
+        </div>
+    </div>
+    <?php } ?>
+</div>
+
+<script>
+    function del(id){
+        layer.confirm('确定要删除吗？',function(index){
+            $.ajax({
+                type: 'POST',
+                url: '<?=gurl('xicheManage/parkingDelete')?>',
+                data: {id: id},
+            dataType: 'json',
+                timeout: 5000,
+                success: function(res){
+                layer.closeAll();
+                if(res.errorcode != 0) {
+                    return layer.msg(res.message);
+                }
+                layer.msg('删除成功',{icon:1,time:1000});
+                window.location.reload();
+            },
+            beforeSend: function(xhr){
+                layer.load();
+            },
+            error: function(xhr, type){
+                layer.closeAll();
+                layer.msg('网络错误，请重试!');
+            }
+        });
+            return;
+        });
+    }
+</script>
+</body>
+
+</html>

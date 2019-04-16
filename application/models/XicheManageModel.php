@@ -58,15 +58,15 @@ class XicheManageModel extends Crud {
                 'uid' => $orderInfo['uid'],
                 'tel' => $orderInfo['user_tel'],
                 'title' => '商家已接单',
-                'content' => '您好，「' . $storeInfo['name'] . '」已接单，请留意开始服务提醒！'
+                'content' => $storeInfo['name'] . '已接单，请您在预约时间进入停车场并完善您的车位信息，感谢您的支持'
             ]);
             // 微信模板消息通知用户
             $result = $parkWashModel->sendTemplateMessage($orderInfo['uid'], 'take_order', $tradeInfo['form_id'], '/pages/orderprofile/orderprofile?order_id=' . $orderInfo['id'], [
-                '已接单', $storeInfo['name'], $tradeInfo['uses'], date('Y-m-d H:i:s', TIMESTAMP), '您好，商家已接单，请留意开始服务提醒！'
+                '已接单', $storeInfo['name'], $tradeInfo['uses'], date('Y-m-d H:i:s', TIMESTAMP), '商家已接单，请您在预约时间进入停车场并完善您的车位信息，感谢您的支持'
             ]);
             if ($result['errorcdoe'] !== 0) {
                 // 微信模板消息发送失败，就发送短信
-                (new UserModel())->sendSmsServer($orderInfo['user_tel'], '您好，「' . $storeInfo['name'] . '」已接单，请留意开始服务提醒！');
+                (new UserModel())->sendSmsServer($orderInfo['user_tel'], '温馨提醒，' . $storeInfo['name'] . '已接单，请在预约时间进入停车场并完善您的车位信息，感谢您的支持');
             }
         } else if ($post['status'] == 3) {
             // 开始服务
@@ -99,10 +99,10 @@ class XicheManageModel extends Crud {
                 'uid' => $orderInfo['uid'],
                 'tel' => $orderInfo['user_tel'],
                 'title' => '商家开始服务',
-                'content' => '您好，「' . $storeInfo['name'] . '」正在为您服务，请留意完成洗车提醒！'
+                'content' => $storeInfo['name'] . '正在为您服务，请留意完成洗车提醒！'
             ]);
             // 发送短信
-            (new UserModel())->sendSmsServer($orderInfo['user_tel'], '您好，「' . $storeInfo['name'] . '」正在为您服务，请留意完成洗车提醒！');
+            (new UserModel())->sendSmsServer($orderInfo['user_tel'], $storeInfo['name'] . '正在为您服务，请留意完成洗车提醒！');
         } else if ($post['status'] == 4) {
             // 完成洗车
             if ($orderInfo['status'] <= 0) {
@@ -138,7 +138,7 @@ class XicheManageModel extends Crud {
                 'uid' => $orderInfo['uid'],
                 'tel' => $orderInfo['user_tel'],
                 'title' => '商家完成洗车',
-                'content' => '您好，「' . $storeInfo['name'] . '」已完成洗车，感谢您的使用！'
+                'content' => $storeInfo['name'] . '已经完成洗车，请您确认订单完成，感谢您的支持'
             ]);
             // 异常完成不发送短信
             if (!$post['fail_reason']) {
@@ -148,7 +148,7 @@ class XicheManageModel extends Crud {
                 ]);
                 if ($result['errorcdoe'] !== 0) {
                     // 发送短信
-                    (new UserModel())->sendSmsServer($orderInfo['user_tel'], '您好，「' . $storeInfo['name'] . '」已完成洗车，感谢您的使用！');
+                    (new UserModel())->sendSmsServer($orderInfo['user_tel'], '温馨提醒，' . $storeInfo['name'] . '已经完成洗车，请您确认订单完成，感谢您的支持');
                 }
             }
         }
@@ -469,6 +469,116 @@ class XicheManageModel extends Crud {
                     $this->getDb()->insert('parkwash_pool', $pool);
                 }
             }
+        }
+
+        return success('OK');
+    }
+
+    /**
+     * 车位状态添加
+     */
+    public function parkingAdd ($post) {
+        $post['area_id'] = intval($post['area_id']);
+        $post['place'] = trim_space($post['place']);
+        $post['status'] = $post['status'] ? 1 : 0;
+
+        if (!$post['place']) {
+            return error('车位号不能为空');
+        }
+
+        if (!$this->getDb()->insert('parkwash_parking', [
+            'area_id' => $post['area_id'],
+            'place' => $post['place'],
+            'status' => $post['status']
+        ])) {
+            return error('添加失败');
+        }
+
+        return success('OK');
+    }
+
+    /**
+     * 车位状态删除
+     */
+    public function parkingDelete ($id) {
+        $id = intval($id);
+        if (!$this->getDb()->delete('parkwash_parking', ['id' => $id])) {
+            return error('删除失败');
+        }
+        return success('OK');
+    }
+
+    /**
+     * 车位状态添加
+     */
+    public function parkingUpdate ($post) {
+        $post['area_id'] = intval($post['area_id']);
+        $post['place'] = trim_space($post['place']);
+        $post['status'] = $post['status'] ? 1 : 0;
+
+        if (!$post['place']) {
+            return error('车位号不能为空');
+        }
+
+        if (false === $this->getDb()->update('parkwash_parking', [
+            'area_id' => $post['area_id'],
+            'place' => $post['place'],
+            'status' => $post['status']
+        ], ['id' => $post['id']])) {
+            return error('编辑失败');
+        }
+
+        return success('OK');
+    }
+
+    /**
+     * 车位区域添加
+     */
+    public function areaAdd ($post) {
+        $post['floor'] = trim_space($post['floor']);
+        $post['name'] = trim_space($post['name']);
+        $post['status'] = $post['status'] ? 1 : 0;
+
+        if (!$post['floor']) {
+            return error('楼层不能为空');
+        }
+        if (!$post['name']) {
+            return error('区域名称不能为空');
+        }
+
+        if (!$this->getDb()->insert('parkwash_park_area', [
+            'park_id' => 1,
+            'floor' => $post['floor'],
+            'name' => $post['name'],
+            'status' => $post['status']
+        ])) {
+            return error('添加失败');
+        }
+
+        return success('OK');
+    }
+
+    /**
+     * 车位区域编辑
+     */
+    public function areaUpdate ($post) {
+        $post['floor'] = trim_space($post['floor']);
+        $post['name'] = trim_space($post['name']);
+        $post['status'] = $post['status'] ? 1 : 0;
+
+        if (!$post['floor']) {
+            return error('楼层不能为空');
+        }
+        if (!$post['name']) {
+            return error('区域名称不能为空');
+        }
+
+        if (false === $this->getDb()->update('parkwash_park_area', [
+            'floor' => $post['floor'],
+            'name' => $post['name'],
+            'status' => $post['status']
+        ], ['id' => $post['id']])) {
+            return error('编辑失败');
         }
 
         return success('OK');
