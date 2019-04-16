@@ -291,8 +291,8 @@ class ParkWashModel extends Crud {
         }
 
         if (!$orderInfo = $this->findOrderInfo([
-            'id' => $post['orderid'], 'uid' => $uid, 'status' => ['in', [1, 2]]
-        ], 'id,place')) {
+            'id' => $post['orderid'], 'uid' => $uid, 'status' => ['in', [1, 2]], 'xc_trade_id' => 0
+        ], 'id,place,area_id')) {
             return error('订单不存在或无效');
         }
 
@@ -300,11 +300,53 @@ class ParkWashModel extends Crud {
             return error('已设置该车位号，不用重复设置');
         }
 
+        if (!$this->checkPlaceState($orderInfo['area_id'], $post['place'])) {
+            return error('该车位不支持洗车服务，请您更换停车位');
+        }
+
         if (!$this->getDb()->update('parkwash_order', ['place' => $post['place']], 'id = ' . $post['orderid'])) {
             return error('更新失败');
         }
 
         return success('OK');
+    }
+
+    /**
+     * 用户确认完成订单
+     */
+    public function confirmOrder ($uid, $post) {
+
+        $post['orderid'] = intval($post['orderid']);
+
+        // 获取订单信息
+        if (!$orderInfo = $this->findOrderInfo([
+            'id' => $post['orderid'], 'uid' => $uid, 'status' => 4
+        ], 'id,uid')) {
+            return error('订单不存在或无效');
+        }
+
+        // 更新订单状态
+        if (!$this->getDb()->update('parkwash_order', [
+            'status' => 5, 'confirm_time' => date('Y-m-d H:i:s', TIMESTAMP), 'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
+        ], [
+            'id' => $post['orderid'], 'status' => 4
+        ])) {
+            return error('确认完成订单失败');
+        }
+
+        // 删除自动完成队列任务
+        $this->getDb()->delete('parkwash_order_queue', [
+            'type' => 2, 'orderid' => $orderInfo['id']
+        ]);
+
+        // 记录订单状态改变
+        $this->pushSequence([
+            'orderid' => $orderInfo['id'],
+            'uid' => $orderInfo['uid'],
+            'title' => '用户确认完成订单'
+        ]);
+
+        return success();
     }
 
     /**
@@ -382,11 +424,9 @@ class ParkWashModel extends Crud {
         }
 
         // 预约号加 1
-        if (!$this->getDb()->update('parkwash_pool', [
+        $this->getDb()->update('parkwash_pool', [
             'amount' => ['amount+1']
-        ], 'id = ' . $orderInfo['pool_id'])) {
-            return error('该时间段已订完,请选择其他时间');
-        }
+        ], 'id = ' . $orderInfo['pool_id']);
 
         // 更新门店下单数、收益
         $this->getDb()->update('parkwash_store', [
@@ -656,9 +696,13 @@ class ParkWashModel extends Crud {
             return error('车系为空或不存在');
         }
 
+        // 每个用户最多添加车辆的数量
+        $carportCount = getConfig('xc', 'carport_count');
+        $carportCount = $carportCount < 1 ? 1 : $carportCount;
+
         // 限制添加数
-        if ($this->getDb()->table('parkwash_carport')->where(['uid' => $uid])->count() >= 5) {
-            return error('每个用户最多添加 5 辆车信息');
+        if ($this->getDb()->table('parkwash_carport')->where(['uid' => $uid])->count() >= $carportCount) {
+            return error('每个用户最多添加 ' . $carportCount . ' 辆车信息');
         }
 
         // 新增车
@@ -1232,7 +1276,7 @@ class ParkWashModel extends Crud {
 
         // 每个用户每天仅可下一个订单
         if ($this->getDb()->table('parkwash_order')->where(['uid' => $uid, 'status' => ['>', 0], 'create_time' => ['between', [date('Y-m-d 00:00:00', TIMESTAMP), date('Y-m-d 23:59:59', TIMESTAMP)]]])->count()) {
-            return error('今天已经洗过车咯，请明天再来');
+            //return error('今天已经洗过车咯，请明天再来');
         }
 
         // 判断门店状态
@@ -1869,6 +1913,7 @@ class ParkWashModel extends Crud {
             $this->taskCleanSchedule();
             $this->taskStoreSchedule();
         }
+        // 每天 1 点执行
         if (false !== strpos($timer, '1h')) {
             $this->taskCleanExpireTrade();
         }
@@ -1880,7 +1925,57 @@ class ParkWashModel extends Crud {
         if (false !== strpos($timer, '600s')) {
             $this->taskCleanExpireOrder();
         }
+        // 每 3600 秒执行
+        if (false !== strpos($timer, '3600s')) {
+            $this->taskConfirmOrder();
+        }
         return success(date('Y-m-d H:i:s', TIMESTAMP));
+    }
+
+    /**
+     * 24小时自动确认完成订单
+     */
+    protected function taskConfirmOrder () {
+
+        // 查询自动确认完成任务，获取已完成，超过24小时未确认完成的订单
+        $queueList = $this->getDb()
+            ->table('parkwash_order_queue')
+            ->field('id,orderid,param_var')
+            ->where([
+                'time' => ['<', date('Y-m-d H:i:s', TIMESTAMP - 86400)],
+                'type' => 2
+            ])
+            ->limit(1000)
+            ->select();
+        if (!$queueList) {
+            return false;
+        }
+
+        // 更新订单状态
+        if (!$this->getDb()->update('parkwash_order', [
+            'status' => 5, 'confirm_time' => date('Y-m-d H:i:s', TIMESTAMP), 'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
+        ], [
+            'id' => ['in', array_column($queueList, 'orderid')], 'status' => 4
+        ])) {
+            return false;
+        }
+
+        // 记录订单状态改变
+        $data = [];
+        foreach ($queueList as $k => $v) {
+            $data[] = [
+                'orderid' => $v['orderid'], 'uid' => intval($v['param_var']), 'title' => '系统自动确认完成订单', 'create_time' => date('Y-m-d H:i:s', TIMESTAMP)
+            ];
+        }
+        $this->getDb()->insert('parkwash_order_sequence', $data);
+
+        // 删除自动确认完成任务
+        $this->getDb()->delete('parkwash_order_queue', [
+            'id' => ['in', array_column($queueList, 'id')]
+        ]);
+        unset($queueList);
+
+        return true;
     }
 
     /**
@@ -1888,24 +1983,30 @@ class ParkWashModel extends Crud {
      */
     protected function taskEntryPark () {
 
-        // 获取已接单，且已到预约时间的订单
-        $orderList = $this->getDb()
-            ->table('parkwash_order')
-            ->field('id,car_number')
+        // 查询入场查询任务，获取已接单，且已到预约时间的订单
+        $queueList = $this->getDb()
+            ->table('parkwash_order_queue')
+            ->field('id,orderid,param_var')
             ->where([
-                'order_time' => ['between', [date('Y-m-d H:i:s', TIMESTAMP - 7200), date('Y-m-d H:i:s', TIMESTAMP)]], 'status' => 2, 'entry_park_id' => 0,
+                'time' => ['between', [date('Y-m-d H:i:s', TIMESTAMP - 7200), date('Y-m-d H:i:s', TIMESTAMP)]],
+                'type' => 1
             ])
             ->limit(1000)
+            ->order('update_time')
             ->select();
-        if (!$orderList) {
+        if (!$queueList) {
             return false;
         }
 
         // 查询入场车
         $entryParkList = (new UserModel())->getCheMiEntryParkCondition([
-            'license_number' => ['in', array_column($orderList, 'car_number')]
+            'license_number' => ['in', array_column($queueList, 'param_var')]
         ]);
         if (!$entryParkList) {
+            // 没有入场车信息，就更新操作时间
+            $this->getDb()->update('parkwash_order_queue', [
+                'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
+            ], ['id' => ['in', array_column($queueList, 'id')]]);
             return false;
         }
 
@@ -1924,11 +2025,12 @@ class ParkWashModel extends Crud {
 
         // 更新订单入场信息
         $orderData = [];
-        foreach ($orderList as $k => $v) {
-            $orderData[$v['car_number']][] = $v['id'];
+        foreach ($queueList as $k => $v) {
+            $orderData[$v['param_var']][$v['id']] = $v['orderid'];
         }
-        unset($orderList);
+        unset($queueList);
 
+        $existsData = [];
         foreach ($orderData as $k => $v) {
             if (isset($entryParkData[$k])) {
                 $this->getDb()->update('parkwash_order', [
@@ -1936,7 +2038,14 @@ class ParkWashModel extends Crud {
                     'entry_park_id' => $entryParkData[$k]['park_id'],
                     'entry_order_sn' => $entryParkData[$k]['order_sn']
                 ], ['id' => ['in', $v]]);
+                $existsData = array_merge($existsData, array_keys($v));
             }
+        }
+        if ($existsData) {
+            // 删除入场查询任务
+            $this->getDb()->delete('parkwash_order_queue', [
+                'id' => ['in', $existsData]
+            ]);
         }
 
         return true;

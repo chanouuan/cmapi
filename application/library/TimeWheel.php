@@ -36,6 +36,16 @@ class TimeWheel {
                     'timeout' => 600
                 ],
                 [
+                    'name' => '1800s',
+                    'type' => 'polling',
+                    'timeout' => 1800
+                ],
+                [
+                    'name' => '3600s',
+                    'type' => 'polling',
+                    'timeout' => 3600
+                ],
+                [
                     'name' => '0h',
                     'type' => 'dayofhour',
                     'timeout' => 0,

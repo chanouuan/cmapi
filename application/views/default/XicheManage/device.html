@@ -31,6 +31,7 @@
             <th>场地</th>
             <th>售价</th>
             <th>时长</th>
+            <th>下单数</th>
             <th>总收益</th>
             <th>设备参数</th>
             <th>操作</th>
@@ -49,6 +50,7 @@
             <td><?=$v['site']?></td>
             <td><?=round_dollar($v['price'],false)?></td>
             <td><?=$v['duration']?>分钟</td>
+            <td><?=$v['order_count']?></td>
             <td><?=round_dollar($v['money'],false)?></td>
             <td onclick="x_admin_show('详情','<?=gurl('xicheManage/deviceParamInfo',['id'=>$v['id']])?>')"><a href="#">查看</a></td>
             <td class="td-manage">

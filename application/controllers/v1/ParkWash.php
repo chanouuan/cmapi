@@ -108,7 +108,7 @@ class ParkWash extends ActionPDO {
      * "message":"", //错误消息
      * "result":{
      *     "id":5, //订单ID
-     *     "status":1, //最近一个停车场洗车订单状态(-1已取消1已支付2已接单3服务中4已完成)
+     *     "status":1, //最近一个停车场洗车订单状态(-1已取消1已支付2已接单3服务中4已完成5确认完成)
      *     "create_time":"" //下单时间
      * }}
      */
@@ -537,9 +537,24 @@ class ParkWash extends ActionPDO {
     }
 
     /**
+     * 用户确认完成订单 <span style="color:red">New</span>
+     * @login
+     * @param *orderid 订单ID
+     * @return array
+     * {
+     * "errNo":0, //错误码 0成功 -1失败
+     * "message":"", //返回信息
+     * "result":[]
+     * }
+     */
+    public function confirmOrder () {
+        return (new ParkWashModel())->confirmOrder($this->_G['user']['uid'], $_POST);
+    }
+
+    /**
      * 我的订单
      * @login
-     * @param status 订单状态(-1已取消1已支付2已接单3服务中4已完成)，搜索多个状态用逗号分隔，默认为所有
+     * @param status 订单状态(-1已取消1已支付2已接单3服务中4已完成5确认完成)，搜索多个状态用逗号分隔，默认为所有
      * @param lastpage 分页参数
      * @return array
      * {
@@ -565,7 +580,7 @@ class ParkWash extends ActionPDO {
      *          "area_floor":"负一楼", //楼层
      *          "area_name":"A区", //区域
      *          "store_name":"门店0" //服务网点
-     *          "status":1, //订单状态 (-1已取消 1已支付 2已接单 3服务中 4已完成)
+     *          "status":1, //订单状态 (-1已取消 1已支付 2已接单 3服务中 4已完成 5确认完成)
      *      }]
      * }}
      */
@@ -603,7 +618,7 @@ class ParkWash extends ActionPDO {
      *      "area_name":"A区", //区域
      *      "store_name":"门店0" //服务网点
      *      "location":"106.328468,25.844113", //经纬度
-     *      "status":1, //订单状态 (-1已取消 1已支付 2已接单 3服务中 4已完成)
+     *      "status":1, //订单状态 (-1已取消 1已支付 2已接单 3服务中 4已完成 5确认完成)
      *      "sequence":[{
      *          "title":"下单成功，等待商家接单", //订单状态改变事件
      *          "create_time":"2019-04-02 16:38:43" //事件时间

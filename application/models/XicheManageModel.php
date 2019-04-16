@@ -20,7 +20,7 @@ class XicheManageModel extends Crud {
             return error('异常原因不能为空');
         }
 
-        if (!$orderInfo = $this->getInfo('parkwash_order', ['id' => $post['id']], 'id,uid,status,user_tel,store_id,create_time,order_time')) {
+        if (!$orderInfo = $this->getInfo('parkwash_order', ['id' => $post['id']], 'id,uid,status,user_tel,car_number,store_id,create_time,order_time')) {
             return error('该订单不存在');
         }
         $parkWashModel = new ParkWashModel();
@@ -39,6 +39,10 @@ class XicheManageModel extends Crud {
             ])) {
                 return error('操作失败');
             }
+            // 加入到入场车查询队列任务
+            $this->getDb()->insert('parkwash_order_queue', [
+                'type' => 1, 'orderid' => $orderInfo['id'], 'param_var' => $orderInfo['car_number'], 'time' => $orderInfo['order_time'], 'create_time' => date('Y-m-d H:i:s', TIMESTAMP), 'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
+            ]);
             // 记录订单状态改变
             $parkWashModel->pushSequence([
                 'orderid' => $orderInfo['id'],
@@ -76,6 +80,10 @@ class XicheManageModel extends Crud {
             ])) {
                 return error('操作失败');
             }
+            // 删除入场车查询队列任务
+            $this->getDb()->delete('parkwash_order_queue', [
+                'type' => 1, 'orderid' => $orderInfo['id']
+            ]);
             // 记录订单状态改变
             $parkWashModel->pushSequence([
                 'orderid' => $orderInfo['id'],
@@ -107,6 +115,14 @@ class XicheManageModel extends Crud {
             ])) {
                 return error('操作失败');
             }
+            // 删除入场车查询队列任务
+            $this->getDb()->delete('parkwash_order_queue', [
+                'type' => 1, 'orderid' => $orderInfo['id']
+            ]);
+            // 加入到自动完成队列任务
+            $this->getDb()->insert('parkwash_order_queue', [
+                'type' => 2, 'orderid' => $orderInfo['id'], 'param_var' => $orderInfo['uid'], 'time' => date('Y-m-d H:i:s', TIMESTAMP), 'create_time' => date('Y-m-d H:i:s', TIMESTAMP), 'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
+            ]);
             // 记录订单状态改变
             $parkWashModel->pushSequence([
                 'orderid' => $orderInfo['id'],
@@ -878,7 +894,7 @@ class XicheManageModel extends Crud {
      */
     public function getParkOrderStatus ($status = null) {
         $arr = [
-            1 => '待接单', -1 => '已取消',  2 => '已接单', 23 => '等待服务', 3 => '服务中', 4 => '已完成'
+            1 => '待接单', 2 => '已接单', 23 => '等待服务', 3 => '服务中', 4 => '已完成', -1 => '已取消', 5 => '已确认'
         ];
         if (!isset($status)) {
             return $arr;

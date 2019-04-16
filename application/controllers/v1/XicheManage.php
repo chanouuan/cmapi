@@ -490,13 +490,15 @@ class XicheManage extends ActionPDO {
         $count = $modle->getCount('parkwash_usercount', $condition);
         $pagesize = getPageParams($_GET['page'], $count);
         $list = $modle->getList('parkwash_usercount', $condition, $pagesize['limitstr'], 'uid desc');
-        $cmUserList = $userModel->getUserList(['member_id' => ['in', array_column($list, 'uid')]], 'member_id,member_name,available_predeposit');
-        $cmUserList = array_column($cmUserList, null, 'member_id');
-        foreach ($list as $k => $v) {
-            $list[$k]['telephone'] = $cmUserList[$v['uid']]['member_name'];
-            $list[$k]['money'] = $cmUserList[$v['uid']]['available_predeposit'];
+        if ($list) {
+            $cmUserList = $userModel->getUserList(['member_id' => ['in', array_column($list, 'uid')]], 'member_id,member_name,available_predeposit');
+            $cmUserList = array_column($cmUserList, null, 'member_id');
+            foreach ($list as $k => $v) {
+                $list[$k]['telephone'] = $cmUserList[$v['uid']]['member_name'];
+                $list[$k]['money'] = $cmUserList[$v['uid']]['available_predeposit'];
+            }
+            unset($cmUserList);
         }
-        unset($cmUserList);
 
         return [
             'pagesize' => $pagesize,
