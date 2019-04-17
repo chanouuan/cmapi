@@ -604,6 +604,22 @@ class ParkWashModel extends Crud {
             }
         }
 
+        if (!$carportInfo = $this->getDb()->table('parkwash_carport')->field('car_number')->where([
+            'id' => $post['id'], 'uid' => $uid
+        ])->find()) {
+            return error('该车不存在');
+        }
+
+        if ($carportInfo['car_number'] == $post['car_number']) {
+            return error('该车牌号已存在');
+        }
+        // 判断车辆下是否有订单
+        if ($this->findOrderInfo([
+            'uid' => $uid, 'car_number' => $carportInfo['car_number'], 'status' => ['in', [1,2,3]]
+        ], 'id')) {
+            return error('该车辆有洗车订单，编辑失败');
+        }
+
         // 编辑增车
         if (!$this->saveCarport($uid, [
             'id' => $post['id'], 'car_number' => $post['car_number'], 'brand_id' => $post['brand_id'], 'series_id' => $post['series_id'], 'area_id' => $post['area_id'], 'name' => $brandInfo['name'] . ' ' . $seriesInfo['name'], 'place' => $post['place'], 'isdefault' => $post['isdefault']
