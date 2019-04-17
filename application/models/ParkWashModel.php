@@ -1355,8 +1355,8 @@ class ParkWashModel extends Crud {
         }
 
         // 判断服务时间
-        if (!$poolInfo = $this->getDb()->table('parkwash_pool')->field('today,start_time,end_time')->where(['id' => $post['pool_id'], 'store_id' => $post['store_id'], 'amount' => ['>', 0]])->find()) {
-            return error('当前门店已预订完');
+        if (!$poolInfo = $this->getDb()->table('parkwash_pool')->field('today,start_time,end_time,amount')->where(['id' => $post['pool_id'], 'store_id' => $post['store_id']])->find()) {
+            return error('当前门店不存在');
         }
         $post['order_time'] = $poolInfo['today'] . ' ' . $poolInfo['start_time'];
         $post['abort_time'] = $poolInfo['today'] . ' ' . $poolInfo['end_time'];
@@ -1436,6 +1436,11 @@ class ParkWashModel extends Crud {
                     'tradeid' => $lastTradeInfo['id']
                 ]);
             }
+        }
+
+        // 判断预约数
+        if ($poolInfo['amount'] <= 0) {
+            return error('当前门店已预订完');
         }
 
         // 预约号减 1
