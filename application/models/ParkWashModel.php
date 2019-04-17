@@ -2239,12 +2239,13 @@ class ParkWashModel extends Crud {
         }
 
         $time_interval = $time_interval * 60; // 分钟转成秒
+        $maxTime = strtotime(date('Y-m-d 23:59:59', TIMESTAMP)); // 不能超过23:59:59
 
         // 根据营业时间分组时间段
         $date = [];
         for ($i = $start; $i < $end; $i += $time_interval) {
             $date[] = [
-                date('H:i:00', $i), date('H:i:00', $i + $time_interval)
+                date('H:i:00', $i), date('H:i:00', $i + $time_interval > $maxTime ? $maxTime : $i + $time_interval)
             ];
         }
 
