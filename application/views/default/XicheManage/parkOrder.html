@@ -90,7 +90,7 @@
                 <?php if($v['status']==3){ ?>
                 <button class="layui-btn layui-btn-xs" onclick="complete(<?=$v['id']?>)"><i class="layui-icon">&#xe605;</i>完成洗车</button>
                 <?php } ?>
-                <?php if($v['status']==1&&$v['status']==2&&$v['status']==3){ ?>
+                <?php if($v['status']==1||$v['status']==23||$v['status']==2||$v['status']==3){ ?>
                 <button class="layui-btn layui-btn-xs layui-btn-danger" onclick="fail(<?=$v['id']?>)"><i class="layui-icon">&#x1006;</i>异常</button>
                 <?php } ?>
             </td>

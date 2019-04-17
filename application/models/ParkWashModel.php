@@ -79,7 +79,7 @@ class ParkWashModel extends Crud {
 
         // 结果返回
         $result = [
-            'limit' => 10,
+            'limit' => 15,
             'lastpage' => '',
             'list' => []
         ];
@@ -136,7 +136,7 @@ class ParkWashModel extends Crud {
         }
 
         // 获取订单
-        if (!$orderList = $this->getDb()->table('parkwash_order')->field('id,xc_trade_id,store_id,car_number,brand_id,series_id,area_id,place,(pay+deduct) as pay,payway,items,order_time,create_time,status')->where($condition)->order('id desc')->limit($result['limit'])->select()) {
+        if (!$orderList = $this->getDb()->table('parkwash_order')->field('id,xc_trade_id,store_id,car_number,brand_id,series_id,area_id,place,(pay+deduct) as pay,payway,items,order_time,create_time,status')->where($condition)->order('update_time desc')->limit($result['limit'])->select()) {
             return success($result);
         }
 
@@ -175,8 +175,9 @@ class ParkWashModel extends Crud {
                     $orderList[$k]['order_type'] = 'xc';
                     $orderList[$k]['order_code'] = str_replace(['-', ' ', ':'], '', $v['create_time']) . $v['id']; // 组合订单号
                     $orderList[$k]['store_name'] = $tradelist[$v['xc_trade_id']]['areaname'];
-                    $orderList[$k]['refundpay'] = $tradelist[$v['xc_trade_id']]['refundpay'];
+                    $orderList[$k]['refundpay'] = intval($tradelist[$v['xc_trade_id']]['refundpay']);
                     $orderList[$k]['payway'] = isset($payway[$tradelist[$v['xc_trade_id']]['payway']]) ? $payway[$tradelist[$v['xc_trade_id']]['payway']] : $tradelist[$v['xc_trade_id']]['payway'];
+                    unset($orderList[$k]['car_number'], $orderList[$k]['place'], $orderList[$k]['items'], $orderList[$k]['order_time']);
                 }
             }
             unset($deviceList, $tradelist);
@@ -188,8 +189,11 @@ class ParkWashModel extends Crud {
             $brandList = array_column($brandList, null, 'id');
             $seriesList = $this->getDb()->table('parkwash_car_series')->field('id,name')->where(['id' => ['in', array_column($orderCategory[1], 'series_id')]])->select();
             $seriesList = array_column($seriesList, null, 'id');
-            $areaList = $this->getDb()->table('parkwash_park_area')->field('id,floor,name')->where(['id' => ['in', array_column($orderCategory[1], 'area_id')]])->select();
-            $areaList = array_column($areaList, null, 'id');
+            $areaList = array_filter(array_column($orderCategory[1], 'area_id'));
+            if ($areaList) {
+                $areaList = $this->getDb()->table('parkwash_park_area')->field('id,floor,name')->where(['id' => ['in', $areaList]])->select();
+                $areaList = array_column($areaList, null, 'id');
+            }
             $storeList = $this->getDb()->table('parkwash_store')->field('id,name')->where(['id' => ['in', array_column($orderCategory[1], 'store_id')]])->select();
             $storeList = array_column($storeList, null, 'id');
             foreach ($orderList as $k => $v) {
@@ -198,8 +202,8 @@ class ParkWashModel extends Crud {
                     $orderList[$k]['order_code'] = str_replace(['-', ' ', ':'], '', $v['create_time']) . $v['id']; // 组合订单号
                     $orderList[$k]['brand_name'] = $brandList[$v['brand_id']]['name'];
                     $orderList[$k]['series_name'] = $seriesList[$v['series_id']]['name'];
-                    $orderList[$k]['area_floor'] = $areaList[$v['area_id']]['floor'];
-                    $orderList[$k]['area_name'] = $areaList[$v['area_id']]['name'];
+                    $orderList[$k]['area_floor'] = isset($areaList[$v['area_id']]) ? $areaList[$v['area_id']]['floor'] : '';
+                    $orderList[$k]['area_name'] = isset($areaList[$v['area_id']]) ? $areaList[$v['area_id']]['name'] : '';
                     $orderList[$k]['store_name'] = $storeList[$v['store_id']]['name'];
                     $orderList[$k]['payway'] = isset($payway[$v['payway']]) ? $payway[$v['payway']] : $v['payway'];
                     $orderList[$k]['items'] = json_decode($v['items'], true);
@@ -256,14 +260,16 @@ class ParkWashModel extends Crud {
 
             $brandInfo = $this->getDb()->table('parkwash_car_brand')->field('name')->where(['id' => $orderInfo['brand_id']])->find();
             $seriesInfo = $this->getDb()->table('parkwash_car_series')->field('name')->where(['id' => $orderInfo['series_id']])->find();
-            $areaInfo = $this->getDb()->table('parkwash_park_area')->field('floor,name')->where(['id' => $orderInfo['area_id']])->find();
+            if ($orderInfo['area_id']) {
+                $areaInfo = $this->getDb()->table('parkwash_park_area')->field('floor,name')->where(['id' => $orderInfo['area_id']])->find();
+            }
             $storeInfo = $this->getDb()->table('parkwash_store')->field('name,location')->where(['id' => $orderInfo['store_id']])->find();
             $orderInfo['order_type'] = 'parkwash';
             $orderInfo['order_code'] = str_replace(['-', ' ', ':'], '', $orderInfo['create_time']) . $orderInfo['id']; // 组合订单号
             $orderInfo['brand_name'] = $brandInfo['name'];
             $orderInfo['series_name'] = $seriesInfo['name'];
-            $orderInfo['area_floor'] = $areaInfo['floor'];
-            $orderInfo['area_name'] = $areaInfo['name'];
+            $orderInfo['area_floor'] = strval($areaInfo['floor']);
+            $orderInfo['area_name'] = strval($areaInfo['name']);
             $orderInfo['store_name'] = $storeInfo['name'];
             $orderInfo['location'] = $storeInfo['location'];
             $orderInfo['items'] = json_decode($orderInfo['items'], true);
@@ -284,10 +290,15 @@ class ParkWashModel extends Crud {
     public function updatePlace ($uid, $post) {
 
         $post['orderid'] = intval($post['orderid']);
+        $post['area_id'] = intval($post['area_id']);
         $post['place'] = trim_space($post['place']);
 
         if (!$post['place'] || strlen($post['place']) > 10) {
             return error('车位号最多10个字符');
+        }
+
+        if (!$this->getDb()->table('parkwash_park_area')->where(['id' => $post['area_id']])->count()) {
+            return error('该车位区域不存在');
         }
 
         if (!$orderInfo = $this->findOrderInfo([
@@ -296,15 +307,15 @@ class ParkWashModel extends Crud {
             return error('订单不存在或无效');
         }
 
-        if ($orderInfo['place'] == $post['place']) {
+        if ($orderInfo['place'] == $post['place'] && $orderInfo['area_id'] == $post['area_id']) {
             return error('已设置该车位号，不用重复设置');
         }
 
-        if (!$this->checkPlaceState($orderInfo['area_id'], $post['place'])) {
+        if (!$this->checkPlaceState($post['area_id'], $post['place'])) {
             return error('该车位不支持洗车服务，请您更换停车位');
         }
 
-        if (!$this->getDb()->update('parkwash_order', ['place' => $post['place']], 'id = ' . $post['orderid'])) {
+        if (!$this->getDb()->update('parkwash_order', ['place' => $post['place'], 'area_id' => $post['area_id']], 'id = ' . $post['orderid'])) {
             return error('更新失败');
         }
 
@@ -660,6 +671,21 @@ class ParkWashModel extends Crud {
      */
     public function deleteCarport ($uid, $post) {
 
+        if (!$carportInfo = $this->getDb()->table('parkwash_carport')->field('car_number')->where([
+            'id' => $post['id'], 'uid' => $uid
+        ])->find()) {
+            return error('该车不存在');
+        }
+
+        // 判断车辆下是否有订单
+        if ($carportInfo['car_number']) {
+            if ($this->findOrderInfo([
+                'uid' => $uid, 'car_number' => $carportInfo['car_number'], 'status' => ['in', [1,2,3]]
+            ], 'id')) {
+                return error('该车辆有洗车订单，删除失败');
+            }
+        }
+
         if (!$this->getDb()->delete('parkwash_carport', [
             'id' => $post['id'], 'uid' => $uid
         ])) {
@@ -733,15 +759,18 @@ class ParkWashModel extends Crud {
         $brandList = array_column($brandList, null, 'id');
         $seriesList = $this->getDb()->table('parkwash_car_series')->field('id,name')->where(['id' => ['in', array_unique(array_column($carportList, 'series_id'))]])->select();
         $seriesList = array_column($seriesList, null, 'id');
-        $areaList = $this->getDb()->table('parkwash_park_area')->field('id,floor,name')->where(['id' => ['in', array_unique(array_column($carportList, 'area_id'))]])->select();
-        $areaList = array_column($areaList, null, 'id');
+        $areaList = array_filter(array_unique(array_column($carportList, 'area_id')));
+        if ($areaList) {
+            $areaList = $this->getDb()->table('parkwash_park_area')->field('id,floor,name')->where(['id' => ['in', $areaList]])->select();
+            $areaList = array_column($areaList, null, 'id');
+        }
 
         foreach ($carportList as $k => $v) {
             $carportList[$k]['brand_name'] = $brandList[$v['brand_id']]['name'];
             $carportList[$k]['brand_logo'] = $brandList[$v['brand_id']]['logo'];
             $carportList[$k]['series_name'] = $seriesList[$v['series_id']]['name'];
-            $carportList[$k]['area_floor'] = $areaList[$v['area_id']]['floor'];
-            $carportList[$k]['area_name'] = $areaList[$v['area_id']]['name'];
+            $carportList[$k]['area_floor'] = isset($areaList[$v['area_id']]) ? $areaList[$v['area_id']]['floor'] : '';
+            $carportList[$k]['area_name'] = isset($areaList[$v['area_id']]) ? $areaList[$v['area_id']]['name'] : '';
         }
 
         unset($brandList, $seriesList, $areaList);
@@ -1035,7 +1064,7 @@ class ParkWashModel extends Crud {
         // 城市
         $post['adcode'] = intval($post['adcode']);
         // 最后排序字段
-        $post['lastpage'] = trim($post['lastpage']);
+        $post['lastpage'] = intval($post['lastpage']);
         // 排序字段
         $post['ordername'] = 'geohash';
         $post['ordersort'] = 'asc';
@@ -1044,6 +1073,9 @@ class ParkWashModel extends Crud {
         $field = [
             'id', 'areaname', 'address', 'location', 'usetime', 'isonline', 'price', 'order_count', 'parameters', 'sort'
         ];
+        $minField = [
+            'id', 'location'
+        ];
         // 结果返回
         $result = [
             'limit' => 10,
@@ -1051,34 +1083,31 @@ class ParkWashModel extends Crud {
             'list' => []
         ];
 
-        // 经纬度
+        // 经纬度排序
         if ($post['ordername'] == 'geohash') {
             $geohash = $this->geoOrder($post['lon'], $post['lat']);
             if (!$geohash) {
-                $post['ordername'] = 'sort';
-                $post['ordersort'] = 'desc';
-                $post['lastpage'] = '';
+                // 经纬度错误
+                return success($result);
             } else {
-                $field[] = $geohash . ' as geohash';
+                $minField[] = $geohash . ' as geohash';
             }
-        }
-
-        // 分页参数
-        list($lastid, $lastorder) = explode(',', $post['lastpage']);
-        $lastid = intval($lastid);
-        $lastorder = intval($lastorder);
-
-        $condition = [
-            'adcode = ' . $post['adcode']
-        ];
-        if ($lastid > 0) {
-            if ($post['ordersort'] == 'desc') {
-                $condition[] = '(' . (isset($geohash) ? $geohash : $post['ordername']) . ' < ' . $lastorder . ' or (' . (isset($geohash) ? $geohash : $post['ordername']) . ' = ' . $lastorder . ' and id > ' . $lastid . '))';
-            } else {
-                $condition[] = '(' . (isset($geohash) ? $geohash : $post['ordername']) . ' > ' . $lastorder . ' or (' . (isset($geohash) ? $geohash : $post['ordername']) . ' = ' . $lastorder . ' and id > ' . $lastid . '))';
+            // 获取附近洗车机
+            if (!$list = $this->getDb()->table('pro_xiche_device')->field($minField)->where(['adcode' => $post['adcode'], 'geohash' => ['<', 10]])->limit(1000)->select()) {
+                return success($result);
             }
+            foreach ($list as $k => $v) {
+                $list[$k]['distance'] = LocationUtils::getDistance($v['location'], $post);
+            }
+            // 按照距离进行排序
+            array_multisort (array_column($list, 'distance'), SORT_ASC, SORT_NUMERIC,  $list);
+            // 分页
+            if (!$list = array_slice($list, $post['lastpage'] * $result['limit'], $result['limit'])) {
+                return success($result);
+            }
+            $condition['id'] = ['in', array_column($list, 'id')];
+            $order = 'field(id,' . implode(',', array_column($list, 'id')) . ')';
         }
-        $order = $post['ordername'] . ' ' . $post['ordersort'] . ', id asc';
 
         // 获取洗车机
         if (!$list = $this->getDb()->table('pro_xiche_device')->field($field)->where($condition)->order($order)->limit($result['limit'])->select()) {
@@ -1086,7 +1115,6 @@ class ParkWashModel extends Crud {
         }
 
         foreach ($list as $k => $v) {
-            $result['lastpage'] = $v['id'] . ',' . $v[$post['ordername']];
             // 洗车时长
             $v['parameters'] = json_decode($v['parameters'], true);
             $list[$k]['duration'] = intval($v['parameters']['WashTotal']);
@@ -1104,6 +1132,7 @@ class ParkWashModel extends Crud {
         }
 
         $result['list'] = $list;
+        $result['lastpage'] = $post['lastpage'] + 1;
         unset($list);
         return success($result);
     }
@@ -1116,7 +1145,7 @@ class ParkWashModel extends Crud {
         // 城市
         $post['adcode'] = intval($post['adcode']);
         // 最后排序字段
-        $post['lastpage'] = trim($post['lastpage']);
+        $post['lastpage'] = intval($post['lastpage']);
         // 排序字段
         $post['ordername'] = 'geohash';
         $post['ordersort'] = 'asc';
@@ -1125,41 +1154,44 @@ class ParkWashModel extends Crud {
         $field = [
             'id', 'name', 'logo', 'address', 'tel', 'location', 'score', 'business_hours', 'market', 'price', '(order_count * order_count_ratio) as order_count', 'status', 'sort'
         ];
+        $minField = [
+            'id', 'location'
+        ];
         // 结果返回
         $result = [
             'limit' => 10,
             'lastpage' => '',
             'list' => []
         ];
+        $condition = [
+            'adcode' => $post['adcode']
+        ];
 
-        // 经纬度
+        // 经纬度排序
         if ($post['ordername'] == 'geohash') {
             $geohash = $this->geoOrder($post['lon'], $post['lat']);
             if (!$geohash) {
-                $post['ordername'] = 'sort';
-                $post['ordersort'] = 'desc';
-                $post['lastpage'] = '';
+                // 经纬度错误
+                return success($result);
             } else {
-                $field[] = $geohash . ' as geohash';
+                $minField[] = $geohash . ' as geohash';
             }
-        }
-
-        // 分页参数
-        list($lastid, $lastorder) = explode(',', $post['lastpage']);
-        $lastid = intval($lastid);
-        $lastorder = intval($lastorder);
-
-        $condition = [
-            'adcode = ' . $post['adcode']
-        ];
-        if ($lastid > 0) {
-            if ($post['ordersort'] == 'desc') {
-                $condition[] = '(' . (isset($geohash) ? $geohash : $post['ordername']) . ' < ' . $lastorder . ' or (' . (isset($geohash) ? $geohash : $post['ordername']) . ' = ' . $lastorder . ' and id > ' . $lastid . '))';
-            } else {
-                $condition[] = '(' . (isset($geohash) ? $geohash : $post['ordername']) . ' > ' . $lastorder . ' or (' . (isset($geohash) ? $geohash : $post['ordername']) . ' = ' . $lastorder . ' and id > ' . $lastid . '))';
+            // 获取附近门店
+            if (!$list = $this->getDb()->table('parkwash_store')->field($minField)->where(['adcode' => $post['adcode'], 'geohash' => ['<', 10]])->limit(1000)->select()) {
+                return success($result);
             }
+            foreach ($list as $k => $v) {
+                $list[$k]['distance'] = LocationUtils::getDistance($v['location'], $post);
+            }
+            // 按照距离进行排序
+            array_multisort (array_column($list, 'distance'), SORT_ASC, SORT_NUMERIC,  $list);
+            // 分页
+            if (!$list = array_slice($list, $post['lastpage'] * $result['limit'], $result['limit'])) {
+                return success($result);
+            }
+            $condition['id'] = ['in', array_column($list, 'id')];
+            $order = 'field(id,' . implode(',', array_column($list, 'id')) . ')';
         }
-        $order = $post['ordername'] . ' ' . $post['ordersort'] . ', id asc';
 
         // 获取门店
         if (!$list = $this->getDb()->table('parkwash_store')->field($field)->where($condition)->order($order)->limit($result['limit'])->select()) {
@@ -1167,7 +1199,6 @@ class ParkWashModel extends Crud {
         }
 
         foreach ($list as $k => $v) {
-            $result['lastpage'] = $v['id'] . ',' . $v[$post['ordername']];
             // 获取门店第一张缩略图
             if ($v['logo']) {
                 $v['logo'] = json_decode($v['logo'], true);
@@ -1183,6 +1214,7 @@ class ParkWashModel extends Crud {
         }
 
         $result['list'] = $list;
+        $result['lastpage'] = $post['lastpage'] + 1;
         unset($list);
         return success($result);
     }
@@ -1258,9 +1290,6 @@ class ParkWashModel extends Crud {
         if (!$post['carport_id']) {
             return error('请选择车辆');
         }
-        if (!$post['area_id']) {
-            return error('请选择区域');
-        }
         if ($post['place'] && strlen($post['place']) > 10) { // 车位不必填
             return error('车位号最多10个字符');
         }
@@ -1293,12 +1322,17 @@ class ParkWashModel extends Crud {
         }
 
         // 判断区域
-        if (!$this->getDb()->table('parkwash_park_area')->where(['id' => $post['area_id']])->count()) {
-            return error('该车位区域不存在');
+        if ($post['area_id']) {
+            if (!$this->getDb()->table('parkwash_park_area')->where(['id' => $post['area_id']])->count()) {
+                return error('该车位区域不存在');
+            }
         }
 
         // 判断车位状态
         if ($post['place']) {
+            if (!$post['area_id']) {
+                return error('请先填写车位区域');
+            }
             if (!$this->checkPlaceState($post['area_id'], $post['place'])) {
                 return error('该车位不支持洗车服务，请您更换停车位');
             }
@@ -1682,7 +1716,7 @@ class ParkWashModel extends Crud {
         if (!$this->getDb()->insert('parkwash_order', array_merge($param, [
             'create_time' => date('Y-m-d H:i:s', TIMESTAMP),
             'update_time' => date('Y-m-d H:i:s', TIMESTAMP),
-            'status' => 1
+            'status' => 5
         ]))) {
             return false;
         }

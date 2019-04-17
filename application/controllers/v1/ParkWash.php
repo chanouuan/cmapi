@@ -445,7 +445,7 @@ class ParkWash extends ActionPDO {
      * @login
      * @param *store_id 门店ID
      * @param *carport_id 车辆ID
-     * @param *area_id 区域ID
+     * @param area_id 区域ID
      * @param place 车位号
      * @param *pool_id 排班ID
      * @param *items 套餐ID(多个用逗号分隔)
@@ -635,6 +635,7 @@ class ParkWash extends ActionPDO {
      * @description 订单状态为已支付或已接单才能修改订单车位
      * @param *orderid 订单ID
      * @param *place 车位号
+     * @param *area_id 区域ID
      * @return array
      * {
      * "errNo":0, //错误码 0成功 -1失败

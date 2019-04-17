@@ -472,16 +472,19 @@ class XicheManage extends ActionPDO {
             $brandList = array_column($brandList, null, 'id');
             $seriesList = $modle->getList('parkwash_car_series', ['id' => ['in', array_column($list, 'series_id')]], null, null, 'id,name');
             $seriesList = array_column($seriesList, null, 'id');
-            $areaList = $modle->getList('parkwash_park_area', ['id' => ['in', array_column($list, 'area_id')]], null, null, 'id,floor,name');
-            $areaList = array_column($areaList, null, 'id');
+            $areaList = array_filter(array_column($list, 'area_id'));
+            if ($areaList) {
+                $areaList = $modle->getList('parkwash_park_area', ['id' => ['in', array_column($list, 'area_id')]], null, null, 'id,floor,name');
+                $areaList = array_column($areaList, null, 'id');
+            }
             $storeList = $modle->getList('parkwash_store', ['id' => ['in', array_column($list, 'store_id')]], null, null, 'id,name');
             $storeList = array_column($storeList, null, 'id');
             foreach ($list as $k => $v) {
                 $list[$k]['create_time'] = substr($v['create_time'], 0, -3);
                 $list[$k]['order_time'] = substr($v['order_time'], 0, -3);
                 $list[$k]['car_name'] = $brandList[$v['brand_id']]['name'] . ' ' . $seriesList[$v['series_id']]['name'];
-                $list[$k]['area_floor'] = $areaList[$v['area_id']]['floor'];
-                $list[$k]['area_name'] = $areaList[$v['area_id']]['name'];
+                $list[$k]['area_floor'] = isset($areaList[$v['area_id']]) ? $areaList[$v['area_id']]['floor'] : '';
+                $list[$k]['area_name'] = isset($areaList[$v['area_id']]) ? $areaList[$v['area_id']]['name'] : '';
                 $list[$k]['store_name'] = $storeList[$v['store_id']]['name'];
                 $list[$k]['items'] = implode(',', array_column(json_decode($v['items'], true), 'name'));
                 $list[$k]['pay'] = round_dollar($v['pay'], false);
