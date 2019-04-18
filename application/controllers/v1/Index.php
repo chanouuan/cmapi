@@ -47,7 +47,7 @@ class Index extends \ActionPDO {
         if (!isset($_SERVER['PHP_AUTH_USER']) ||
             !isset($_SERVER['PHP_AUTH_PW']) ||
             $_SERVER['PHP_AUTH_USER'] != 'admin' ||
-            $_SERVER['PHP_AUTH_PW'] != 'chemi') {
+            $_SERVER['PHP_AUTH_PW'] != 'chemi_123456') {
             header('HTTP/1.1 401 Unauthorized');
             header('WWW-Authenticate: Basic realm="Administrator Secret"');
         }
