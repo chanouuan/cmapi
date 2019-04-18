@@ -81,7 +81,7 @@
                     <span class="x-red">*</span>每日取消次数
                 </label>
                 <div class="layui-input-inline">
-                    <input value="<?=$info['daily_cancel_limit']?>" placeholder="请填写每日限制取消次数" type="tel" maxlength="3" value="2" id="daily_cancel_limit" name="daily_cancel_limit" autocomplete="off" class="layui-input">
+                    <input value="<?=$info['daily_cancel_limit']?>" placeholder="请填写每日限制取消次数" type="tel" maxlength="3" value="2" id="daily_cancel_limit" name="daily_cancel_limit" required="" lay-verify="required" autocomplete="off" class="layui-input">
                 </div>
             </div>
             <div class="layui-form-item">
@@ -89,7 +89,7 @@
                     <span class="x-red">*</span>订单数倍率
                 </label>
                 <div class="layui-input-inline">
-                    <input value="<?=$info['order_count_ratio']?>" placeholder="请填写订单数倍率" type="tel" maxlength="3" value="1" id="order_count_ratio" name="order_count_ratio" autocomplete="off" class="layui-input">
+                    <input value="<?=$info['order_count_ratio']?>" placeholder="请填写订单数倍率" type="tel" maxlength="3" value="1" id="order_count_ratio" name="order_count_ratio" required="" lay-verify="required" autocomplete="off" class="layui-input">
                 </div>
             </div>
             <div class="layui-form-item">
