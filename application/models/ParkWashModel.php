@@ -1109,7 +1109,7 @@ class ParkWashModel extends Crud {
                 $minField[] = $geohash . ' as geohash';
             }
             // 获取附近洗车机
-            if (!$list = $this->getDb()->table('pro_xiche_device')->field($minField)->where(['adcode' => $post['adcode'], 'geohash' => ['<', 10]])->limit(1000)->select()) {
+            if (!$list = $this->getDb()->table('pro_xiche_device')->field($minField)->where(['adcode' => $post['adcode'], 'geohash' => ['<', 10]])->order('geohash')->limit(1000)->select()) {
                 return success($result);
             }
             foreach ($list as $k => $v) {
@@ -1193,7 +1193,7 @@ class ParkWashModel extends Crud {
                 $minField[] = $geohash . ' as geohash';
             }
             // 获取附近门店
-            if (!$list = $this->getDb()->table('parkwash_store')->field($minField)->where(['adcode' => $post['adcode'], 'geohash' => ['<', 10]])->limit(1000)->select()) {
+            if (!$list = $this->getDb()->table('parkwash_store')->field($minField)->where(['adcode' => $post['adcode'], 'geohash' => ['<', 10]])->order('geohash')->limit(1000)->select()) {
                 return success($result);
             }
             foreach ($list as $k => $v) {
