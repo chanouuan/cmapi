@@ -157,15 +157,9 @@ class XicheManage extends ActionPDO {
         foreach ($items as $k => $v) {
             $items[$k]['price'] = isset($storeItems[$v['id']]) ? $storeItems[$v['id']] : 0;
         }
-        $lastPool = $model->getInfo('parkwash_pool', ['store_id' => getgpc('id')], 'max(today) as today');
-        $lastPool = strtotime($lastPool['today']);
-        $lastPool = $lastPool > TIMESTAMP ? $lastPool : TIMESTAMP;
-        $lastPool += 86400;
-        $lastPool = date('Y-m-d', $lastPool);
         return [
             'info' => $info,
-            'items' => $items,
-            'lastPool' => $lastPool
+            'items' => $items
         ];
     }
 
@@ -452,6 +446,10 @@ class XicheManage extends ActionPDO {
                 // 等待服务状态
                 $condition['status'] = 2;
                 $condition['entry_park_id'] = ['>', 0];
+            } else if ($_GET['status'] == 45) {
+                // 异常订单
+                $condition['status'] = ['in', [4,5]];
+                $condition['fail_reason'] = ['<>', ''];
             } else {
                 $condition['status'] = $_GET['status'];
             }
@@ -465,7 +463,7 @@ class XicheManage extends ActionPDO {
         $modle = new XicheManageModel();
         $count = $modle->getCount('parkwash_order', $condition);
         $pagesize = getPageParams($_GET['page'], $count);
-        $list = $modle->getList('parkwash_order', $condition, $pagesize['limitstr'], 'id desc', 'id,entry_park_id,entry_park_time,store_id,create_time,car_number,brand_id,series_id,user_tel,order_time,area_id,place,items,pay,status');
+        $list = $modle->getList('parkwash_order', $condition, $pagesize['limitstr'], 'id desc', 'id,entry_park_id,entry_park_time,store_id,create_time,car_number,brand_id,series_id,user_tel,order_time,area_id,place,items,pay,status,fail_reason');
 
         if ($list) {
             $brandList = $modle->getList('parkwash_car_brand', ['id' => ['in', array_column($list, 'brand_id')]], null, null, 'id,name');
@@ -491,6 +489,9 @@ class XicheManage extends ActionPDO {
                 // 判断等待服务状态
                 if ($v['status'] == 2 && $v['entry_park_id']) {
                     $list[$k]['status'] = 23; // 等待服务
+                }
+                if (($v['status'] == 4 || $v['status'] == 5) && $v['fail_reason']) {
+                    $list[$k]['status'] = 45; // 异常订单
                 }
                 $list[$k]['status_str'] = $modle->getParkOrderStatus($list[$k]['status']);
             }

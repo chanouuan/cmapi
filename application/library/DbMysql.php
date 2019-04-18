@@ -66,7 +66,7 @@ class DbMysql extends Db {
                 $vals[] = isset($v[2]) ? $v[2] : 'AND';
                 $vals[] = $k;
                 $vals[] = $v[0];
-                if ($v[0] == 'in' || $v[0] == 'IN') {
+                if ($v[0] == 'in' || $v[0] == 'IN' || $v[0] == 'not in' || $v[0] == 'NOT IN') {
                     $v[1] = is_array($v[1]) ? $v[1] : explode(',', $v[1]);
                     $placeholder = [];
                     foreach ($v[1] as $kk => $vv) {

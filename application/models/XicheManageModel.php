@@ -256,6 +256,9 @@ class XicheManageModel extends Crud {
         if (empty($post['address'])) {
             return error('地址不能为空');
         }
+        if (!$post['order_count_ratio']) {
+            return error('订单数倍率不能为空');
+        }
         list($lon, $lat) = explode(',', $post['location']);
         if (!$lon || !$lat || $lat > $lon) {
             return error('经纬度坐标不正确,格式为“经度,纬度”,坐标系为gcj02');
@@ -324,7 +327,115 @@ class XicheManageModel extends Crud {
         $this->getDb()->delete('parkwash_store_item', ['store_id' => $post['id']]);
         $this->getDb()->insert('parkwash_store_item', $item);
 
+        // 正常营业状态
+        if ($post['status']) {
+            // 更新排班
+            $this->poolSave($post['id'], $post['business_hours'], $post['time_interval'], $post['time_amount'], $post['time_day']);
+        }
+
         return success('OK');
+    }
+
+    /**
+     * 更新排班表
+     */
+    protected function poolSave ($store_id, $business_hours, $time_interval, $time_amount, $time_day) {
+        // 工作日
+        $time_day = str_split($time_day);
+        // 排班天数
+        $scheduleDays = getConfig('xc', 'schedule_days');
+        $scheduleDays = $scheduleDays < 1 ? 1 : $scheduleDays;
+        $scheduleDays = $scheduleDays > 30 ? 30 : $scheduleDays;
+        $date = [];
+        for ($i = 0; $i < $scheduleDays; $i++) {
+            $time = TIMESTAMP + 86400 * $i;
+            // 跳过不在工作日的
+            if (!in_array(date('N', $time), $time_day)) {
+                continue;
+            }
+            $date[] = date('Y-m-d', $time);
+        }
+        if (!$date) {
+            // 删除全部排班
+            $this->getDb()->delete('parkwash_pool', 'store_id = ' . $store_id);
+            return null;
+        }
+        // 排班时段
+        $duration = (new ParkWashModel())->selectDuration($business_hours, $time_interval);
+        if (!$duration) {
+            // 删除全部排班
+            $this->getDb()->delete('parkwash_pool', 'store_id = ' . $store_id);
+            return null;
+        }
+        foreach ($duration as $k => $v) {
+            $duration[$k] = implode('~', $v);
+        }
+        $result = [
+            'add' => [],
+            'update' => [],
+            'delete' => []
+        ];
+        foreach ($date as $today) {
+            // 获取已有的排班
+            $existsPool = $this->getTodayPool($today, $store_id);
+            // 比较差异
+            $addPool = array_diff($duration, $existsPool);
+            $deletePool = array_diff($existsPool, $duration);
+            $updatePool = array_intersect($existsPool, $duration);
+            if ($addPool) {
+                foreach ($addPool as $k => $v) {
+                    $arr = [];
+                    $arr['store_id'] = $store_id;
+                    $arr['amount'] = $time_amount;
+                    $arr['today'] = $today;
+                    $v = explode('~', $v);
+                    $arr['start_time'] = $v[0];
+                    $arr['end_time'] = $v[1];
+                    $result['add'][] = $arr;
+                }
+            }
+            if ($deletePool) {
+                $result['delete'] = array_merge($result['delete'], array_keys($deletePool));
+            }
+            if ($updatePool) {
+                $result['update'] = array_merge($result['update'], array_keys($updatePool));
+            }
+        }
+        // 更新排班
+        if (!$this->getDb()->transaction(function ($db) use($result, $time_amount) {
+            if ($result['add']) {
+                if (!$db->insert('parkwash_pool', $result['add'])) {
+                    return false;
+                }
+            }
+            if ($result['delete']) {
+                if (!$db->delete('parkwash_pool', 'id in (' . implode(',', $result['delete']) . ')')) {
+                    return false;
+                }
+            }
+            if ($result['update']) {
+                if (false === $db->update('parkwash_pool', [
+                        'amount' => $time_amount
+                    ], 'id in (' . implode(',', $result['update']) . ')')) {
+                    return false;
+                }
+            }
+            return true;
+        })) {
+            return false;
+        }
+        unset($result);
+        // 删除不在有效日期内的排班
+        $this->getDb()->delete('parkwash_pool', ['store_id' => $store_id, 'today' => ['not in', $date]]);
+        return true;
+    }
+
+    protected function getTodayPool ($today, $storeid)
+    {
+        $storeid = intval($storeid);
+        $rs = $this->getDb()->table('parkwash_pool')->field('id,concat(start_time,"~",end_time) as time')->where('store_id = ' . $storeid . ' and today = "' . $today . '"')->select();
+        $rs = $rs ? array_column($rs, 'time', 'id') : [];
+        return $rs;
     }
 
     /**
@@ -366,6 +477,9 @@ class XicheManageModel extends Crud {
         }
         if (empty($post['address'])) {
             return error('地址不能为空');
+        }
+        if (!$post['order_count_ratio']) {
+            return error('订单数倍率不能为空');
         }
         list($lon, $lat) = explode(',', $post['location']);
         if (!$lon || !$lat || $lat > $lon) {
@@ -438,37 +552,8 @@ class XicheManageModel extends Crud {
 
         // 正常营业状态
         if ($post['status']) {
-            // 排班天数
-            $scheduleDays = getConfig('xc', 'schedule_days');
-            $scheduleDays = $scheduleDays < 1 ? 1 : $scheduleDays;
-            $scheduleDays = $scheduleDays > 30 ? 30 : $scheduleDays;
-            $date = [];
-            for ($i = 0; $i < $scheduleDays; $i++) {
-                $date[] = date('Y-m-d', TIMESTAMP + 86400 * $i);
-            }
             // 新增排班
-            if ($duration = (new ParkWashModel())->selectDuration($post['business_hours'], $post['time_interval'])) {
-                $post['time_day'] = str_split($post['time_day']);
-                $pool = [];
-                foreach ($date as $kk => $vv) {
-                    // 跳过不在工作日的
-                    if (!in_array(date('N', $vv), $post['time_day'])) {
-                        continue;
-                    }
-                    foreach ($duration as $kkk => $vvv) {
-                        $pool[] = [
-                            'store_id' => $store_id,
-                            'today' => $vv,
-                            'start_time' => $vvv[0],
-                            'end_time' => $vvv[1],
-                            'amount' => $post['time_amount']
-                        ];
-                    }
-                }
-                if ($pool) {
-                    $this->getDb()->insert('parkwash_pool', $pool);
-                }
-            }
+            $this->poolSave($store_id, $post['business_hours'], $post['time_interval'], $post['time_amount'], $post['time_day']);
         }
 
         return success('OK');
@@ -1004,7 +1089,7 @@ class XicheManageModel extends Crud {
      */
     public function getParkOrderStatus ($status = null) {
         $arr = [
-            1 => '待接单', 2 => '已接单', 23 => '等待服务', 3 => '服务中', 4 => '已完成', -1 => '已取消', 5 => '已确认'
+            1 => '待接单', 2 => '已接单', 23 => '等待服务', 3 => '服务中', 4 => '已完成', -1 => '已取消', 5 => '已确认' , 45 => '异常'
         ];
         if (!isset($status)) {
             return $arr;

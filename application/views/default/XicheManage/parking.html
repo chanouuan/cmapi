@@ -64,9 +64,9 @@
         layer.confirm('确定要删除吗？',function(index){
             $.ajax({
                 type: 'POST',
-                url: '<?=gurl('xicheManage/parkingDelete')?>',
+                url: "<?=gurl('xicheManage/parkingDelete')?>",
                 data: {id: id},
-            dataType: 'json',
+                dataType: 'json',
                 timeout: 5000,
                 success: function(res){
                 layer.closeAll();
