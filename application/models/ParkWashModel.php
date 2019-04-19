@@ -832,7 +832,7 @@ class ParkWashModel extends Crud {
             'today' => ['in', $date]
         ];
 
-        if (!$poolList = $this->getDb()->table('parkwash_pool')->field('id,today,left(start_time,5) as start_time,left(end_time,5) as end_time,amount')->where($condition)->select()) {
+        if (!$poolList = $this->getDb()->table('parkwash_pool')->field('id,today,left(start_time,5) as start_time,left(end_time,5) as end_time,amount')->where($condition)->order('today,start_time')->select()) {
             return success([]);
         }
 
@@ -1418,24 +1418,45 @@ class ParkWashModel extends Crud {
         if ($lastTradeInfo = $tradeModel->get(null, [
             'trade_id' => $uid, 'mark' => md5(json_encode($orderParam)), 'status' => 0
             ], 'id,order_id,createtime,payway')) {
-            // 支付方式相同，返回上次生成的订单
-            if ($lastTradeInfo['payway'] == $post['payway']) {
-                $param = [
-                    'ordercode' => $orderCode, 'createtime' => date('Y-m-d H:i:s', TIMESTAMP)
-                ];
-                // 更新小程序form_id
-                if ($post['form_id']) {
-                    $param['form_id'] = $post['form_id'];
-                }
-                $tradeModel->update($param, 'id = ' . $lastTradeInfo['id']);
-                // 更新订单时间
-                $this->getDb()->update('parkwash_order', [
-                    'create_time' => $param['createtime'], 'update_time' => $param['createtime'],
-                ], 'id = ' . $lastTradeInfo['order_id']);
-                return success([
-                    'tradeid' => $lastTradeInfo['id']
-                ]);
+
+            $param = [
+                'ordercode' => $orderCode, 'payway' => $post['payway'] == 'cbpay' ? 'cbpay' : '', 'createtime' => date('Y-m-d H:i:s', TIMESTAMP)
+            ];
+            // 更新小程序form_id
+            if ($post['form_id']) {
+                $param['form_id'] = $post['form_id'];
             }
+            if (!$tradeModel->update($param, 'id = ' . $lastTradeInfo['id'])) {
+                return error('更新交易单失败');
+            }
+
+            // 更新订单时间
+            $this->getDb()->update('parkwash_order', [
+                'create_time' => $param['createtime'], 'update_time' => $param['createtime'],
+            ], 'id = ' . $lastTradeInfo['order_id']);
+
+            // 车币支付
+            if ($post['payway'] == 'cbpay') {
+                $result = $userModel->consume([
+                    'platform' => 3,
+                    'authcode' =>  $uid,
+                    'trade_no' => $orderCode,
+                    'money' => $totalPrice,
+                    'remark' => '支付停车场洗车费'
+                ]);
+                if ($result['errorcode'] !== 0) {
+                    $this->handleCardFail($lastTradeInfo['id']);
+                    return $result;
+                }
+                $result = $this->handleCardSuc($lastTradeInfo['id']);
+                if ($result['errorcode'] !== 0) {
+                    return $result;
+                }
+            }
+
+            return success([
+                'tradeid' => $lastTradeInfo['id']
+            ]);
         }
 
         // 判断预约数

@@ -1,0 +1,116 @@
+<?php include('header.html'); ?>
+
+  <body>
+    <div class="x-body">
+        <form id="form" class="layui-form">
+            <div class="layui-form-item">
+                <label class="layui-form-label">
+                  <span class="x-red">*</span>卡名
+                </label>
+                <div class="layui-input-inline">
+                  <input placeholder="请填写卡名" type="text" maxlength="30" name="name" required="" lay-verify="required" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">
+                    <span class="x-red">*</span>价格
+                </label>
+                <div class="layui-input-inline">
+                    <input placeholder="请填写价格(元)" type="text" maxlength="5" name="price" required="" lay-verify="required" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">
+                    月数
+                </label>
+                <div class="layui-input-inline">
+                    <input placeholder="请填写月数" type="tel" maxlength="2" name="months" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">
+                    天数
+                </label>
+                <div class="layui-input-inline">
+                    <input placeholder="请填写天数" type="tel" maxlength="3" name="days" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">
+                    <span class="x-red">*</span>绑定车数量
+                </label>
+                <div class="layui-input-inline">
+                    <input placeholder="请填写绑定车数量" type="tel" maxlength="3" required="" lay-verify="required" name="car_count" autocomplete="off" class="layui-input">
+                </div>
+                <div class="layui-input-inline" style="line-height: 30px;width: 300px;">
+                    <i class="layui-icon">&#xe60b;</i> 绑定车数量，0不限制
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">
+                    <span class="x-red">*</span>状态
+                </label>
+                <div class="layui-input-inline">
+                    <select name="status">
+                        <option value="1">正常</option>
+                        <option value="0">禁用</option>
+                    </select>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">
+                    排序
+                </label>
+                <div class="layui-input-inline">
+                    <input placeholder="请填写排序值" type="tel" maxlength="5" name="sort" autocomplete="off" class="layui-input">
+                </div>
+                <div class="layui-input-inline" style="line-height: 30px;width: 300px;">
+                    <i class="layui-icon">&#xe60b;</i> 排序字段，值越大越靠前
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <input type="hidden" name="formhash" value="<?=encode_formhash()?>">
+                <label class="layui-form-label"></label>
+                <button class="layui-btn" lay-filter="add" lay-submit="">提交</button>
+            </div>
+      </form>
+    </div>
+    <script>
+        layui.use(['form','layer'], function(){
+            $ = layui.jquery;
+            var form = layui.form, layer = layui.layer;
+
+            //监听提交
+            form.on('submit(add)', function(data){
+                $.ajax({
+                    type: 'POST',
+                    url: '<?=gurl('xicheManage/cardTypeAdd')?>',
+                    data: data.field,
+                    dataType: 'json',
+                    timeout: 10000,
+                    success: function(list){
+                       layer.closeAll();
+                       if(list.errorcode != 0) {
+                           return layer.msg(list.message);
+                       }
+                       layer.alert("增加成功", {icon: 6},function () {
+                           parent.location.reload();
+                       });
+                    },
+                    beforeSend: function(xhr){
+                       layer.load();
+                    },
+                    error: function(xhr, type){
+                       layer.closeAll();
+                       layer.msg('网络错误，请重试!');
+                    }
+                });
+                return false;
+          });
+
+        });
+    </script>
+
+  </body>
+
+</html>

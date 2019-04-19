@@ -217,6 +217,93 @@ class XicheManageModel extends Crud {
     }
 
     /**
+     * 卡类型添加
+     */
+    public function cardTypeAdd ($post) {
+        $post['name'] = trim_space($post['name']);
+        $post['price'] = floatval($post['price']);
+        $post['price'] = $post['price'] < 0 ? 0 : $post['price'];
+        $post['price'] = intval($post['price'] * 100);
+        $post['months'] = intval($post['months']);
+        $post['months'] = $post['months'] < 0 ? 0 : $post['months'];
+        $post['days'] = intval($post['days']);
+        $post['days'] = $post['days'] < 0 ? 0 : $post['days'];
+        $post['car_count'] = intval($post['car_count']);
+        $post['car_count'] = $post['car_count'] < 0 ? 0 : $post['car_count'];
+        $post['status'] = $post['status'] ? 1 : 0;
+        $post['sort'] = intval($post['sort']);
+
+        if (empty($post['name'])) {
+            return error('卡名不能为空');
+        }
+        if (!$post['price']) {
+            return error('价格不能为空');
+        }
+        if (!$post['months'] && !$post['days']) {
+            return error('月数与天数至少填一项');
+        }
+
+        if (!$this->getDb()->insert('parkwash_card_type', [
+            'name' => $post['name'],
+            'price' => $post['price'],
+            'months' => $post['months'],
+            'days' => $post['days'],
+            'car_count' => $post['car_count'],
+            'update_time' => date('Y-m-d H:i:s', TIMESTAMP),
+            'create_time' => date('Y-m-d H:i:s', TIMESTAMP),
+            'sort' => $post['sort'],
+            'status' => $post['status']
+        ])) {
+            return error('添加失败');
+        }
+
+        return success('OK');
+    }
+
+    /**
+     * 卡类型编辑
+     */
+    public function cardTypeUpdate ($post) {
+        $post['name'] = trim_space($post['name']);
+        $post['price'] = floatval($post['price']);
+        $post['price'] = $post['price'] < 0 ? 0 : $post['price'];
+        $post['price'] = intval($post['price'] * 100);
+        $post['months'] = intval($post['months']);
+        $post['months'] = $post['months'] < 0 ? 0 : $post['months'];
+        $post['days'] = intval($post['days']);
+        $post['days'] = $post['days'] < 0 ? 0 : $post['days'];
+        $post['car_count'] = intval($post['car_count']);
+        $post['car_count'] = $post['car_count'] < 0 ? 0 : $post['car_count'];
+        $post['status'] = $post['status'] ? 1 : 0;
+        $post['sort'] = intval($post['sort']);
+
+        if (empty($post['name'])) {
+            return error('卡名不能为空');
+        }
+        if (!$post['price']) {
+            return error('价格不能为空');
+        }
+        if (!$post['months'] && !$post['days']) {
+            return error('月数与天数至少填一项');
+        }
+
+        if (false === $this->getDb()->update('parkwash_card_type', [
+                'name' => $post['name'],
+                'price' => $post['price'],
+                'months' => $post['months'],
+                'days' => $post['days'],
+                'car_count' => $post['car_count'],
+                'update_time' => date('Y-m-d H:i:s', TIMESTAMP),
+                'sort' => $post['sort'],
+                'status' => $post['status']
+            ], ['id' => $post['id']])) {
+            return error('修改失败');
+        }
+
+        return success('OK');
+    }
+
+    /**
      * 编辑门店
      */
     public function storeUpdate ($post) {
@@ -709,7 +796,7 @@ class XicheManageModel extends Crud {
     /**
      * 获取设备列表
      */
-    public function getList ($table, $condition, $limit = null, $order = 'id desc', $field = null) {
+    public function getList ($table, $condition = null, $limit = null, $order = 'id desc', $field = null) {
         if (0 !== strpos($table, 'parkwash_')) {
             $table = '__tablepre__' . $table;
         }

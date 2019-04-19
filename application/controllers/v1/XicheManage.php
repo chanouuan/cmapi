@@ -432,8 +432,8 @@ class XicheManage extends ActionPDO {
         if ($_GET['order_id']) {
             $condition['id'] = $_GET['order_id'];
         }
-        if ($_GET['telephone']) {
-            $condition['telephone'] = $_GET['telephone'];
+        if ($_GET['user_tel']) {
+            $condition['user_tel'] = ['like', $_GET['user_tel'] . '%'];
         }
         if ($_GET['car_number']) {
             $condition['car_number'] = ['like', $_GET['car_number'] . '%'];
@@ -452,6 +452,8 @@ class XicheManage extends ActionPDO {
                 $condition['fail_reason'] = ['<>', ''];
             } else {
                 $condition['status'] = $_GET['status'];
+                $condition['entry_park_id'] = 0;
+                $condition['fail_reason'] = '';
             }
         } else {
             $condition['status'] = ['<>', 0];
@@ -574,6 +576,91 @@ class XicheManage extends ActionPDO {
         return [
             'pagesize' => $pagesize,
             'list' => $list
+        ];
+    }
+
+    /**
+     * 缴费记录
+     */
+    public function cardRecord () {
+
+        $modle = new XicheManageModel();
+        $userModel = new UserModel();
+
+        $condition = [];
+        if ($_GET['uid']) {
+            $condition['uid'] = intval($_GET['uid']);
+        }
+        if ($_GET['user_tel']) {
+            $condition['user_tel'] = ['like', $_GET['user_tel'] . '%'];
+        }
+        if ($_GET['car_number']) {
+            $condition['car_number'] = ['like', '%' . $_GET['car_number'] . '%'];
+        }
+        if ($_GET['card_type_id']) {
+            $condition['card_type_id'] = intval($_GET['card_type_id']);
+        }
+
+        $row = \app\library\DB::getInstance()
+            ->table('parkwash_card_record')
+            ->field('count(*) as count,sum(money) as money')
+            ->where($condition)
+            ->find();
+        $count = $row['count'];
+        $totalMoney = $row['money'];
+        $pagesize = getPageParams($_GET['page'], $count);
+        $list = $modle->getList('parkwash_card_record', $condition, $pagesize['limitstr']);
+        $cardType = $modle->getList('parkwash_card_type', null, null, 'sort desc');
+        $cardType = array_column($cardType, 'name', 'id');
+
+        foreach ($list as $k => $v) {
+            $list[$k]['card_type_name'] = isset($cardType[$v['card_type_id']]) ? $cardType[$v['card_type_id']] : $v['card_type_id'];
+            $list[$k]['car_number'] = implode(',', json_decode($v['car_number'], true));
+        }
+
+        return [
+            'pagesize' => $pagesize,
+            'list' => $list,
+            'cardType' => $cardType,
+            'totalMoney' => intval($totalMoney)
+        ];
+    }
+
+    /**
+     * 卡类型管理
+     */
+    public function cardType () {
+        $modle = new XicheManageModel();
+        $list = $modle->getList('parkwash_card_type', null, null, 'sort desc');
+        return [
+            'list' => $list
+        ];
+    }
+
+    /**
+     * 卡类型添加
+     */
+    public function cardTypeAdd () {
+
+        if (submitcheck()) {
+            return (new XicheManageModel())->cardTypeAdd($_POST);
+        }
+
+        return [];
+    }
+
+    /**
+     * 卡类型编辑
+     */
+    public function cardTypeUpdate () {
+
+        if (submitcheck()) {
+            return (new XicheManageModel())->cardTypeUpdate($_POST);
+        }
+
+        $info = (new XicheManageModel())->getInfo('parkwash_card_type', ['id' => getgpc('id')]);
+        return [
+            'info' => $info
         ];
     }
 

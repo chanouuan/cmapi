@@ -22,7 +22,7 @@
     <div class="weui-msg__opr-area">
         <p class="weui-btn-area">
             <?php if($url){ ?>
-            <a onclick='window.location.replace("<?=$url?>")' href="javascript:;" class="weui-btn weui-btn_primary">确定</a>
+            <a onclick='window.top.location.replace("<?=$url?>")' href="javascript:;" class="weui-btn weui-btn_primary">确定</a>
             <?php } ?>
         </p>
     </div>
@@ -30,8 +30,7 @@
 <script type="text/javascript">
     <?php if($url){ ?>
 setTimeout(function(){
-    if(window.top)window.top.location.replace("<?=$url?>");
-    else window.location.replace("<?=$url?>");
+    window.top.location.replace("<?=$url?>");
 },<?=$wait*1000?>);
     <?php } ?>
 </script>

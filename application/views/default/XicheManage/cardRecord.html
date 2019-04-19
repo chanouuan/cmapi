@@ -1,0 +1,92 @@
+<?php include('header.html'); ?>
+
+<body>
+<div class="x-nav">
+      <span class="layui-breadcrumb">
+        <a><cite>缴费记录</cite></a>
+      </span>
+    <a class="layui-btn layui-btn-small" style="line-height:1.6em;margin-top:3px;float:right" href="javascript:location.replace(location.href);" title="刷新"><i class="layui-icon" style="line-height:30px">ဂ</i></a>
+</div>
+<div class="x-body">
+    <div class="layui-row">
+        <form class="layui-form layui-col-md12 x-so" method="get">
+            <input value="<?=$_GET['uid']?>" maxlength="11" type="tel" name="uid" placeholder="请输入用户编号" autocomplete="off" class="layui-input">
+            <input value="<?=$_GET['user_tel']?>" maxlength="11" type="tel" name="user_tel" placeholder="请输入手机号" autocomplete="off" class="layui-input">
+            <input value="<?=$_GET['car_number']?>" maxlength="10" type="text" name="car_number" placeholder="请输入车牌号" autocomplete="off" class="layui-input">
+            <div class="layui-input-inline">
+                <select name="card_type_id">
+                    <option value="">卡类型</option>
+                    <?php foreach($cardType as $k=>$v){ ?>
+                    <option <?php if($_GET['card_type_id']==$k){ ?>selected<?php } ?> value="<?=$k?>"><?=$v?></option>
+                    <?php } ?>
+                </select>
+            </div>
+            <input value="<?=$_GET['start_time']?>" class="layui-input" id="start_time" name="start_time" placeholder="缴费开始日期" readonly>
+            <input value="<?=$_GET['end_time']?>" class="layui-input" id="end_time" name="end_time" placeholder="缴费结束日期" readonly>
+            <button class="layui-btn" lay-submit="" lay-filter="sreach"><i class="layui-icon">&#xe615;</i></button>
+        </form>
+    </div>
+    <xblock>
+        <span class="x-left" style="line-height:40px">总金额：<?=$totalMoney?>元</span>
+        <span class="x-right" style="line-height:40px">共有数据：<?=$pagesize['totalcount']?> 条</span>
+    </xblock>
+    <table class="layui-table">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>用户</th>
+            <th>车牌号</th>
+            <th>卡类型</th>
+            <th>缴费(元)</th>
+            <th>截止时间</th>
+            <th>时长</th>
+            <th>缴费时间</th>
+        </tr>
+        </thead>
+        <tbody>
+        <?php foreach($list as $k=>$v){ ?>
+        <tr>
+            <td><?=$v['id']?></td>
+            <td><?=$v['user_tel']?></td>
+            <td><?=$v['car_number']?></td>
+            <td><?=$v['card_type_name']?></td>
+            <td><?=round_dollar($v['money'],false)?></td>
+            <td><?=$v['end_time']?></td>
+            <td><?=$v['duration']?></td>
+            <td><?=$v['create_time']?></td>
+        </tr>
+        <?php } ?>
+        </tbody>
+    </table>
+
+    <?php if($pagesize['totalpage']>1){ ?>
+    <div class="page">
+        <div>
+            <?php foreach($pagesize['scrollpage'] as $k=>$v){ ?>
+            <?php if($pagesize['page']==$k){ ?>
+            <span class="current"><?=$v?></span>
+            <?php }else{ ?>
+            <a class="num" href="?<?=burl('page='.$k)?>"><?=$v?></a>
+            <?php } ?>
+            <?php } ?>
+        </div>
+    </div>
+    <?php } ?>
+
+</div>
+
+<script>
+    layui.use(['laydate'], function(){
+        var laydate = layui.laydate;
+        laydate.render({
+            elem: '#start_time'
+        });
+        laydate.render({
+            elem: '#end_time'
+        });
+    });
+
+</script>
+</body>
+
+</html>
