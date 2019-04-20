@@ -1844,6 +1844,16 @@ class ParkWashModel extends Crud {
             return error('更新交易失败');
         }
 
+        // 更新用户下单数、消费
+        $this->getDb()->update('parkwash_usercount', [
+            'coupon_consume' => ['coupon_consume+' . ($tradeInfo['money'] - $tradeInfo['pay'])],
+            'parkwash_count' => ['parkwash_count+1'],
+            'parkwash_consume' => ['parkwash_consume+' . $tradeInfo['money']],
+            'parkwash_firstorder' => 0
+        ], [
+            'uid' => $tradeInfo['trade_id']
+        ]);
+
         // 获取订单信息
         $orderInfo = $this->findOrderInfo(['id' => $tradeInfo['order_id']], 'id,uid,store_id,car_number,order_time,create_time');
 
@@ -1856,16 +1866,6 @@ class ParkWashModel extends Crud {
             'money' => ['money+' . $tradeInfo['money']]
         ], [
             'id' => $orderInfo['store_id']
-        ]);
-
-        // 更新用户下单数、消费
-        $this->getDb()->update('parkwash_usercount', [
-            'coupon_consume' => ['coupon_consume+' . ($tradeInfo['money'] - $tradeInfo['pay'])],
-            'parkwash_count' => ['parkwash_count+1'],
-            'parkwash_consume' => ['parkwash_consume+' . $tradeInfo['money']],
-            'parkwash_firstorder' => 0
-        ], [
-            'uid' => $orderInfo['uid']
         ]);
 
         // 记录资金变动
