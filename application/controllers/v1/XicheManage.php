@@ -377,7 +377,7 @@ class XicheManage extends ActionPDO {
         $modle = new XicheManageModel();
         $orderInfo = $modle->getInfo('parkwash_order', ['id' => getgpc('id')]);
         $payway = [
-            'cbpay' => '车币', 'wxpayjs' => '微信', 'wxpayh5' => '微信H5', 'wxpaywash' => '微信'
+            'cbpay' => '车币', 'wxpayjs' => '微信', 'wxpayh5' => '微信H5', 'wxpaywash' => '微信', 'vippay' => '洗车VIP', 'firstpay' => '首单免费'
         ];
         $brandInfo = $modle->getInfo('parkwash_car_brand', ['id' => $orderInfo['brand_id']], 'name');
         $seriesInfo = $modle->getInfo('parkwash_car_series', ['id' => $orderInfo['series_id']], 'name');

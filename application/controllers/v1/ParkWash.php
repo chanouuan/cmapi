@@ -325,7 +325,7 @@ class ParkWash extends ActionPDO {
     }
 
     /**
-     * 获取我的车辆
+     * 获取我的车辆 <span style="color:red">改</span>
      * @login
      * @return array
      * {
@@ -340,11 +340,12 @@ class ParkWash extends ActionPDO {
      *      brand_logo:"", //品牌logo图片地址
      *      brand_name:"北汽幻速", //品牌名称
      *      car_number:"", //车牌号
-     *      name:"北汽幻速 H2E 2016款 1.5 手动 时尚型", //车全称
+     *      name:"北汽幻速", //车全称
      *      place:"A1001", //车位号
      *      series_id:1, //车系ID
      *      series_name:"北汽幻速", //车系名称
-     *      isdefault:0, //是否默认选择
+     *      isdefault:0, //是否默认选择,
+     *      isvip:1, //是否vip 1是 0否 <span style="color:red">新</span>
      * }]}
      */
     public function getCarport () {
@@ -537,7 +538,7 @@ class ParkWash extends ActionPDO {
     }
 
     /**
-     * 用户确认完成订单 <span style="color:red">New</span>
+     * 用户确认完成订单
      * @login
      * @param *orderid 订单ID
      * @return array
@@ -686,6 +687,59 @@ class ParkWash extends ActionPDO {
      */
     public function getTradeList () {
         return (new ParkWashModel())->getTradeList($this->_G['user']['uid'], $_POST);
+    }
+
+    /**
+     * 获取会员卡类型 <span style="color:red">New</span>
+     * @return array
+     * {
+     * "errNo":0, // 错误码 0成功 -1失败
+     * "message":"", //错误消息
+     * "result":[{
+     *     "id":10, //卡ID
+     *     "name":"月卡", //卡名
+     *     "price":"1", //价格 (分)
+     *     "duration":"1个月", //免费时长
+     * }]}
+     */
+    public function getCardTypeList () {
+        return (new ParkWashModel())->getCardTypeList();
+    }
+
+    /**
+     * 获取我的会员卡 <span style="color:red">New</span>
+     * @login
+     * @return array
+     * {
+     * "errNo":0, // 错误码 0成功 -1失败
+     * "message":"", //错误消息
+     * "result":[{
+     *     "id":10, //ID
+     *     "car_number":"", //车牌号
+     *     "end_time":"1", //到期时间
+     *     "status":1, //状态 0禁用 1正常 -1已过期
+     * }]}
+     */
+    public function getCardList () {
+        return (new ParkWashModel())->getCardList($this->_G['user']['uid']);
+    }
+
+    /**
+     * 会员卡开卡/续费 <span style="color:red">New</span>
+     * @login
+     * @param *car_number 车牌号
+     * @param *card_type_id 会员卡类型ID
+     * @param *payway 支付方式(cbpay车币支付wxpaywash小程序支付)
+     * @return array
+     * {
+     * "errNo":0, //错误码 0成功 -1失败
+     * "message":"",
+     * "result":{
+     *      "tradeid":1, //交易单ID (用于后续发起支付)
+     * }}
+     */
+    public function cardRenewals () {
+        return (new ParkWashModel())->cardRenewals($this->_G['user']['uid'], $_POST);
     }
 
     public function task () {

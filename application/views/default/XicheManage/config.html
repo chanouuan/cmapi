@@ -12,24 +12,26 @@
     <table class="layui-table">
         <thead>
         <tr>
-            <th>ID</th>
-            <th>名称</th>
+            <th>配置项</th>
             <th>值</th>
-            <th>说明</th>
             <th>操作</th>
         </tr>
         </thead>
         <tbody>
         <?php foreach($list as $k=>$v){ ?>
         <tr>
-            <td><?=$v['id']?></td>
-            <td><?=$v['name']?></td>
-            <td><?=$v['value']?></td>
             <td><?=$v['description']?></td>
+            <td title="<?=$v['name']?>">
+                <?php if($v['type']=='bool'){ ?>
+                <?=$v['value']?'是':'否'?>
+                <?php }else{ ?>
+                <?=$v['value']?>
+                <?php } ?>
+            </td>
             <td class="td-manage">
-                <a title="编辑配置" onclick="x_admin_show('编辑配置','<?=gurl('xicheManage/configUpdate',['id'=>$v['id']])?>')" href="javascript:;">
-                    <i class="layui-icon">&#xe642;</i>
-                </a>
+                <button class="layui-btn" title="编辑配置" onclick="x_admin_show('编辑配置','<?=gurl('xicheManage/configUpdate',['id'=>$v['id']])?>')" href="javascript:;">
+                    <i class="layui-icon">&#xe642;</i>编辑
+                </button>
             </td>
         </tr>
         <?php } ?>

@@ -187,7 +187,7 @@ class Index extends \ActionPDO {
         $path = APPLICATION_PATH . '/log/' . $path . '.log';
         $list = get_list_dir(APPLICATION_PATH . '/log');
         foreach ($list as $k => $v) {
-            $list[$k] = str_replace(APPLICATION_PATH . '/log', '', $v);
+            $list[$k] = str_replace(APPLICATION_PATH . '/log', '', $v) . ' ' . byte_convert(filesize($v));
         }
         if ($_GET['clear']) {
             if (file_exists($path)) {

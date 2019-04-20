@@ -68,7 +68,7 @@ function getRefundMoney ($ordertime)
     return false;
 }
 
-function sizecount ($byte)
+function byte_convert ($byte)
 {
     if ($byte < 1024) {
         return $byte . 'byte';
@@ -120,13 +120,21 @@ function getSysConfig ($key = null, $target = 'config')
 function getConfig ($app = null, $name = null, $default = null)
 {
     if (false === F('config')) {
-        $result = \app\library\DB::getInstance()->table('__tablepre__config')->field('app,name,value,type')->select();
+        $result = \app\library\DB::getInstance()->table('__tablepre__config')->field('app,name,value,type,min,max')->select();
         $config = array();
         foreach ($result as $k => $v) {
             if ($v['type'] == 'textarea') {
                 $v['value'] = htmlspecialchars_decode($v['value'], ENT_QUOTES);
-            } elseif ($v['type'] == 'number') {
+            } else if ($v['type'] == 'number') {
                 $v['value'] = intval($v['value']);
+                if (isset($v['min'])) {
+                    $v['value'] = $v['value'] < $v['min'] ? $v['min'] : $v['value'];
+                }
+                if (isset($v['max'])) {
+                    $v['value'] = $v['value'] > $v['max'] ? $v['max'] : $v['value'];
+                }
+            } else if ($v['type'] == 'bool') {
+                $v['value'] = $v['value'] ? 1 : 0;
             }
             $config[$v['app']][$v['name']] = $v['value'];
         }
@@ -139,7 +147,7 @@ function getConfig ($app = null, $name = null, $default = null)
     if (isset($name)) {
         $config = isset($config[$name]) ? $config[$name] : null;
     }
-    return $config ? $config : $default;
+    return isset($config) ? $config : $default;
 }
 
 function msubstr ($str, $start = 0, $length = 250, $charset = 'utf-8', $suffix = false)

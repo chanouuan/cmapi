@@ -136,7 +136,7 @@ class ParkWashModel extends Crud {
         }
 
         // 获取订单
-        if (!$orderList = $this->getDb()->table('parkwash_order')->field('id,xc_trade_id,store_id,car_number,brand_id,series_id,area_id,place,(pay+deduct) as pay,payway,items,order_time,create_time,status')->where($condition)->order('update_time desc')->limit($result['limit'])->select()) {
+        if (!$orderList = $this->getDb()->table('parkwash_order')->field('id,xc_trade_id,store_id,car_number,brand_id,series_id,area_id,place,pay,payway,items,order_time,create_time,status')->where($condition)->order('update_time desc')->limit($result['limit'])->select()) {
             return success($result);
         }
 
@@ -153,7 +153,7 @@ class ParkWashModel extends Crud {
 
         // 枚举支付方式
         $payway = [
-            'cbpay' => '车币', 'wxpayjs' => '微信', 'wxpayh5' => '微信H5', 'wxpaywash' => '微信'
+            'cbpay' => '车币', 'wxpayjs' => '微信', 'wxpayh5' => '微信H5', 'wxpaywash' => '微信', 'vippay' => '洗车VIP', 'firstpay' => '首单免费'
         ];
 
         // 处理洗车订单
@@ -233,13 +233,13 @@ class ParkWashModel extends Crud {
 
         if (!$orderInfo = $this->findOrderInfo([
             'id' => $post['orderid'], 'uid' => $uid
-        ], 'id,xc_trade_id,store_id,car_number,brand_id,series_id,area_id,place,(pay+deduct) as pay,payway,items,order_time,create_time,status')) {
+        ], 'id,xc_trade_id,store_id,car_number,brand_id,series_id,area_id,place,pay,payway,items,order_time,create_time,status')) {
             return error('订单不存在或无效');
         }
 
         // 枚举支付方式
         $payway = [
-            'cbpay' => '车币', 'wxpayjs' => '微信', 'wxpayh5' => '微信H5', 'wxpaywash' => '微信'
+            'cbpay' => '车币', 'wxpayjs' => '微信', 'wxpayh5' => '微信H5', 'wxpaywash' => '微信', 'vippay' => '洗车VIP', 'firstpay' => '首单免费'
         ];
 
         // xc_trade_id > 0 为自助洗车交易单ID
@@ -275,7 +275,7 @@ class ParkWashModel extends Crud {
             $orderInfo['items'] = json_decode($orderInfo['items'], true);
             $orderInfo['payway'] = isset($payway[$orderInfo['payway']]) ? $payway[$orderInfo['payway']] : $orderInfo['payway'];
             // 获取订单时序表
-            $orderInfo['sequence'] = $this->getDb()->table('parkwash_order_sequence')->field('title,create_time')->where(['orderid' => $orderInfo['id']])->select();
+            // $orderInfo['sequence'] = $this->getDb()->table('parkwash_order_sequence')->field('title,create_time')->where(['orderid' => $orderInfo['id']])->select();
 
         }
 
@@ -469,20 +469,6 @@ class ParkWashModel extends Crud {
             ])
         ]);
 
-        // 通知商家
-        $this->pushNotice([
-            'receiver' => 2,
-            'notice_type' => 2, // 播报器
-            'orderid' => $orderInfo['id'],
-            'store_id' => $orderInfo['store_id'],
-            'uid' => $orderInfo['uid'],
-            'tel' => $storeInfo['tel'],
-            'title' => '取消订单',
-            'content' => template_replace('{$car_number}已取消订单', [
-                'car_number' => $orderInfo['car_number']
-            ])
-        ]);
-
         return success('OK');
     }
 
@@ -548,6 +534,55 @@ class ParkWashModel extends Crud {
             return $userInfo;
         }
         return $userInfo;
+    }
+
+    /**
+     * 获取会员卡类型
+     */
+    public function getCardTypeCache () {
+
+        if (false === F('CardType')) {
+            $list = $this->getDb()
+                ->table('parkwash_card_type')
+                ->where(['status' => 1])
+                ->field('id,name,price,months,days')
+                ->order('sort desc')
+                ->select();
+            F('CardType', $list);
+            return $list;
+        }
+        return F('CardType');
+    }
+
+    /**
+     * 获取会员卡类型
+     */
+    public function getCardTypeList () {
+
+        $list = $this->getCardTypeCache();
+        foreach ($list as $k => $v) {
+            $list[$k]['duration'] = ($v['months'] ? $v['months'] . '个月' : '') . ($v['days'] ? $v['days'] . '天' : '');
+            unset($list[$k]['months'], $list[$k]['days']);
+        }
+        return success($list);
+    }
+
+    /**
+     * 获取我的会员卡
+     */
+    public function getCardList ($uid) {
+
+        $list = $this->getDb()->table('parkwash_card')->field('id,car_number,end_time,update_time,status')->where(['uid' => $uid])->select();
+        if ($list) {
+            foreach ($list as $k => $v) {
+                // 是否过期
+                $list[$k]['status'] = $v['status'] == 1 ? (strtotime($v['end_time']) < TIMESTAMP ? -1 : 1) : $v['status'];
+            }
+            // 排序规则：有效在上，失效在下，再按照状态变更时间由近到远倒叙排列
+            array_multisort(array_column($list, 'status'), SORT_DESC, array_column($list, 'update_time'), SORT_DESC, $list);
+            array_key_clean($list, ['update_time']);
+        }
+        return success($list);
     }
 
     /**
@@ -740,7 +775,6 @@ class ParkWashModel extends Crud {
 
         // 每个用户最多添加车辆的数量
         $carportCount = getConfig('xc', 'carport_count');
-        $carportCount = $carportCount < 1 ? 1 : $carportCount;
 
         // 限制添加数
         if ($this->getDb()->table('parkwash_carport')->where(['uid' => $uid])->count() >= $carportCount) {
@@ -766,7 +800,7 @@ class ParkWashModel extends Crud {
     public function getCarport ($uid) {
 
         if (!$carportList = $this->getDb()->table('parkwash_carport')
-            ->field('id,car_number,brand_id,series_id,area_id,place,name,isdefault')->where(['uid' => $uid])->order('id desc')->select()) {
+            ->field('id,car_number,brand_id,series_id,area_id,place,name,isdefault,vip_expire')->where(['uid' => $uid])->order('id desc')->select()) {
             return success([]);
         }
 
@@ -787,6 +821,9 @@ class ParkWashModel extends Crud {
             $carportList[$k]['series_name'] = $seriesList[$v['series_id']]['name'];
             $carportList[$k]['area_floor'] = isset($areaList[$v['area_id']]) ? $areaList[$v['area_id']]['floor'] : '';
             $carportList[$k]['area_name'] = isset($areaList[$v['area_id']]) ? $areaList[$v['area_id']]['name'] : '';
+            // vip
+            $carportList[$k]['isvip'] = $v['vip_expire'] ? (strtotime($v['vip_expire']) < TIMESTAMP ? 0 : 1) : 0;
+            unset($carportList[$k]['vip_expire']);
         }
 
         unset($brandList, $seriesList, $areaList);
@@ -820,7 +857,6 @@ class ParkWashModel extends Crud {
 
         // 排班天数
         $scheduleDays = getConfig('xc', 'schedule_days');
-        $scheduleDays = $scheduleDays < 1 ? 1 : $scheduleDays;
 
         $date = [];
         for ($i = 0; $i < $scheduleDays; $i++) {
@@ -844,7 +880,7 @@ class ParkWashModel extends Crud {
 
         foreach ($poolList as $k => $v) {
             // 去掉已过期的排班
-            if (strtotime($v['today'] . ' ' . $v['end_time']) < TIMESTAMP) {
+            if (strtotime($v['today'] . ' ' . $v['start_time']) < TIMESTAMP) {
                 unset($poolList[$k]);
                 continue;
             }
@@ -1116,7 +1152,7 @@ class ParkWashModel extends Crud {
                 $list[$k]['distance'] = LocationUtils::getDistance($v['location'], $post);
             }
             // 按照距离进行排序
-            array_multisort (array_column($list, 'distance'), SORT_ASC, SORT_NUMERIC,  $list);
+            array_multisort(array_column($list, 'distance'), SORT_ASC, SORT_NUMERIC,  $list);
             // 分页
             if (!$list = array_slice($list, $post['lastpage'] * $result['limit'], $result['limit'])) {
                 return success($result);
@@ -1200,7 +1236,7 @@ class ParkWashModel extends Crud {
                 $list[$k]['distance'] = LocationUtils::getDistance($v['location'], $post);
             }
             // 按照距离进行排序
-            array_multisort (array_column($list, 'distance'), SORT_ASC, SORT_NUMERIC,  $list);
+            array_multisort(array_column($list, 'distance'), SORT_ASC, SORT_NUMERIC,  $list);
             // 分页
             if (!$list = array_slice($list, $post['lastpage'] * $result['limit'], $result['limit'])) {
                 return success($result);
@@ -1233,6 +1269,133 @@ class ParkWashModel extends Crud {
         $result['lastpage'] = $post['lastpage'] + 1;
         unset($list);
         return success($result);
+    }
+
+    /**
+     * 会员卡开卡/续费
+     */
+    public function cardRenewals ($uid, $post) {
+
+        $post['car_number'] = trim_space($post['car_number']);
+        $post['card_type_id'] = intval($post['card_type_id']);
+        $post['payway'] = trim_space($post['payway']);
+
+        if (!check_car_license($post['car_number'])) {
+            return error('请添加车辆');
+        }
+        if (!$post['card_type_id']) {
+            return error('请选择卡类型');
+        }
+        if (!$post['payway']) {
+            return error('请选择支付方式');
+        }
+
+        // 卡类型
+        if (!$cardTypeInfo = $this->getDb()->table('parkwash_card_type')->field('id,price,months,days,status')->where(['id' => $post['card_type_id']])->find()) {
+            return error('该卡不存在');
+        }
+        if (!$cardTypeInfo['status']) {
+            return error('该卡未启用');
+        }
+        // 我的车辆信息
+        if (!$carportInfo = $this->getDb()->table('parkwash_carport')->field('id')->where(['uid' => $uid, 'car_number' => $post['car_number']])->find()) {
+            return error('该车辆不存在');
+        }
+        // 会员卡信息
+        $cardInfo = $this->getDb()->table('parkwash_card')->field('id,status')->where(['uid' => $uid, 'car_number' => $post['car_number']])->find();
+        // 已经存在的会员卡，要判断卡状态
+        if ($cardInfo) {
+            if (!$cardInfo['status']) {
+                return error('该卡已被禁用');
+            }
+        } else {
+            // 每个用户只能有一张未过期的卡
+            if ($this->getDb()->table('parkwash_card')->where(['uid' => $uid, 'end_time' => ['>=', date('Y-m-d H:i:s', TIMESTAMP)]])->limit(1)->count()) {
+                return error('每位用户只能开通一辆车的vip哦');
+            }
+        }
+
+        // 订单号
+        $orderCode = $this->generateOrderCode($uid);
+
+        $tradeModel = new TradeModel();
+        if ($lastTradeInfo = $tradeModel->get(null, [
+            'trade_id' => $uid, 'param_id' => $post['card_type_id'], 'param_a' => $carportInfo['id'], 'status' => 0, 'type' => 'vipcard', 'pay' => $cardTypeInfo['price'], 'money' => $cardTypeInfo['price']
+        ], 'id,createtime,payway')) {
+
+            if ($lastTradeInfo['payway'] == $post['payway']) {
+                if (strtotime($lastTradeInfo['createtime']) < TIMESTAMP - 600) {
+                    if (false === $tradeModel->update([
+                            'ordercode' => $orderCode, 'createtime' => date('Y-m-d H:i:s', TIMESTAMP)
+                        ], 'id = ' . $lastTradeInfo['id'])) {
+                        return error('更新订单失败');
+                    }
+                }
+                return success([
+                    'tradeid' => $lastTradeInfo['id']
+                ]);
+            }
+        }
+
+        // 判断账户余额
+        $userModel = new UserModel();
+        $userInfo = $userModel->getUserInfo($uid);
+        if ($userInfo['errorcode'] !== 0) {
+            return $userInfo;
+        }
+        $userInfo = $userInfo['result'];
+
+        // 支付方式
+        if ($post['payway'] == 'cbpay') {
+            // 车币支付
+            if ($cardTypeInfo['price'] > $userInfo['money']) {
+                return error('余额不足');
+            }
+        }
+
+        // 生成交易单
+        if (!$this->getDb()->insert('__tablepre__payments', [
+            'type' => 'vipcard',
+            'uses' => 'VIP缴费',
+            'trade_id' => $uid,
+            'param_id' => $post['card_type_id'],
+            'param_a' => $carportInfo['id'],
+            'pay' => $cardTypeInfo['price'],
+            'money' => $cardTypeInfo['price'],
+            'payway' => $post['payway'] == 'cbpay' ? 'cbpay' : '',
+            'ordercode' => $orderCode,
+            'createtime' => date('Y-m-d H:i:s', TIMESTAMP),
+            'mark' => $userInfo['telephone']
+        ])) {
+            return error('订单生成失败');
+        }
+
+        $cardId = $this->getDb()->getlastid();
+
+        // 车币支付
+        if ($post['payway'] == 'cbpay') {
+            $result = $userModel->consume([
+                'platform' => 3,
+                'authcode' =>  $uid,
+                'trade_no' => $orderCode,
+                'money' => $cardTypeInfo['price'],
+                'remark' => '洗车VIP缴费'
+            ]);
+            if ($result['errorcode'] !== 0) {
+                // 回滚交易表
+                $this->handleCardFail($cardId);
+                return $result;
+            }
+            // 车币消费成功
+            $result = $this->handleCardSuc($cardId);
+            if ($result['errorcode'] !== 0) {
+                return $result;
+            }
+        }
+
+        return success([
+            'tradeid' => $cardId
+        ]);
     }
 
     /**
@@ -1315,13 +1478,13 @@ class ParkWashModel extends Crud {
         if (!$post['items']) {
             return error('请选择洗车套餐');
         }
-        if (!$post['payway']) {
-            return error('请选择支付方式');
-        }
 
-        // 每个用户每天仅可下一个订单
-        if ($this->getDb()->table('parkwash_order')->where(['uid' => $uid, 'status' => ['>', 0], 'create_time' => ['between', [date('Y-m-d 00:00:00', TIMESTAMP), date('Y-m-d 23:59:59', TIMESTAMP)]]])->count()) {
-            //return error('今天已经洗过车咯，请明天再来');
+        // 下单数限制
+        $orderLimitConfig = getConfig('xc', 'user_day_order_limit');
+        if ($orderLimitConfig > 0) {
+            if ($this->getDb()->table('parkwash_order')->where(['uid' => $uid, 'status' => ['>', 0], 'create_time' => ['between', [date('Y-m-d 00:00:00', TIMESTAMP), date('Y-m-d 23:59:59', TIMESTAMP)]]])->count() >= $orderLimitConfig) {
+                return error('今天已经洗过车咯，请明天再来');
+            }
         }
 
         // 判断门店状态
@@ -1333,7 +1496,7 @@ class ParkWashModel extends Crud {
         }
 
         // 判断车辆状态
-        if (!$carportInfo = $this->getDb()->table('parkwash_carport')->field('car_number,brand_id,series_id')->where(['id' => $post['carport_id'], 'uid' => $uid])->find()) {
+        if (!$carportInfo = $this->getDb()->table('parkwash_carport')->field('car_number,brand_id,series_id,vip_expire')->where(['id' => $post['carport_id'], 'uid' => $uid])->find()) {
             return error('该车辆不存在');
         }
 
@@ -1380,6 +1543,7 @@ class ParkWashModel extends Crud {
             return error('已选择套餐不存在');
         }
         $totalPrice = array_sum(array_column($items, 'price')); // 套餐总价
+        $deductPrice = 0; // 抵扣金额
         if ($totalPrice <= 0) {
             return error('套餐价格未设置');
         }
@@ -1392,41 +1556,93 @@ class ParkWashModel extends Crud {
         }
         $userInfo = $userInfo['result'];
 
-        // 支付方式
+        // 是否开启首单免费
+        $firstFreeConfig = getConfig('xc', 'wash_order_first_free');
+        if ($firstFreeConfig) {
+            // 查询是否首单
+            if ($userCount = $this->getDb()->table('parkwash_usercount')->field('parkwash_firstorder')->where(['uid' => $uid])->limit(1)->find()) {
+                if ($userCount['parkwash_firstorder'] === 1) {
+                    $post['payway'] = 'firstpay';
+                    // 首单免费，所以支付金额为0，抵扣金额为总价
+                    $deductPrice = $totalPrice;
+                    $totalPrice = 0;
+                }
+            }
+        }
+
+        // 如果为vip车，支付方式就改为vippay
+        if ($post['payway'] != 'firstpay') {
+            if ($carportInfo['vip_expire']) {
+                if (strtotime($carportInfo['vip_expire']) > TIMESTAMP) {
+                    $post['payway'] = 'vippay';
+                    // vip免费，所以支付金额为0，抵扣金额为总价
+                    $deductPrice = $totalPrice;
+                    $totalPrice = 0;
+                }
+            }
+        }
+
+        // 支付方式不能为空
+        if (!$post['payway']) {
+            return error('请选择支付方式');
+        }
+
+        // 车币支付余额验证
         if ($post['payway'] == 'cbpay') {
-            // 车币支付
             if ($totalPrice > $userInfo['money']) {
                 return error('余额不足');
             }
         }
 
+        // 限制vip车一天只能洗一次
+        if ($post['payway'] == 'vippay') {
+            if ($this->getDb()->table('parkwash_order')
+                ->where([
+                    'uid' => $uid,
+                    'car_number' => $carportInfo['car_number'],
+                    'status' => ['>', 0],
+                    'order_time' => ['between', [date('Y-m-d 00:00:00', strtotime($poolInfo['today'])), date('Y-m-d 23:59:59', strtotime($poolInfo['today']))]]
+                ])
+                ->limit(1)
+                ->count()) {
+                return error('该vip车在「'.date('Y年n月j日', strtotime($poolInfo['today'])).'」已预定过');
+            }
+        }
+
         // 订单预生成数据
         $orderParam = [
-            'adcode' => $storeInfo['adcode'], 'pool_id' => $post['pool_id'], 'store_id' => $post['store_id'], 'uid' => $uid, 'user_tel' => $userInfo['telephone'], 'car_number' => $carportInfo['car_number'], 'brand_id' => $carportInfo['brand_id'], 'series_id' => $carportInfo['series_id'], 'area_id' => $post['area_id'], 'place' => $post['place'], 'pay' => $totalPrice, 'deduct' => 0, 'items' => json_unicode_encode($items), 'order_time' => $post['order_time'], 'abort_time' => $post['abort_time']
+            'adcode' => $storeInfo['adcode'], 'pool_id' => $post['pool_id'], 'store_id' => $post['store_id'], 'uid' => $uid, 'user_tel' => $userInfo['telephone'], 'car_number' => $carportInfo['car_number'], 'brand_id' => $carportInfo['brand_id'], 'series_id' => $carportInfo['series_id'], 'area_id' => $post['area_id'], 'place' => $post['place'], 'pay' => $totalPrice, 'deduct' => $deductPrice, 'items' => json_unicode_encode($items), 'order_time' => $post['order_time'], 'abort_time' => $post['abort_time']
         ];
 
         // 更新车辆
         $this->saveCarport($uid, [
-            'id' => $post['carport_id'], 'car_number' => $orderParam['car_number'], 'brand_id' => $orderParam['brand_id'], 'series_id' => $orderParam['series_id'], 'area_id' => $orderParam['area_id'], 'place' => $orderParam['place'] ? $orderParam['place'] : null, 'isdefault' => 1
+            'id' => $post['carport_id'], 'car_number' => $orderParam['car_number'], 'brand_id' => $orderParam['brand_id'], 'series_id' => $orderParam['series_id'], 'area_id' => $orderParam['area_id'] ? $orderParam['area_id'] : null, 'place' => $orderParam['place'] ? $orderParam['place'] : null, 'isdefault' => 1
         ]);
 
         // 订单号
         $orderCode = $this->generateOrderCode($uid);
+        $paramPayway = $post['payway'] == 'cbpay' || $post['payway'] == 'vippay' || $post['payway'] == 'firstpay' ? $post['payway'] : '';
 
         // 防止重复扣费
         $tradeModel = new TradeModel();
         if ($lastTradeInfo = $tradeModel->get(null, [
-            'trade_id' => $uid, 'mark' => md5(json_encode($orderParam)), 'status' => 0
-            ], 'id,order_id,createtime,payway')) {
+            'trade_id' => $uid, 'type' => 'parkwash', 'mark' => md5(json_encode($orderParam)), 'status' => 0
+            ], 'id,order_id,createtime')) {
 
             $param = [
-                'ordercode' => $orderCode, 'payway' => $post['payway'] == 'cbpay' ? 'cbpay' : '', 'createtime' => date('Y-m-d H:i:s', TIMESTAMP)
+                'payway' => $paramPayway, 'createtime' => date('Y-m-d H:i:s', TIMESTAMP)
             ];
+            // 10分钟内不更新订单号
+            if (strtotime($lastTradeInfo['createtime']) < TIMESTAMP - 600) {
+                $param['ordercode'] = $orderCode;
+            }
             // 更新小程序form_id
             if ($post['form_id']) {
                 $param['form_id'] = $post['form_id'];
             }
-            if (!$tradeModel->update($param, 'id = ' . $lastTradeInfo['id'])) {
+            if (!$tradeModel->update($param, [
+                'id' => $lastTradeInfo['id'], 'createtime' => $lastTradeInfo['createtime'], 'status' => 0
+            ])) {
                 return error('更新交易单失败');
             }
 
@@ -1435,22 +1651,31 @@ class ParkWashModel extends Crud {
                 'create_time' => $param['createtime'], 'update_time' => $param['createtime'],
             ], 'id = ' . $lastTradeInfo['order_id']);
 
-            // 车币支付
-            if ($post['payway'] == 'cbpay') {
-                $result = $userModel->consume([
-                    'platform' => 3,
-                    'authcode' =>  $uid,
-                    'trade_no' => $orderCode,
-                    'money' => $totalPrice,
-                    'remark' => '支付停车场洗车费'
-                ]);
-                if ($result['errorcode'] !== 0) {
-                    $this->handleCardFail($lastTradeInfo['id']);
-                    return $result;
-                }
+            if ($totalPrice === 0) {
+                // 免支付金额 (首单免费/vip支付)
                 $result = $this->handleCardSuc($lastTradeInfo['id']);
                 if ($result['errorcode'] !== 0) {
                     return $result;
+                }
+            } else {
+                // 线下支付
+                if ($post['payway'] == 'cbpay') {
+                    // 车币支付
+                    $result = $userModel->consume([
+                        'platform' => 3,
+                        'authcode' =>  $uid,
+                        'trade_no' => $orderCode,
+                        'money' => $totalPrice,
+                        'remark' => '支付停车场洗车费'
+                    ]);
+                    if ($result['errorcode'] !== 0) {
+                        $this->handleCardFail($lastTradeInfo['id']);
+                        return $result;
+                    }
+                    $result = $this->handleCardSuc($lastTradeInfo['id']);
+                    if ($result['errorcode'] !== 0) {
+                        return $result;
+                    }
                 }
             }
 
@@ -1472,7 +1697,7 @@ class ParkWashModel extends Crud {
         }
 
         // 生成新订单
-        if (!$cardId = $this->getDb()->transaction(function ($db) use($totalPrice, $orderCode, $post, $orderParam) {
+        if (!$cardId = $this->getDb()->transaction(function ($db) use($totalPrice, $deductPrice, $orderCode, $paramPayway, $post, $orderParam) {
             $orderParam['create_time'] = date('Y-m-d H:i:s', TIMESTAMP);
             $orderParam['update_time'] = $orderParam['create_time'];
             if (!$db->insert('parkwash_order', $orderParam)) {
@@ -1483,7 +1708,7 @@ class ParkWashModel extends Crud {
             }
             unset($orderParam['create_time'], $orderParam['update_time']);
             if (!$db->insert('__tablepre__payments', [
-                'type' => 'parkwash', 'form_id' => $post['form_id'], 'uses' => '洗车服务', 'trade_id' => $orderParam['uid'], 'order_id' => $orderid, 'pay' => $totalPrice, 'money' => $totalPrice, 'payway' => $post['payway'] == 'cbpay' ? 'cbpay' : '', 'ordercode' => $orderCode, 'createtime' => date('Y-m-d H:i:s', TIMESTAMP), 'mark' => md5(json_encode($orderParam))
+                'type' => 'parkwash', 'form_id' => $post['form_id'], 'uses' => '洗车服务', 'trade_id' => $orderParam['uid'], 'order_id' => $orderid, 'pay' => $totalPrice, 'money' => $totalPrice + $deductPrice, 'payway' => $paramPayway, 'ordercode' => $orderCode, 'createtime' => date('Y-m-d H:i:s', TIMESTAMP), 'mark' => md5(json_encode($orderParam))
             ])) {
                 return false;
             }
@@ -1493,14 +1718,15 @@ class ParkWashModel extends Crud {
         }
 
         if ($totalPrice === 0) {
-            // 免支付金额（抵扣金额大于支付金额）
+            // 免支付金额 (首单免费/vip支付)
             $result = $this->handleCardSuc($cardId);
             if ($result['errorcode'] !== 0) {
                 return $result;
             }
         } else {
-            // 车币支付
+            // 线下支付
             if ($post['payway'] == 'cbpay') {
+                // 车币支付
                 $result = $userModel->consume([
                     'platform' => 3,
                     'authcode' =>  $uid,
@@ -1551,16 +1777,20 @@ class ParkWashModel extends Crud {
     public function handleCardFail ($cardId) {
 
         if (!$tradeInfo = $this->getDb()->table('__tablepre__payments')
-            ->field('id,trade_id,order_id')
+            ->field('id,type,order_id')
             ->where(['id' => $cardId])
             ->limit(1)
             ->find()) {
             return error('交易单不存在');
         }
 
-        // 删除交易单与订单
+        // 删除交易单
         $this->getDb()->delete('__tablepre__payments', 'status = 0 and id = ' . $cardId);
-        $this->getDb()->delete('parkwash_order', 'status = 0 and id = ' . $tradeInfo['order_id']);
+
+        if ($tradeInfo['type'] == 'parkwash') {
+            // 删除洗车订单
+            $this->getDb()->delete('parkwash_order', 'status = 0 and id = ' . $tradeInfo['order_id']);
+        }
 
         return success('OK');
     }
@@ -1574,7 +1804,7 @@ class ParkWashModel extends Crud {
     public function handleCardSuc ($cardId, $tradeParam = []) {
 
         if (!$tradeInfo = $this->getDb()->table('__tablepre__payments')
-            ->field('id,type,trade_id,order_id,form_id,voucher_id,pay,money,ordercode,payway,uses')
+            ->field('id,type,trade_id,order_id,param_id,param_a,form_id,voucher_id,pay,money,ordercode,payway,uses,mark')
             ->where(['id' => $cardId])
             ->limit(1)
             ->find()) {
@@ -1585,9 +1815,13 @@ class ParkWashModel extends Crud {
             'status' => 1, 'paytime' => date('Y-m-d H:i:s', TIMESTAMP)
         ]);
 
-        // 判断是否为充值订单
+        // 充值订单
         if ($tradeInfo['type'] == 'pwcharge') {
             return $this->rechargeSuc($tradeInfo, $tradeParam);
+        }
+        // vip缴费订单
+        if ($tradeInfo['type'] == 'vipcard') {
+            return $this->vipcardSuc($tradeInfo, $tradeParam);
         }
 
         // 更新交易单状态
@@ -1628,7 +1862,8 @@ class ParkWashModel extends Crud {
         $this->getDb()->update('parkwash_usercount', [
             'coupon_consume' => ['coupon_consume+' . ($tradeInfo['money'] - $tradeInfo['pay'])],
             'parkwash_count' => ['parkwash_count+1'],
-            'parkwash_consume' => ['parkwash_consume+' . $tradeInfo['money']]
+            'parkwash_consume' => ['parkwash_consume+' . $tradeInfo['money']],
+            'parkwash_firstorder' => 0
         ], [
             'uid' => $orderInfo['uid']
         ]);
@@ -1647,20 +1882,6 @@ class ParkWashModel extends Crud {
             ])
         ]);
 
-        // 通知商家
-        $this->pushNotice([
-            'receiver' => 2,
-            'notice_type' => 2, // 播报器
-            'orderid' => $orderInfo['id'],
-            'store_id' => $orderInfo['store_id'],
-            'uid' => $orderInfo['uid'],
-            'tel' => $storeInfo['tel'],
-            'title' => '下单通知',
-            'content' => template_replace('{$car_number}已下单，预约时间:{$order_time}', [
-                'car_number' => $orderInfo['car_number'], 'order_time' => $orderInfo['order_time']
-            ])
-        ]);
-
         // 微信模板消息通知用户
         $this->sendTemplateMessage($orderInfo['uid'], 'create_order', $tradeInfo['form_id'], '/pages/orderprofile/orderprofile?order_id=' . $orderInfo['id'], [
             '￥' . round_dollar($tradeInfo['money'], false), $storeInfo['name'], $tradeInfo['uses'], $orderInfo['create_time'], '下单成功，请等待商家接单'
@@ -1668,6 +1889,105 @@ class ParkWashModel extends Crud {
 
         return success('OK');
     }
+
+    /**
+     * vip缴费成功
+     */
+    protected function vipcardSuc ($tradeInfo, $tradeParam) {
+
+        // 卡类型
+        if (!$cardTypeInfo = $this->getDb()->table('parkwash_card_type')->field('id,months,days')->where(['id' => $tradeInfo['param_id']])->find()) {
+            return error('卡类型不存在');
+        }
+        // 车辆信息
+        if (!$carportInfo = $this->getDb()->table('parkwash_carport')->field('id,car_number,update_time')->where(['id' => $tradeInfo['param_a']])->find()) {
+            return error('车辆不存在');
+        }
+        // 会员卡信息
+        $cardInfo = $this->getDb()->table('parkwash_card')->field('id,end_time')->where(['uid' => $tradeInfo['trade_id'], 'car_number' => $carportInfo['car_number']])->find();
+        // 续费/开卡
+        if ($cardInfo) {
+            // 续费
+            $vipStartTime = strtotime($cardInfo['end_time']);
+            $vipStartTime = $vipStartTime > TIMESTAMP ? $vipStartTime : TIMESTAMP;
+        } else {
+            // 开卡
+            $vipStartTime = TIMESTAMP;
+        }
+        // vip截止时间
+        $vipEndTime = mktime(23, 59, 59, date('m', $vipStartTime) + $cardTypeInfo['months'], date('d', $vipStartTime) + $cardTypeInfo['days'], date('Y', $vipStartTime));
+
+        if (!DB::getInstance()->transaction(function ($db) use($tradeInfo, $tradeParam, $carportInfo, $cardInfo, $vipStartTime, $vipEndTime) {
+
+            if (!$db->update('__tablepre__payments', $tradeParam, [
+                'id' => $tradeInfo['id'], 'status' => 0
+            ])) {
+                return false;
+            }
+            if ($cardInfo) {
+                if (!$db->update('parkwash_card', [
+                    'start_time' => date('Y-m-d H:i:s', $vipStartTime),
+                    'end_time' => date('Y-m-d H:i:s', $vipEndTime),
+                    'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
+                ], ['id' => $cardInfo['id']])) {
+                    return false;
+                }
+            } else {
+                if (!$db->insert('parkwash_card', [
+                    'uid' => $tradeInfo['trade_id'],
+                    'car_number' => $carportInfo['car_number'],
+                    'start_time' => date('Y-m-d H:i:s', $vipStartTime),
+                    'end_time' => date('Y-m-d H:i:s', $vipEndTime),
+                    'update_time' => date('Y-m-d H:i:s', TIMESTAMP),
+                    'create_time' => date('Y-m-d H:i:s', TIMESTAMP),
+                    'status' => 1
+                ])) {
+                    return false;
+                }
+            }
+            if (!$db->update('parkwash_carport', [
+                'vip_expire' => date('Y-m-d H:i:s', $vipEndTime),
+                'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
+            ], ['id' => $carportInfo['id'], 'update_time' => $carportInfo['update_time']])) {
+                return false;
+            }
+            return true;
+        })) {
+            return error('续费操作失败');
+        }
+
+        // 记录缴费记录
+        $this->getDb()->insert('parkwash_card_record', [
+            'uid' => $tradeInfo['trade_id'],
+            'user_tel' => $tradeInfo['mark'],
+            'car_number' => $carportInfo['car_number'],
+            'card_type_id' => $cardTypeInfo['id'],
+            'money' => $tradeInfo['money'],
+            'start_time' => date('Y-m-d H:i:s', $vipStartTime),
+            'end_time' => date('Y-m-d H:i:s', $vipEndTime),
+            'duration' => ($cardTypeInfo['months'] ? $cardTypeInfo['months'] . '个月' : '') . ($cardTypeInfo['days'] ? $cardTypeInfo['days'] . '天' : ''),
+            'create_time' => date('Y-m-d H:i:s', TIMESTAMP)
+        ]);
+
+        // 记录资金变动
+        $this->pushTrades([
+            'uid' => $tradeInfo['trade_id'], 'mark' => '-', 'money' => $tradeInfo['money'], 'title' => 'VIP缴费'
+        ]);
+
+        // 通知用户
+        $this->pushNotice([
+            'receiver' => 1,
+            'notice_type' => 0,
+            'uid' => $tradeInfo['trade_id'],
+            'title' => 'VIP缴费成功',
+            'content' => template_replace('成功缴费 {$money} 元，VIP截止日期：{$vipTime}', [
+                'money' => round_dollar($tradeInfo['money']), 'vipTime' => date('Y年n月j日 H:i:s', $vipEndTime)
+            ])
+        ]);
+
+        return success('OK');
+    }
+
 
     /**
      * 充值成功
@@ -2134,7 +2454,6 @@ class ParkWashModel extends Crud {
 
         // 停车场洗车未支付订单超时时间 (秒)
         $washOrderExpire = getConfig('xc', 'wash_order_expire');
-        $washOrderExpire = $washOrderExpire < 1200 ? 1200 : $washOrderExpire;
 
         $orderList = $this->getDb()
             ->table('parkwash_order')
@@ -2192,8 +2511,6 @@ class ParkWashModel extends Crud {
 
         // 排班天数
         $scheduleDays = getConfig('xc', 'schedule_days');
-        $scheduleDays = $scheduleDays < 1 ? 1 : $scheduleDays;
-        $scheduleDays = $scheduleDays > 30 ? 30 : $scheduleDays;
 
         $date = [];
         for ($i = 0; $i < $scheduleDays; $i++) {

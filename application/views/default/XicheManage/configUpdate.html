@@ -3,14 +3,6 @@
   <body>
     <div class="x-body">
         <form class="layui-form">
-          <div class="layui-form-item">
-              <label class="layui-form-label">
-                  <span class="x-red">*</span>名称
-              </label>
-              <div class="layui-input-inline">
-                  <input type="text" name="name" disabled class="layui-input" value="<?=$info['name']?>">
-              </div>
-          </div>
             <div class="layui-form-item">
                 <label class="layui-form-label">
                     <span class="x-red">*</span>值
@@ -20,6 +12,8 @@
                     <textarea placeholder="请输入内容" name="value" class="layui-textarea"><?=$info['value']?></textarea>
                     <?php }elseif($info['type'] == 'number'){ ?>
                     <input placeholder="请输入内容" type="tel" name="value" class="layui-input" value="<?=$info['value']?>">
+                    <?php }elseif($info['type'] == 'bool'){ ?>
+                    <input type="checkbox" name="value" lay-skin="switch" lay-text="开启|关闭" value="1" <?php if($info['value']){ ?>checked<?php } ?>>
                     <?php }else{ ?>
                     <input placeholder="请输入内容" type="text" name="value" class="layui-input" value="<?=$info['value']?>">
                     <?php } ?>

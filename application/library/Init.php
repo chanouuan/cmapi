@@ -330,7 +330,7 @@ abstract class ActionPDO {
         list ($uid, $scode, $client) = explode("\t", authcode(rawurldecode($token), 'DECODE'));
         $clienttype = $clienttype ? $clienttype : ($client ? $client : (defined('CLIENT_TYPE') ? CLIENT_TYPE : ''));
         if (!$uid || !$scode) return false;
-        return \app\library\DB::getInstance()->field('userid as uid, clienttype, clientapp, stoken, updated_at')
+        return \app\library\DB::getInstance()->field('userid as uid, clienttype, clientapp, stoken')
             ->table('__tablepre__session')
             ->where('userid = ? and clienttype = ? and scode = ?')
             ->bindValue($uid, $clienttype, $scode)
