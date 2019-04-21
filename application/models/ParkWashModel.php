@@ -533,6 +533,22 @@ class ParkWashModel extends Crud {
         if ($userInfo['errorcode'] !== 0) {
             return $userInfo;
         }
+        $userInfo['result']['vip_status'] = 0; // vip状态 0不是vip 1未过期 -1已过期
+        // 获取vip信息
+        $vipInfo = $this->getDb()->table('parkwash_carport')->field('max(vip_expire) as vip_expire')->where(['uid' => $uid])->limit(1)->find();
+        if ($vipInfo) {
+            $userInfo['result']['vip_expire'] = $vipInfo['vip_expire'];
+            $userInfo['result']['vip_status'] = strtotime($vipInfo['vip_expire']) > TIMESTAMP ? 1 : -1;
+        }
+        // 获取首单免费权限
+        $userInfo['result']['firstorder'] = 0; // 首单免费状态 0未启用或已使用过 1首单免费
+        $firstFreeConfig = getConfig('xc', 'wash_order_first_free');
+        if ($firstFreeConfig) {
+            $userCount = $this->getDb()->table('parkwash_usercount')->field('parkwash_firstorder')->where(['uid' => $uid])->limit(1)->find();
+            if ($userCount) {
+                $userInfo['result']['firstorder'] = $userCount['parkwash_firstorder'] ? 1 : 0;
+            }
+        }
         return $userInfo;
     }
 
@@ -565,6 +581,19 @@ class ParkWashModel extends Crud {
             unset($list[$k]['months'], $list[$k]['days']);
         }
         return success($list);
+    }
+
+    /**
+     * 删除会员卡
+     */
+    public function deleteMemberCard ($uid, $post) {
+
+        if (!$this->getDb()->delete('parkwash_card', [
+            'uid' => $uid, 'id' => intval($post['id']), 'end_time' => ['<', date('Y-m-d H:i:s', TIMESTAMP)]
+        ])) {
+            return error('未过期的vip卡不能删除');
+        }
+        return success('OK');
     }
 
     /**
@@ -639,7 +668,7 @@ class ParkWashModel extends Crud {
             }
         }
 
-        if (!$carportInfo = $this->getDb()->table('parkwash_carport')->field('car_number')->where([
+        if (!$carportInfo = $this->getDb()->table('parkwash_carport')->field('car_number,vip_expire')->where([
             'id' => $post['id'], 'uid' => $uid
         ])->find()) {
             return error('该车不存在');
@@ -648,6 +677,14 @@ class ParkWashModel extends Crud {
         if ($carportInfo['car_number'] == $post['car_number']) {
             return error('该车牌号已存在');
         }
+
+        // vip未过期不能编辑
+        if ($carportInfo['vip_expire']) {
+            if (strtotime($carportInfo['vip_expire']) > TIMESTAMP) {
+                return error('vip车不能编辑');
+            }
+        }
+
         // 判断车辆下是否有订单
         if ($this->findOrderInfo([
             'uid' => $uid, 'car_number' => $carportInfo['car_number'], 'status' => ['in', [1,2,3]]
@@ -722,10 +759,17 @@ class ParkWashModel extends Crud {
      */
     public function deleteCarport ($uid, $post) {
 
-        if (!$carportInfo = $this->getDb()->table('parkwash_carport')->field('car_number')->where([
+        if (!$carportInfo = $this->getDb()->table('parkwash_carport')->field('car_number,vip_expire')->where([
             'id' => $post['id'], 'uid' => $uid
         ])->find()) {
             return error('该车不存在');
+        }
+
+        // vip未过期不能删除
+        if ($carportInfo['vip_expire']) {
+            if (strtotime($carportInfo['vip_expire']) > TIMESTAMP) {
+                return error('vip车不能删除');
+            }
         }
 
         // 判断车辆下是否有订单
@@ -1204,7 +1248,7 @@ class ParkWashModel extends Crud {
 
         // 查询字段
         $field = [
-            'id', 'name', 'logo', 'address', 'tel', 'location', 'score', 'business_hours', 'market', 'price', '(order_count * order_count_ratio) as order_count', 'status', 'sort'
+            'id', 'name', 'logo', 'address', 'tel', 'location', 'business_hours', 'market', 'price', '(order_count * order_count_ratio) as order_count', 'status', 'sort'
         ];
         $minField = [
             'id', 'location'
@@ -1274,7 +1318,7 @@ class ParkWashModel extends Crud {
     /**
      * 会员卡开卡/续费
      */
-    public function cardRenewals ($uid, $post) {
+    public function renewalsCard ($uid, $post) {
 
         $post['car_number'] = trim_space($post['car_number']);
         $post['card_type_id'] = intval($post['card_type_id']);
@@ -1561,7 +1605,7 @@ class ParkWashModel extends Crud {
         if ($firstFreeConfig) {
             // 查询是否首单
             if ($userCount = $this->getDb()->table('parkwash_usercount')->field('parkwash_firstorder')->where(['uid' => $uid])->limit(1)->find()) {
-                if ($userCount['parkwash_firstorder'] === 1) {
+                if ($userCount['parkwash_firstorder']) {
                     $post['payway'] = 'firstpay';
                     // 首单免费，所以支付金额为0，抵扣金额为总价
                     $deductPrice = $totalPrice;

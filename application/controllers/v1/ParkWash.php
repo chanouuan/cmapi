@@ -79,7 +79,7 @@ class ParkWash extends ActionPDO {
     }
 
     /**
-     * 获取用户信息
+     * 获取用户信息 <span style="color:red">改</span>
      * @login
      * @return array
      * {
@@ -93,6 +93,9 @@ class ParkWash extends ActionPDO {
      *     "gender":1, //性别 0未知 1男 2女
      *     "money":0, //余额 (分)
      *     "ispw":0, //是否已设置密码
+     *     "vip_status"1, //vip状态 0不是vip 1未过期 -1已过期 <span style="color:red">新</span>
+     *     "vip_expire","", //vip截止时间 <span style="color:red">新</span>
+     *     "firstorder":0, //首单免费状态 0未启用或已使用过 1首单免费已激活(当次下单免费) <span style="color:red">新</span>
      * }}
      */
     public function getUserInfo () {
@@ -164,7 +167,6 @@ class ParkWash extends ActionPDO {
      *         "address":"地址", //门店地址
      *         "tel":"", //电话号码
      *         "market":"洗车半价", //活动描述
-     *         "score":5, //评分
      *         "business_hours":"09:00-21:00", //营业时间
      *         "is_business_hour":1, //是否在营业时间 1是 0否
      *         "price":10, //洗车价(分)
@@ -345,7 +347,7 @@ class ParkWash extends ActionPDO {
      *      series_id:1, //车系ID
      *      series_name:"北汽幻速", //车系名称
      *      isdefault:0, //是否默认选择,
-     *      isvip:1, //是否vip 1是 0否 <span style="color:red">新</span>
+     *      isvip:1, //是否vip 1是 0不是vip或已过期 <span style="color:red">新</span>
      * }]}
      */
     public function getCarport () {
@@ -725,6 +727,21 @@ class ParkWash extends ActionPDO {
     }
 
     /**
+     * 删除会员卡 <span style="color:red">New</span>
+     * @param *id 会员卡ID
+     * @login
+     * @return array
+     * {
+     * "errNo":0, //错误码 0成功 -1失败
+     * "message":"",
+     * "result":[]
+     * }
+     */
+    public function deleteMemberCard () {
+        return (new ParkWashModel())->deleteMemberCard($this->_G['user']['uid'], $_POST);
+    }
+
+    /**
      * 会员卡开卡/续费 <span style="color:red">New</span>
      * @login
      * @param *car_number 车牌号
@@ -738,8 +755,8 @@ class ParkWash extends ActionPDO {
      *      "tradeid":1, //交易单ID (用于后续发起支付)
      * }}
      */
-    public function cardRenewals () {
-        return (new ParkWashModel())->cardRenewals($this->_G['user']['uid'], $_POST);
+    public function renewalsCard () {
+        return (new ParkWashModel())->renewalsCard($this->_G['user']['uid'], $_POST);
     }
 
     public function task () {
