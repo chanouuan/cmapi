@@ -398,9 +398,9 @@ class XicheManage extends ActionPDO {
         // 获取订单时序表
         $orderInfo['sequence'] = $modle->getlist('parkwash_order_sequence', ['orderid' => $orderInfo['id']], null, 'id desc', 'title,create_time');
         // 判断状态
-        if ($orderInfo['status'] == 2 && $orderInfo['entry_park_id']) {
+        if ($orderInfo['status'] == 1 && $orderInfo['entry_park_id']) {
             // 等待服务
-            $orderInfo['status'] = 23;
+            $orderInfo['status'] = 13;
         }
         $orderInfo['status_str'] = $modle->getParkOrderStatus($orderInfo['status']);
         // 获取出入场信息
@@ -442,9 +442,9 @@ class XicheManage extends ActionPDO {
             $condition['place'] = ['like', $_GET['place'] . '%'];
         }
         if ($_GET['status']) {
-            if ($_GET['status'] == 23) {
+            if ($_GET['status'] == 13) {
                 // 等待服务状态
-                $condition['status'] = 2;
+                $condition['status'] = 1;
                 $condition['entry_park_id'] = ['>', 0];
             } else if ($_GET['status'] == 45) {
                 // 异常订单
@@ -489,8 +489,8 @@ class XicheManage extends ActionPDO {
                 $list[$k]['items'] = implode(',', array_column(json_decode($v['items'], true), 'name'));
                 $list[$k]['pay'] = round_dollar($v['pay'], false);
                 // 判断等待服务状态
-                if ($v['status'] == 2 && $v['entry_park_id']) {
-                    $list[$k]['status'] = 23; // 等待服务
+                if ($v['status'] == 1 && $v['entry_park_id']) {
+                    $list[$k]['status'] = 13; // 等待服务
                 }
                 if (($v['status'] == 4 || $v['status'] == 5) && $v['fail_reason']) {
                     $list[$k]['status'] = 45; // 异常订单
@@ -503,7 +503,7 @@ class XicheManage extends ActionPDO {
                 ->table('parkwash_order')
                 ->where([
                     'order_time' => ['between', [date('Y-m-d H:i:s', TIMESTAMP - 1800), date('Y-m-d H:i:s', TIMESTAMP)]],
-                    'status' => 2,
+                    'status' => 1,
                     'place' => ''
                 ])
                 ->count();

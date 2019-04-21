@@ -23,60 +23,20 @@ class XicheManageModel extends Crud {
         if (!$orderInfo = $this->getInfo('parkwash_order', ['id' => $post['id']], 'id,uid,status,user_tel,car_number,store_id,create_time,order_time')) {
             return error('该订单不存在');
         }
+        $userModel = new UserModel();
         $parkWashModel = new ParkWashModel();
         $storeInfo = $this->getInfo('parkwash_store', ['id' => $orderInfo['store_id']], 'name');
         $tradeInfo = (new TradeModel())->get(null, ['trade_id' => $orderInfo['uid'], 'order_id' => $orderInfo['id']], 'form_id,uses');
 
-        if ($post['status'] == 2) {
-            // 接单
-            if ($orderInfo['status'] != 1) {
-                return error('该订单不是待接单状态');
-            }
-            if (!$this->getDb()->update('parkwash_order', [
-                'take_time' => date('Y-m-d H:i:s', TIMESTAMP), 'status' => 2, 'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
-            ], [
-                'id' => $post['id'], 'status' => 1
-            ])) {
-                return error('操作失败');
-            }
-            // 加入到入场车查询队列任务
-            $this->getDb()->insert('parkwash_order_queue', [
-                'type' => 1, 'orderid' => $orderInfo['id'], 'param_var' => $orderInfo['car_number'], 'time' => $orderInfo['order_time'], 'create_time' => date('Y-m-d H:i:s', TIMESTAMP), 'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
-            ]);
-            // 记录订单状态改变
-            $parkWashModel->pushSequence([
-                'orderid' => $orderInfo['id'],
-                'uid' => $orderInfo['uid'],
-                'title' => '商家已接单'
-            ]);
-            // 通知用户
-            $parkWashModel->pushNotice([
-                'receiver' => 1,
-                'notice_type' => 0,
-                'orderid' => $orderInfo['id'],
-                'store_id' => $orderInfo['store_id'],
-                'uid' => $orderInfo['uid'],
-                'tel' => $orderInfo['user_tel'],
-                'title' => '商家已接单',
-                'content' => $storeInfo['name'] . '已接单，请您在预约时间进入停车场并完善您的车位信息，感谢您的支持'
-            ]);
-            // 微信模板消息通知用户
-            $result = $parkWashModel->sendTemplateMessage($orderInfo['uid'], 'take_order', $tradeInfo['form_id'], '/pages/orderprofile/orderprofile?order_id=' . $orderInfo['id'], [
-                '已接单', $storeInfo['name'], $tradeInfo['uses'], date('Y-m-d H:i:s', TIMESTAMP), '商家已接单，请您在预约时间进入停车场并完善您的车位信息，感谢您的支持'
-            ]);
-            if ($result['errorcdoe'] !== 0) {
-                // 微信模板消息发送失败，就发送短信
-                (new UserModel())->sendSmsServer($orderInfo['user_tel'], '温馨提醒，' . $storeInfo['name'] . '已接单，请在预约时间进入停车场并完善您的车位信息，感谢您的支持');
-            }
-        } else if ($post['status'] == 3) {
+        if ($post['status'] == 3) {
             // 开始服务
-            if ($orderInfo['status'] != 2) {
-                return error('该订单不是已接单状态');
+            if ($orderInfo['status'] != 1) {
+                return error('该订单无效');
             }
             if (!$this->getDb()->update('parkwash_order', [
                 'service_time' => date('Y-m-d H:i:s', TIMESTAMP), 'status' => 3, 'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
             ], [
-                'id' => $post['id'], 'status' => 2
+                'id' => $post['id'], 'status' => 1
             ])) {
                 return error('操作失败');
             }
@@ -102,14 +62,15 @@ class XicheManageModel extends Crud {
                 'content' => $storeInfo['name'] . '正在为您服务，请留意完成洗车提醒！'
             ]);
             // 发送短信
-            (new UserModel())->sendSmsServer($orderInfo['user_tel'], $storeInfo['name'] . '正在为您服务，请留意完成洗车提醒！');
+            $userModel->sendSmsServer($orderInfo['user_tel'], $storeInfo['name'] . '正在为您服务，请留意完成洗车提醒！');
+
         } else if ($post['status'] == 4) {
             // 完成洗车
             if ($orderInfo['status'] <= 0) {
-                return error('该订单不是已支付状态');
+                return error('该订单无效');
             }
             if (!$this->getDb()->update('parkwash_order', [
-                'service_time' => date('Y-m-d H:i:s', TIMESTAMP), 'status' => 4, 'update_time' => date('Y-m-d H:i:s', TIMESTAMP), 'fail_reason' => strval($post['fail_reason'])
+                'complete_time' => date('Y-m-d H:i:s', TIMESTAMP), 'status' => 4, 'update_time' => date('Y-m-d H:i:s', TIMESTAMP), 'fail_reason' => strval($post['fail_reason'])
             ], [
                 'id' => $post['id'], 'status' => ['in', [1,2,3]]
             ])) {
@@ -148,7 +109,7 @@ class XicheManageModel extends Crud {
                 ]);
                 if ($result['errorcdoe'] !== 0) {
                     // 发送短信
-                    (new UserModel())->sendSmsServer($orderInfo['user_tel'], '温馨提醒，' . $storeInfo['name'] . '已经完成洗车，请您确认订单完成，感谢您的支持');
+                    $userModel->sendSmsServer($orderInfo['user_tel'], '温馨提醒，' . $storeInfo['name'] . '已经完成洗车，请您确认订单完成，感谢您的支持');
                 }
             }
         }
@@ -1117,8 +1078,23 @@ class XicheManageModel extends Crud {
         if (!$info = $this->getConfigInfo($post['id'])) {
             return error('参数错误');
         }
+
+        if ($info['type'] == 'number') {
+            $post['value'] = intval($post['value']);
+            if (isset($info['min'])) {
+                $post['value'] = $post['value'] < $info['min'] ? $info['min'] : $post['value'];
+            }
+            if (isset($info['max'])) {
+                $post['value'] = $post['value'] > $info['max'] ? $info['max'] : $post['value'];
+            }
+        } else if ($info['type'] == 'bool') {
+            $post['value'] = $post['value'] ? 1 : 0;
+        } else {
+            $post['value'] = addslashes($post['value']);
+        }
+
         if (false === $this->getDb()->update('__tablepre__config', [
-                'value' => addslashes($post['value'])
+                'value' => $post['value']
             ], ['id' => $post['id']])) {
             return error('操作失败');
         }
@@ -1176,7 +1152,7 @@ class XicheManageModel extends Crud {
      */
     public function getParkOrderStatus ($status = null) {
         $arr = [
-            1 => '待接单', 2 => '已接单', 23 => '等待服务', 3 => '服务中', 4 => '已完成', -1 => '已取消', 5 => '已确认' , 45 => '异常'
+            1 => '已付款', 13 => '等待服务', 3 => '服务中', 4 => '已完成', -1 => '已取消', 5 => '已确认' , 45 => '异常'
         ];
         if (!isset($status)) {
             return $arr;

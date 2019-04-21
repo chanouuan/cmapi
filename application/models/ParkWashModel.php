@@ -361,7 +361,7 @@ class ParkWashModel extends Crud {
     }
 
     /**
-     * 用户取消订单,商户未接单情况下
+     * 用户取消订单
      */
     public function cancelOrder ($uid, $post) {
 
@@ -374,7 +374,8 @@ class ParkWashModel extends Crud {
         }
 
         // 已到预约时间的订单不能取消
-        if (strtotime($orderInfo['order_time']) < TIMESTAMP) {
+        $cancelOrderMintimeConfig = getConfig('xc', 'cancel_order_mintime');
+        if (strtotime($orderInfo['order_time']) < (TIMESTAMP + $cancelOrderMintimeConfig)) {
             return error('已到预约时间的订单不能取消');
         }
 
@@ -465,8 +466,13 @@ class ParkWashModel extends Crud {
             'orderid' => $orderInfo['id'],
             'uid' => $orderInfo['uid'],
             'title' => template_replace('取消订单成功，退款 {$money} 元', [
-                'money' => round_dollar($orderInfo['pay'])
+                'money' => round_dollar($orderInfo['pay'], false)
             ])
+        ]);
+
+        // 删除入场车查询队列任务
+        $this->getDb()->delete('parkwash_order_queue', [
+            'type' => 1, 'orderid' => $orderInfo['id']
         ]);
 
         return success('OK');
@@ -1921,14 +1927,19 @@ class ParkWashModel extends Crud {
         $this->pushSequence([
             'orderid' => $orderInfo['id'],
             'uid' => $orderInfo['uid'],
-            'title' => template_replace('下单成功，支付 {$money} 元，等待商家接单', [
-                'money' => round_dollar($tradeInfo['money'])
+            'title' => template_replace('下单成功，支付 {$money} 元，预约时间：{$orderTime}', [
+                'money' => round_dollar($tradeInfo['money'], false), 'orderTime' => $orderInfo['order_time']
             ])
+        ]);
+
+        // 加入到入场车查询队列任务
+        $this->getDb()->insert('parkwash_order_queue', [
+            'type' => 1, 'orderid' => $orderInfo['id'], 'param_var' => $orderInfo['car_number'], 'time' => $orderInfo['order_time'], 'create_time' => date('Y-m-d H:i:s', TIMESTAMP), 'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
         ]);
 
         // 微信模板消息通知用户
         $this->sendTemplateMessage($orderInfo['uid'], 'create_order', $tradeInfo['form_id'], '/pages/orderprofile/orderprofile?order_id=' . $orderInfo['id'], [
-            '￥' . round_dollar($tradeInfo['money'], false), $storeInfo['name'], $tradeInfo['uses'], $orderInfo['create_time'], '下单成功，请等待商家接单'
+            '￥' . round_dollar($tradeInfo['money'], false), $storeInfo['name'], $tradeInfo['uses'], $orderInfo['create_time'], '请您在预约时间进入停车场并完善您的车位信息，感谢您的支持'
         ]);
 
         return success('OK');
@@ -2423,12 +2434,12 @@ class ParkWashModel extends Crud {
      */
     protected function taskEntryPark () {
 
-        // 查询入场查询任务，获取已接单，且已到预约时间的订单
+        // 查询入场车查询任务
         $queueList = $this->getDb()
             ->table('parkwash_order_queue')
             ->field('id,orderid,param_var')
             ->where([
-                'time' => ['between', [date('Y-m-d H:i:s', TIMESTAMP - 7200), date('Y-m-d H:i:s', TIMESTAMP)]],
+                'time' => ['between', [date('Y-m-d H:i:s', TIMESTAMP - 7200), date('Y-m-d H:i:s', TIMESTAMP + 300)]],
                 'type' => 1
             ])
             ->limit(1000)
