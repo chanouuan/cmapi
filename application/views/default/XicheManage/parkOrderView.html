@@ -103,6 +103,11 @@
                         </div>
                     </div>
                     <?php } ?>
+                    <?php if ($info['status']==1) { ?>
+                    <div class="layui-card">
+                        <div class="layui-card-header"><button onclick="entryParkInfo(<?=$info['id']?>)" class="layui-btn">手动查询「<?=$info['car_number']?>」入场信息</button></div>
+                    </div>
+                    <?php } ?>
                 </div>
                 <div class="layui-tab-item">
                     <ul class="layui-timeline">
@@ -126,8 +131,33 @@
             </div>
         </div>
 
-
     </div>
+<script>
+    function entryParkInfo(id) {
+        $.ajax({
+            type: 'POST',
+            url: "<?=gurl('xicheManage/entryParkInfo')?>",
+            data: {id: id},
+            dataType: 'json',
+            timeout: 5000,
+            success: function(res){
+                layer.closeAll();
+                if(res.errorcode != 0) {
+                    return layer.msg(res.message);
+                }
+                layer.msg('查询成功',{icon:1,time:1000});
+                window.location.reload();
+            },
+            beforeSend: function(xhr){
+                layer.load();
+            },
+            error: function(xhr, type){
+                layer.closeAll();
+                layer.msg('网络错误，请重试!');
+            }
+        });
+    }
+</script>
   </body>
 
 </html>

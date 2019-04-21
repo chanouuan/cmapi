@@ -9,6 +9,41 @@ use app\library\LocationUtils;
 class XicheManageModel extends Crud {
 
     /**
+     * 获取车辆入场信息
+     */
+    public function entryParkInfo ($orderid) {
+
+        $orderid = intval($orderid);
+        if (!$orderInfo = $this->getDb()->table('parkwash_order')->field('car_number')->where(['id' => $orderid, 'status' => 1])->find()) {
+            return error('订单无效');
+        }
+        // 查询入场车
+        $entryPark = (new UserModel())->getCheMiEntryParkCondition([
+            'license_number' => $orderInfo['car_number']
+        ], 'park_id,enterpark_time,order_sn', 1, 'id desc');
+        if (!$entryPark) {
+            return error('该车没有查询到入场信息');
+        }
+        $entryPark = $entryPark[0];
+
+        // 更新订单入场信息
+        if (false === $this->getDb()->update('parkwash_order', [
+                'entry_park_time' => date('Y-m-d H:i:s', $entryPark['enterpark_time']),
+                'entry_park_id' => $entryPark['park_id'],
+                'entry_order_sn' => $entryPark['order_sn']
+            ], ['id' => $orderid])) {
+            return error('更新订单入场信息失败');
+        }
+
+        // 删除入场查询任务
+        $this->getDb()->delete('parkwash_order_queue', [
+            'type' => 1, 'orderid' => $orderid
+        ]);
+
+        return success('OK');
+    }
+
+    /**
      * 更新停车场洗车订单状态
      */
     public function parkOrderStatusUpdate ($post) {
@@ -189,8 +224,6 @@ class XicheManageModel extends Crud {
         $post['months'] = $post['months'] < 0 ? 0 : $post['months'];
         $post['days'] = intval($post['days']);
         $post['days'] = $post['days'] < 0 ? 0 : $post['days'];
-        $post['car_count'] = intval($post['car_count']);
-        $post['car_count'] = $post['car_count'] < 0 ? 0 : $post['car_count'];
         $post['status'] = $post['status'] ? 1 : 0;
         $post['sort'] = intval($post['sort']);
 
@@ -209,7 +242,6 @@ class XicheManageModel extends Crud {
             'price' => $post['price'],
             'months' => $post['months'],
             'days' => $post['days'],
-            'car_count' => $post['car_count'],
             'update_time' => date('Y-m-d H:i:s', TIMESTAMP),
             'create_time' => date('Y-m-d H:i:s', TIMESTAMP),
             'sort' => $post['sort'],
@@ -233,8 +265,6 @@ class XicheManageModel extends Crud {
         $post['months'] = $post['months'] < 0 ? 0 : $post['months'];
         $post['days'] = intval($post['days']);
         $post['days'] = $post['days'] < 0 ? 0 : $post['days'];
-        $post['car_count'] = intval($post['car_count']);
-        $post['car_count'] = $post['car_count'] < 0 ? 0 : $post['car_count'];
         $post['status'] = $post['status'] ? 1 : 0;
         $post['sort'] = intval($post['sort']);
 
@@ -253,7 +283,6 @@ class XicheManageModel extends Crud {
                 'price' => $post['price'],
                 'months' => $post['months'],
                 'days' => $post['days'],
-                'car_count' => $post['car_count'],
                 'update_time' => date('Y-m-d H:i:s', TIMESTAMP),
                 'sort' => $post['sort'],
                 'status' => $post['status']

@@ -370,6 +370,13 @@ class XicheManage extends ActionPDO {
     }
 
     /**
+     * 获取车辆入场信息
+     */
+    public function entryParkInfo () {
+        return (new XicheManageModel())->entryParkInfo(getgpc('id'));
+    }
+
+    /**
      * 查看停车场洗车订单详情
      */
     public function parkOrderView (){
