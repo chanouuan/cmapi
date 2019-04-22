@@ -78,16 +78,16 @@
             <td><?=$v['items']?></td>
             <td><?=$v['pay']?></td>
             <td><?=$v['status_str']?></td>
-            <td><?=$v['status']==23?$v['entry_park_time']:''?></td>
+            <td><?=$v['status']==13?$v['entry_park_time']:''?></td>
             <td class="td-manage">
                 <span style="cursor: pointer" class="layui-badge layui-bg-blue" onclick="x_admin_show('查看详情','<?=gurl('xicheManage/parkOrderView',['id'=>$v['id']])?>')"><i class="layui-icon">&#xe60b;</i>详情</span>
-                <?php if($v['status']==2||$v['status']==23){ ?>
+                <?php if($v['status']==1||$v['status']==13){ ?>
                 <span style="cursor: pointer" class="layui-badge layui-bg-green" onclick="service(<?=$v['id']?>)"><i class="layui-icon">&#xe605;</i>开始服务</span>
                 <?php } ?>
                 <?php if($v['status']==3){ ?>
                 <span style="cursor: pointer" class="layui-badge layui-bg-green" onclick="complete(<?=$v['id']?>)"><i class="layui-icon">&#xe605;</i>完成洗车</span>
                 <?php } ?>
-                <?php if($v['status']==1||$v['status']==23||$v['status']==2||$v['status']==3){ ?>
+                <?php if($v['status']==1||$v['status']==13||$v['status']==2||$v['status']==3){ ?>
                 <span style="cursor: pointer" class="layui-badge" onclick="fail(<?=$v['id']?>)"><i class="layui-icon">&#x1006;</i>异常</span>
                 <?php } ?>
             </td>
