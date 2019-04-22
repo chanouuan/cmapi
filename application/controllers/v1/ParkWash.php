@@ -15,6 +15,7 @@ class ParkWash extends ActionPDO {
 
     /**
      * 登录
+     * @ratelimit
      * @description 只支持微信小程序登录
      * @param *encryptedData 手机号加密数据
      * @param *iv 加密算法的初始向量
@@ -81,6 +82,7 @@ class ParkWash extends ActionPDO {
     /**
      * 获取用户信息 <span style="color:red">改</span>
      * @login
+     * @ratelimit
      * @return array
      * {
      * "errNo":0, // 错误码 0成功 -1失败
@@ -105,6 +107,7 @@ class ParkWash extends ActionPDO {
     /**
      * 获取用户最近一个订单的状态
      * @login
+     * @ratelimit
      * @return array
      * {
      * "errNo":0, // 错误码 0成功 -1失败
@@ -122,6 +125,7 @@ class ParkWash extends ActionPDO {
     /**
      * 解绑小程序
      * @login
+     * @ratelimit
      * @return array
      * {
      * "errNo":0, // 错误码 0成功 -1失败
@@ -135,6 +139,7 @@ class ParkWash extends ActionPDO {
 
     /**
      * 发送短信验证码
+     * @ratelimit
      * @param *telephone 手机号
      * @return array
      * {
@@ -149,6 +154,7 @@ class ParkWash extends ActionPDO {
 
     /**
      * 获取洗车店列表
+     * @ratelimit
      * @param *adcode 城市代码(贵阳520100)
      * @param *lon 经度(精确到6位)
      * @param *lat 维度(精确到6位)
@@ -186,6 +192,7 @@ class ParkWash extends ActionPDO {
 
     /**
      * 获取附近洗车店与洗车机
+     * @ratelimit
      * @param *adcode 城市代码(贵阳520100)
      * @param *lon 经度(精确到6位)
      * @param *lat 维度(精确到6位)
@@ -245,6 +252,7 @@ class ParkWash extends ActionPDO {
 
     /**
      * 获取自助洗车机列表
+     * @ratelimit
      * @param *adcode 城市代码(贵阳520100)
      * @param *lon 经度(精确到6位)
      * @param *lat 维度(精确到6位)
@@ -278,6 +286,7 @@ class ParkWash extends ActionPDO {
 
     /**
      * 获取汽车品牌
+     * @ratelimit
      * @return array
      * {
      * "errNo":0, //错误码 0成功 -1失败
@@ -296,6 +305,7 @@ class ParkWash extends ActionPDO {
 
     /**
      * 获取汽车车系
+     * @ratelimit
      * @param *brand_id 品牌ID
      * @return array
      * {
@@ -312,6 +322,7 @@ class ParkWash extends ActionPDO {
 
     /**
      * 获取停车场区域
+     * @ratelimit
      * @return array
      * {
      * "errNo":0, //错误码 0成功 -1失败
@@ -329,6 +340,7 @@ class ParkWash extends ActionPDO {
     /**
      * 获取我的车辆 <span style="color:red">改</span>
      * @login
+     * @ratelimit
      * @return array
      * {
      * "errNo":0, //错误码 0成功 -1失败
@@ -357,6 +369,7 @@ class ParkWash extends ActionPDO {
     /**
      * 添加车辆
      * @login
+     * @ratelimit
      * @param *car_number 车牌号
      * @param *brand_id 品牌ID
      * @param *series_id 车系ID
@@ -374,6 +387,7 @@ class ParkWash extends ActionPDO {
     /**
      * 编辑车辆
      * @login
+     * @ratelimit
      * @param *id 车辆ID
      * @param *car_number 车牌号
      * @param *brand_id 品牌ID
@@ -395,6 +409,7 @@ class ParkWash extends ActionPDO {
     /**
      * 删除车辆
      * @login
+     * @ratelimit
      * @param *id 车辆ID
      * @return array
      * {
@@ -409,6 +424,7 @@ class ParkWash extends ActionPDO {
 
     /**
      * 获取预约排班
+     * @ratelimit
      * @param *store_id 门店ID
      * @return array
      * {
@@ -428,6 +444,7 @@ class ParkWash extends ActionPDO {
 
     /**
      * 获取洗车店洗车套餐
+     * @ratelimit
      * @param *store_id 门店ID
      * @return array
      * {
@@ -446,6 +463,7 @@ class ParkWash extends ActionPDO {
     /**
      * 下单
      * @login
+     * @ratelimit
      * @param *store_id 门店ID
      * @param *carport_id 车辆ID
      * @param area_id 区域ID
@@ -468,6 +486,7 @@ class ParkWash extends ActionPDO {
     /**
      * 查询支付是否成功
      * @login
+     * @ratelimit
      * @param *tradeid 交易单ID(createCard/recharge接口获取)
      * @return array
      * {
@@ -502,6 +521,7 @@ class ParkWash extends ActionPDO {
 
     /**
      * 获取通知列表
+     * @ratelimit
      * @login
      * @param lastpage 分页参数
      * @return array
@@ -526,6 +546,7 @@ class ParkWash extends ActionPDO {
 
     /**
      * 用户取消订单
+     * @ratelimit
      * @login
      * @param *orderid 订单ID
      * @return array
@@ -541,6 +562,7 @@ class ParkWash extends ActionPDO {
 
     /**
      * 用户确认完成订单
+     * @ratelimit
      * @login
      * @param *orderid 订单ID
      * @return array
@@ -556,6 +578,7 @@ class ParkWash extends ActionPDO {
 
     /**
      * 我的订单
+     * @ratelimit
      * @login
      * @param status 订单状态(-1已取消1已支付3服务中4已完成5确认完成)，搜索多个状态用逗号分隔，默认为所有
      * @param lastpage 分页参数
@@ -593,6 +616,7 @@ class ParkWash extends ActionPDO {
 
     /**
      * 获取订单详情
+     * @ratelimit
      * @login
      * @param *orderid 订单ID
      * @return array
@@ -634,6 +658,7 @@ class ParkWash extends ActionPDO {
 
     /**
      * 修改订单车位
+     * @ratelimit
      * @login
      * @description 订单状态为已支付才能修改订单车位
      * @param *orderid 订单ID
@@ -652,6 +677,7 @@ class ParkWash extends ActionPDO {
 
     /**
      * 充值
+     * @ratelimit
      * @login
      * @param *money 充值金额(分)
      * @param *payway 支付方式(wxpaywash小程序支付)
@@ -669,6 +695,7 @@ class ParkWash extends ActionPDO {
 
     /**
      * 获取个人交易记录
+     * @ratelimit
      * @login
      * @param lastpage 分页参数
      * @return array
@@ -693,6 +720,7 @@ class ParkWash extends ActionPDO {
 
     /**
      * 获取会员卡类型 <span style="color:red">New</span>
+     * @ratelimit
      * @return array
      * {
      * "errNo":0, // 错误码 0成功 -1失败
@@ -710,6 +738,7 @@ class ParkWash extends ActionPDO {
 
     /**
      * 获取我的会员卡 <span style="color:red">New</span>
+     * @ratelimit
      * @login
      * @return array
      * {
@@ -728,8 +757,9 @@ class ParkWash extends ActionPDO {
 
     /**
      * 删除会员卡 <span style="color:red">New</span>
-     * @param *id 会员卡ID
+     * @ratelimit
      * @login
+     * @param *id 会员卡ID
      * @return array
      * {
      * "errNo":0, //错误码 0成功 -1失败
@@ -743,6 +773,7 @@ class ParkWash extends ActionPDO {
 
     /**
      * 会员卡开卡/续费 <span style="color:red">New</span>
+     * @ratelimit
      * @login
      * @param *car_number 车牌号
      * @param *card_type_id 会员卡类型ID

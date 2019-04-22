@@ -542,7 +542,7 @@ class ParkWashModel extends Crud {
         $userInfo['result']['vip_status'] = 0; // vip状态 0不是vip 1未过期 -1已过期
         // 获取vip信息
         $vipInfo = $this->getDb()->table('parkwash_carport')->field('max(vip_expire) as vip_expire')->where(['uid' => $uid])->limit(1)->find();
-        if ($vipInfo) {
+        if ($vipInfo && $vipInfo['vip_expire']) {
             $userInfo['result']['vip_expire'] = $vipInfo['vip_expire'];
             $userInfo['result']['vip_status'] = strtotime($vipInfo['vip_expire']) > TIMESTAMP ? 1 : -1;
         }

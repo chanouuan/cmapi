@@ -110,6 +110,12 @@ class Controller {
 
         $refClass = new ReflectionClass($referer);
         if ($refDoc = $refClass->getMethod($action)->getDocComment()) {
+            if (false !== strpos($refDoc, '@ratelimit')) {
+                preg_match('/@ratelimit(.+)/', $refDoc, $matches);
+                if (!RateLimit::grant($module . $action . $_SERVER['REMOTE_ADDR'], trim($matches[1]))) {
+                    json(null, StatusCodes::getMessage(StatusCodes::ACCESS_NUM_OVERFLOW), StatusCodes::ACCESS_NUM_OVERFLOW, StatusCodes::STATUS_404);
+                }
+            }
             if (false !== strpos($refDoc, '@login')) {
                 $referer->_G['user'] = $referer->loginCheck();
                 if (empty($referer->_G['user'])) {
@@ -1005,6 +1011,67 @@ class Route
 
 }
 
+class RateLimit
+{
+    public static function grant($key, $rule = null, $adapter = 'mysql')
+    {
+        $rule = $rule ? $rule : '600|5000|10000';
+        list($minNum, $hourNum, $dayNum) = explode('|', $rule);
+        return self::{$adapter}($key, $minNum, $hourNum, $dayNum);
+    }
+
+    protected static function mysql($key, $minNum, $hourNum, $dayNum)
+    {
+        $key = md5($key);
+        $limitVal = \app\library\DB::getInstance()->table('__tablepre__ratelimit')->field('id,min_num,hour_num,day_num,time,version')->where(['skey' => $key])->find();
+        $param = [
+            'skey' => $key,
+            'min_num' => 1,
+            'hour_num' => 1,
+            'day_num' => 1,
+            'time' => TIMESTAMP,
+            'version' => 0
+        ];
+        if ($limitVal) {
+            $currentTime = date('YmdHi', TIMESTAMP);
+            $lastTime = date('YmdHi', $limitVal['time']);
+            if ($minNum > 0) {
+                if ($currentTime == $lastTime) {
+                    if ($limitVal['min_num'] >= $minNum) {
+                        return false;
+                    }
+                    $param['min_num'] = ['min_num+1'];
+                }
+            }
+            if ($hourNum > 0) {
+                if (substr($currentTime, 0, 10) == substr($lastTime, 0, 10)) {
+                    if ($limitVal['hour_num'] >= $hourNum) {
+                        return false;
+                    }
+                    $param['hour_num'] = ['hour_num+1'];
+                }
+            }
+            if ($dayNum > 0) {
+                if (substr($currentTime, 0, 8) == substr($lastTime, 0, 8)) {
+                    if ($limitVal['day_num'] >= $dayNum) {
+                        return false;
+                    }
+                    $param['day_num'] = ['day_num+1'];
+                }
+            }
+            $param['version'] = ['version+1'];
+            if (!\app\library\DB::getInstance()->update('__tablepre__ratelimit', $param, ['id' => $limitVal['id'], 'version' => $limitVal['version']])) {
+                return false;
+            }
+        } else {
+            if (!\app\library\DB::getInstance()->insert('__tablepre__ratelimit', $param)) {
+                return false;
+            }
+        }
+        return true;
+    }
+}
+
 class StatusCodes
 {
     const STATUS_OK                          = 200;
@@ -1018,24 +1085,9 @@ class StatusCodes
     const SIG_EXPIRE                         = 3003;
     const SIG_ERROR                          = 3004;
     const REQUEST_METHOD_ERROR               = 3005;
-
-    const USER_PARAMETER_ERROR               = 5001;
-
-    const COUPON_CREATE_PARAMETER_ERROR      = 6001;
-    const COUPON_NOT_EXIST                   = 6002;
-    const COUPON_UPDATE_PARAMETER_ERROR      = 6003;
-    const COUPON_DELETE_ERROR                = 6004;
-    const COMPANY_CREATE_PARAMETER_ERROR     = 6005;
-    const COMPANY_DELETE_ERROR               = 6006;
-    const ORDER_NOT_EXIST                    = 6007;
-    const CONFIG_UPDATE_PARAMETER_ERROR      = 6008;
-    const CONFIG_FIND_PARAMETER_ERROR        = 6009;
-
     const USER_NOT_LOGIN_ERROR               = 3010;
 
-    const PUBLISH_PLCACE_ERROR               = 7001;
-    const TIME_PUBLISH_ERROR                 = 7002;
-
+    const ACCESS_NUM_OVERFLOW                = 4001;
 
     static $message = array(
         200  => '成功',
@@ -1046,9 +1098,7 @@ class StatusCodes
         3004 => '签名错误',
         3005 => '请求方法错误',
         3010 => '用户未登录',
-        5001 => '用户参数错误',
-        7001 => '发布车位出错',
-        7002 => '共享时段设置不正确',
+        4001 => '访问次数过多'
     );
 
     public static function getMessage($code) {
