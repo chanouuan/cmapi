@@ -1034,8 +1034,7 @@ class RateLimit
             'min_num' => 1,
             'hour_num' => 1,
             'day_num' => 1,
-            'time' => TIMESTAMP,
-            'version' => 0
+            'time' => TIMESTAMP
         ];
         if ($limitVal) {
             $currentTime = date('YmdHi', TIMESTAMP);
