@@ -27,6 +27,9 @@
                             支付方式：<?=$info['payway']?>
                         </div>
                         <div class="layui-card-body">
+                            是否会员下单：<?=$info['payway']=='vippay'?'是':'否'?>
+                        </div>
+                        <div class="layui-card-body">
                             状态：<?=$info['status_str']?>
                         </div>
                         <?php if($info['fail_reason']){ ?>

@@ -136,7 +136,7 @@ class ParkWashModel extends Crud {
         }
 
         // 获取订单
-        if (!$orderList = $this->getDb()->table('parkwash_order')->field('id,xc_trade_id,store_id,car_number,brand_id,series_id,area_id,place,pay,payway,items,order_time,create_time,status')->where($condition)->order('update_time desc')->limit($result['limit'])->select()) {
+        if (!$orderList = $this->getDb()->table('parkwash_order')->field('id,xc_trade_id,store_id,car_number,brand_id,series_id,area_id,place,pay,payway,items,order_time,create_time,status,update_time')->where($condition)->order('update_time desc')->limit($result['limit'])->select()) {
             return success($result);
         }
 
@@ -233,7 +233,7 @@ class ParkWashModel extends Crud {
 
         if (!$orderInfo = $this->findOrderInfo([
             'id' => $post['orderid'], 'uid' => $uid
-        ], 'id,xc_trade_id,store_id,car_number,brand_id,series_id,area_id,place,pay,payway,items,order_time,create_time,status')) {
+        ], 'id,xc_trade_id,store_id,car_number,brand_id,series_id,area_id,place,pay,payway,items,order_time,create_time,status,update_time')) {
             return error('订单不存在或无效');
         }
 
@@ -1972,7 +1972,7 @@ class ParkWashModel extends Crud {
         // vip截止时间
         $vipEndTime = mktime(23, 59, 59, date('m', $vipStartTime) + $cardTypeInfo['months'], date('d', $vipStartTime) + $cardTypeInfo['days'], date('Y', $vipStartTime));
 
-        if (!DB::getInstance()->transaction(function ($db) use($tradeInfo, $tradeParam, $carportInfo, $cardInfo, $vipStartTime, $vipEndTime) {
+        if (!$this->getDb()->transaction(function ($db) use($tradeInfo, $tradeParam, $carportInfo, $cardInfo, $vipStartTime, $vipEndTime) {
 
             if (!$db->update('__tablepre__payments', $tradeParam, [
                 'id' => $tradeInfo['id'], 'status' => 0
@@ -2367,6 +2367,7 @@ class ParkWashModel extends Crud {
         // 每天 1 点执行
         if (false !== strpos($timer, '1h')) {
             $this->taskCleanExpireTrade();
+            $this->taskCleanRatelimit();
         }
         // 每 300 秒执行
         if (false !== strpos($timer, '300s')) {
@@ -2543,6 +2544,14 @@ class ParkWashModel extends Crud {
     protected function taskCleanExpireTrade () {
 
         return $this->getDb()->delete('pro_payments', ['status' => 0, 'createtime' => ['<', date('Y-m-d', TIMESTAMP - 86400)]]);
+    }
+
+    /**
+     * 清理一天前接口限流记录
+     */
+    protected function taskCleanRatelimit () {
+
+        return $this->getDb()->delete('pro_ratelimit', ['time' => ['<', mktime(0, 0, 0, date('m', TIMESTAMP), date('d', TIMESTAMP), date('Y', TIMESTAMP))]]);
     }
 
     /**

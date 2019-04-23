@@ -433,11 +433,16 @@ class XicheManage extends ActionPDO {
      */
     public function parkOrder () {
 
+        $modle = new XicheManageModel();
         $condition = [
             'xc_trade_id' => 0
         ];
+        if ($_GET['store_name']) {
+            $searchStoreInfo = $modle->getInfo('parkwash_store', ['name' => ['like', '%' . $_GET['store_name'] . '%']], 'id');
+            $condition['store_id'] = intval($searchStoreInfo['id']);
+        }
         if ($_GET['order_id']) {
-            $condition['id'] = $_GET['order_id'];
+            $condition['id'] = intval($_GET['order_id']);
         }
         if ($_GET['user_tel']) {
             $condition['user_tel'] = ['like', $_GET['user_tel'] . '%'];
@@ -447,6 +452,9 @@ class XicheManage extends ActionPDO {
         }
         if ($_GET['place']) {
             $condition['place'] = ['like', $_GET['place'] . '%'];
+        }
+        if ($_GET['payway']) {
+            $condition['payway'] = $_GET['payway'] == 'vippay' ? 'vippay' : ['<>', 'vippay'];
         }
         if ($_GET['status']) {
             if ($_GET['status'] == 13) {
@@ -469,12 +477,14 @@ class XicheManage extends ActionPDO {
             $condition['order_time'] = ['between', [$_GET['start_time'] . ' 00:00:00', $_GET['end_time'] . ' 23:59:59']];
         }
 
-        $modle = new XicheManageModel();
         $count = $modle->getCount('parkwash_order', $condition);
         $pagesize = getPageParams($_GET['page'], $count);
-        $list = $modle->getList('parkwash_order', $condition, $pagesize['limitstr'], 'id desc', 'id,entry_park_id,entry_park_time,store_id,create_time,car_number,brand_id,series_id,user_tel,order_time,area_id,place,items,pay,status,fail_reason');
+        $list = $modle->getList('parkwash_order', $condition, $pagesize['limitstr'], 'id desc', 'id,entry_park_id,entry_park_time,store_id,create_time,car_number,brand_id,series_id,user_tel,order_time,area_id,place,items,pay,payway,status,fail_reason');
 
         if ($list) {
+            $payway = [
+                'cbpay' => '车币', 'wxpayjs' => '微信', 'wxpayh5' => '微信H5', 'wxpaywash' => '微信', 'vippay' => '洗车VIP', 'firstpay' => '首单免费'
+            ];
             $brandList = $modle->getList('parkwash_car_brand', ['id' => ['in', array_column($list, 'brand_id')]], null, null, 'id,name');
             $brandList = array_column($brandList, null, 'id');
             $seriesList = $modle->getList('parkwash_car_series', ['id' => ['in', array_column($list, 'series_id')]], null, null, 'id,name');
@@ -495,6 +505,7 @@ class XicheManage extends ActionPDO {
                 $list[$k]['store_name'] = $storeList[$v['store_id']]['name'];
                 $list[$k]['items'] = implode(',', array_column(json_decode($v['items'], true), 'name'));
                 $list[$k]['pay'] = round_dollar($v['pay'], false);
+                $list[$k]['payway'] = isset($payway[$v['payway']]) ? $payway[$v['payway']] : $v['payway'];
                 // 判断等待服务状态
                 if ($v['status'] == 1 && $v['entry_park_id']) {
                     $list[$k]['status'] = 13; // 等待服务
@@ -691,15 +702,29 @@ class XicheManage extends ActionPDO {
 
         $count = $modle->getCount('parkwash_usercount', $condition);
         $pagesize = getPageParams($_GET['page'], $count);
-        $list = $modle->getList('parkwash_usercount', $condition, $pagesize['limitstr'], 'uid desc');
+        $list = $modle->getList('parkwash_usercount', $condition, $pagesize['limitstr'], 'create_time desc');
         if ($list) {
             $cmUserList = $userModel->getUserList(['member_id' => ['in', array_column($list, 'uid')]], 'member_id,member_name,available_predeposit');
             $cmUserList = array_column($cmUserList, null, 'member_id');
+            // vip状态
+            $cardList = $modle->getList('parkwash_card', ['uid' => ['in', array_column($list, 'uid')], 'status' => 1], null, null, 'uid,end_time');
+            $vipList = [];
+            foreach ($cardList as $k => $v) {
+                if (isset($vipList[$v['uid']])) {
+                    if (strtotime($vipList[$v['uid']]) < strtotime($v['end_time'])) {
+                        $vipList[$v['uid']] = $v['end_time'];
+                    }
+                } else {
+                    $vipList[$v['uid']] = $v['end_time'];
+                }
+            }
             foreach ($list as $k => $v) {
                 $list[$k]['telephone'] = $cmUserList[$v['uid']]['member_name'];
                 $list[$k]['money'] = $cmUserList[$v['uid']]['available_predeposit'];
+                $list[$k]['expire'] = isset($vipList[$v['uid']]) ? $vipList[$v['uid']] : '';
+                $list[$k]['isvip'] = isset($vipList[$v['uid']]) ? (strtotime($vipList[$v['uid']]) > TIMESTAMP ? '是' : '已过期') : '';
             }
-            unset($cmUserList);
+            unset($cmUserList, $cardList, $vipList);
         }
 
         return [

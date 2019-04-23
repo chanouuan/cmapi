@@ -601,6 +601,7 @@ class ParkWash extends ActionPDO {
      *          "items":[], //洗车套餐JSON
      *          "order_time":"2019-04-01 14:00:00", //预约时间
      *          "create_time":"2019-04-01 09:00:00", //下单时间
+     *          "update_time":"2019-04-01 09:00:00", //更新时间
      *          "brand_name":"斯柯达", //汽车品牌名
      *          "series_name":"昊锐", //汽车款型
      *          "area_floor":"负一楼", //楼层
@@ -639,6 +640,7 @@ class ParkWash extends ActionPDO {
      *      "items":[], //洗车套餐JSON
      *      "order_time":"2019-04-01 14:00:00", //预约时间
      *      "create_time":"2019-04-01 09:00:00", //下单时间
+     *      "update_time":"2019-04-01 09:00:00", //更新时间
      *      "brand_name":"斯柯达", //汽车品牌名
      *      "series_name":"昊锐", //汽车款型
      *      "area_floor":"负一楼", //楼层

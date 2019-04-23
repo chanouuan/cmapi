@@ -81,7 +81,7 @@ function byte_convert ($byte)
     }
 }
 
-function round_dollar ($fen, $suffix = true)
+function round_dollar ($fen, $suffix = false)
 {
     $fen /= 100;
     return $suffix ? sprintf("%01.2f", $fen) : round($fen, 2);
@@ -333,11 +333,6 @@ function check_client ()
 
 function get_ip ()
 {
-    global $client_ip_address;
-    IF (isset($client_ip_address)) {
-        $long = ip2long($client_ip_address);
-        if ($long != -1 && $long !== FALSE) {return $client_ip_address;}
-    }
     $ip = false;
     if (!empty($_SERVER['HTTP_CLIENT_IP'])) {
         $ip = $_SERVER['HTTP_CLIENT_IP'];

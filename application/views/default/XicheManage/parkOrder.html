@@ -16,16 +16,23 @@
 
     <div class="layui-row">
         <form class="layui-form layui-col-md12 x-so" method="get">
-            <input value="<?=$_GET['order_id']?>" maxlength="50" type="tel" name="order_id"  placeholder="请输入订单编号" autocomplete="off" class="layui-input">
-            <input value="<?=$_GET['user_tel']?>" maxlength="11" type="tel" name="user_tel"  placeholder="请输入手机号" autocomplete="off" class="layui-input">
-            <input value="<?=$_GET['car_number']?>" maxlength="10" type="text" name="car_number"  placeholder="请输入车牌" autocomplete="off" class="layui-input">
-            <input value="<?=$_GET['place']?>" maxlength="10" type="text" name="place"  placeholder="请输入车位号" autocomplete="off" class="layui-input">
+            <input value="<?=$_GET['store_name']?>" maxlength="50" type="text" name="store_name" placeholder="请输入店铺名" autocomplete="off" class="layui-input">
+            <input value="<?=$_GET['user_tel']?>" maxlength="11" type="tel" name="user_tel" placeholder="请输入手机号" autocomplete="off" class="layui-input">
+            <input value="<?=$_GET['car_number']?>" maxlength="10" type="text" name="car_number" placeholder="请输入车牌" autocomplete="off" class="layui-input">
+            <input value="<?=$_GET['place']?>" maxlength="10" type="text" name="place" placeholder="请输入车位号" autocomplete="off" class="layui-input">
             <div class="layui-input-inline">
                 <select name="status">
                     <option value="">订单状态</option>
                     <?php foreach($statusList as $k=>$v){ ?>
                     <option <?php if($_GET['status']==$k){ ?>selected<?php } ?> value="<?=$k?>"><?=$v?></option>
                     <?php } ?>
+                </select>
+            </div>
+            <div class="layui-input-inline">
+                <select name="payway">
+                    <option value="">是否会员</option>
+                    <option <?php if($_GET['payway']=='vippay'){ ?>selected<?php } ?> value="vippay">会员用户</option>
+                    <option <?php if($_GET['payway']=='novippay'){ ?>selected<?php } ?> value="novippay">普通用户</option>
                 </select>
             </div>
             <input value="<?=$_GET['start_time']?>" class="layui-input" id="start_time" name="start_time" placeholder="预约开始日期" readonly>
@@ -58,6 +65,7 @@
             <th>车位号</th>
             <th>套餐</th>
             <th>支付金额</th>
+            <th>支付方式</th>
             <th>状态</th>
             <th>入场时间</th>
             <th>操作</th>
@@ -77,8 +85,9 @@
             <td><?=$v['place']?></td>
             <td><?=$v['items']?></td>
             <td><?=$v['pay']?></td>
+            <td><?=$v['payway']?></td>
             <td><?=$v['status_str']?></td>
-            <td><?=$v['status']==13?$v['entry_park_time']:''?></td>
+            <td><?=$v['entry_park_time']?></td>
             <td class="td-manage">
                 <span style="cursor: pointer" class="layui-badge layui-bg-blue" onclick="x_admin_show('查看详情','<?=gurl('xicheManage/parkOrderView',['id'=>$v['id']])?>')"><i class="layui-icon">&#xe60b;</i>详情</span>
                 <?php if($v['status']==1||$v['status']==13){ ?>

@@ -25,9 +25,13 @@
             <th>ID</th>
             <th>手机号</th>
             <th>余额</th>
+            <th>是否会员</th>
+            <th>会员期限</th>
+            <th>停车场洗车次数</th>
+            <th>停车场洗车消费金额</th>
+            <th>自助洗车次数</th>
+            <th>自助洗车消费金额</th>
             <th>注册时间</th>
-            <th>洗车次数</th>
-            <th>消费金额</th>
         </tr>
         </thead>
         <tbody>
@@ -36,9 +40,13 @@
             <td><?=$v['uid']?></td>
             <td><?=$v['telephone']?></td>
             <td><?=$v['money']?></td>
-            <td><?=$v['create_time']?></td>
+            <td><?=$v['isvip']?></td>
+            <td><?=$v['expire']?></td>
             <td><?=$v['parkwash_count']?></td>
             <td><?=$v['parkwash_consume']/100?></td>
+            <td><?=$v['xiche_count']?></td>
+            <td><?=$v['xiche_consume']/100?></td>
+            <td><?=$v['create_time']?></td>
         </tr>
         <?php } ?>
         </tbody>

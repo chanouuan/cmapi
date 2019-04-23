@@ -112,7 +112,7 @@ class Controller {
         if ($refDoc = $refClass->getMethod($action)->getDocComment()) {
             if (false !== strpos($refDoc, '@ratelimit')) {
                 preg_match('/@ratelimit(.+)/', $refDoc, $matches);
-                if (!RateLimit::grant($module . $action . $_SERVER['REMOTE_ADDR'], trim($matches[1]))) {
+                if (!RateLimit::grant($_SERVER['REMOTE_ADDR'] . $module . $action, trim($matches[1]))) {
                     json(null, StatusCodes::getMessage(StatusCodes::ACCESS_NUM_OVERFLOW), StatusCodes::ACCESS_NUM_OVERFLOW, StatusCodes::STATUS_404);
                 }
             }
@@ -1015,8 +1015,13 @@ class RateLimit
 {
     public static function grant($key, $rule = null, $adapter = 'mysql')
     {
-        $rule = $rule ? $rule : '600|5000|10000';
-        list($minNum, $hourNum, $dayNum) = explode('|', $rule);
+        if ($rule) {
+            list($minNum, $hourNum, $dayNum) = explode('|', $rule);
+        } else {
+            $minNum = 500;
+            $hourNum = 5000;
+            $dayNum = 10000;
+        }
         return self::{$adapter}($key, $minNum, $hourNum, $dayNum);
     }
 

@@ -130,7 +130,7 @@ class TradeModel extends Crud {
         } elseif ($tradeInfo['type'] == 'bx') {
             // 保险支付成功
             $model = new BaoxianModel();
-        } elseif ($tradeInfo['type'] == 'parkwash' || $tradeInfo['type'] == 'pwcharge') {
+        } elseif ($tradeInfo['type'] == 'parkwash' || $tradeInfo['type'] == 'pwcharge' || $tradeInfo['type'] == 'vipcard') {
             // 停车场洗车支付成功
             $model = new ParkWashModel();
         }
