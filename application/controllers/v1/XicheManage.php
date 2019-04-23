@@ -603,7 +603,6 @@ class XicheManage extends ActionPDO {
     public function cardRecord () {
 
         $modle = new XicheManageModel();
-        $userModel = new UserModel();
 
         $condition = [];
         if ($_GET['uid']) {
@@ -617,6 +616,9 @@ class XicheManage extends ActionPDO {
         }
         if ($_GET['card_type_id']) {
             $condition['card_type_id'] = intval($_GET['card_type_id']);
+        }
+        if ($_GET['start_time'] && $_GET['end_time']) {
+            $condition['create_time'] = ['between', [$_GET['start_time'] . ' 00:00:00', $_GET['end_time'] . ' 23:59:59']];
         }
 
         $row = \app\library\DB::getInstance()
@@ -633,14 +635,13 @@ class XicheManage extends ActionPDO {
 
         foreach ($list as $k => $v) {
             $list[$k]['card_type_name'] = isset($cardType[$v['card_type_id']]) ? $cardType[$v['card_type_id']] : $v['card_type_id'];
-            $list[$k]['car_number'] = implode(',', json_decode($v['car_number'], true));
         }
 
         return [
             'pagesize' => $pagesize,
             'list' => $list,
             'cardType' => $cardType,
-            'totalMoney' => intval($totalMoney)
+            'totalMoney' => round_dollar($totalMoney)
         ];
     }
 
@@ -719,8 +720,8 @@ class XicheManage extends ActionPDO {
                 }
             }
             foreach ($list as $k => $v) {
-                $list[$k]['telephone'] = $cmUserList[$v['uid']]['member_name'];
-                $list[$k]['money'] = $cmUserList[$v['uid']]['available_predeposit'];
+                $list[$k]['telephone'] = isset($cmUserList[$v['uid']]) ? $cmUserList[$v['uid']]['member_name'] : '已删';
+                $list[$k]['money'] = isset($cmUserList[$v['uid']]) ? $cmUserList[$v['uid']]['available_predeposit'] : '已删';
                 $list[$k]['expire'] = isset($vipList[$v['uid']]) ? $vipList[$v['uid']] : '';
                 $list[$k]['isvip'] = isset($vipList[$v['uid']]) ? (strtotime($vipList[$v['uid']]) > TIMESTAMP ? '是' : '已过期') : '';
             }
