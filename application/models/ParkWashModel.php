@@ -1939,7 +1939,7 @@ class ParkWashModel extends Crud {
 
         // 微信模板消息通知用户
         $this->sendTemplateMessage($orderInfo['uid'], 'create_order', $tradeInfo['form_id'], '/pages/orderprofile/orderprofile?order_id=' . $orderInfo['id'], [
-            '￥' . round_dollar($tradeInfo['money'], false), $storeInfo['name'], $tradeInfo['uses'], $orderInfo['create_time'], '请您在预约时间进入停车场并完善您的车位信息，感谢您的支持'
+            '￥' . round_dollar($tradeInfo['money'], false), $storeInfo['name'], $tradeInfo['uses'], $orderInfo['create_time'], '请您提前10分钟进入停车场并完善您的车位信息，感谢您的支持'
         ]);
 
         return success('OK');
@@ -1951,7 +1951,7 @@ class ParkWashModel extends Crud {
     protected function vipcardSuc ($tradeInfo, $tradeParam) {
 
         // 卡类型
-        if (!$cardTypeInfo = $this->getDb()->table('parkwash_card_type')->field('id,months,days')->where(['id' => $tradeInfo['param_id']])->find()) {
+        if (!$cardTypeInfo = $this->getDb()->table('parkwash_card_type')->field('id,name,months,days')->where(['id' => $tradeInfo['param_id']])->find()) {
             return error('卡类型不存在');
         }
         // 车辆信息
@@ -2035,10 +2035,13 @@ class ParkWashModel extends Crud {
             'notice_type' => 0,
             'uid' => $tradeInfo['trade_id'],
             'title' => 'VIP缴费成功',
-            'content' => template_replace('成功缴费 {$money} 元，VIP截止日期：{$vipTime}', [
+            'content' => template_replace('成功缴费 {$money} 元，VIP截止到：{$vipTime}', [
                 'money' => round_dollar($tradeInfo['money']), 'vipTime' => date('Y年n月j日 H:i:s', $vipEndTime)
             ])
         ]);
+
+        // 发送短信
+        (new UserModel())->sendSmsServer($tradeInfo['mark'], '尊敬的用户，已为您开通车秘未来洗车VIP（' . $cardTypeInfo['name'] . '），-人未动，尘已远！为您洗去一身尘土。让您的爱车每天光亮如新！');
 
         return success('OK');
     }

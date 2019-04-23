@@ -134,9 +134,8 @@ class XicheManageModel extends Crud {
                 'uid' => $orderInfo['uid'],
                 'tel' => $orderInfo['user_tel'],
                 'title' => '商家完成洗车',
-                'content' => $storeInfo['name'] . '已经完成洗车，请您确认订单完成，感谢您的支持'
+                'content' => $post['fail_reason'] ? ('您的订单处理为异常订单，异常原因“' . $post['fail_reason'] . '”，若有疑问请联系商家，感谢您的支持') : ($storeInfo['name'] . '已经完成洗车，请您确认订单完成，感谢您的支持')
             ]);
-            // 异常完成不发送短信
             if (!$post['fail_reason']) {
                 // 微信模板消息通知用户
                 $result = $parkWashModel->sendTemplateMessage($orderInfo['uid'], 'complete_order', $tradeInfo['form_id'], '/pages/orderprofile/orderprofile?order_id=' . $orderInfo['id'], [
@@ -146,6 +145,9 @@ class XicheManageModel extends Crud {
                     // 发送短信
                     $userModel->sendSmsServer($orderInfo['user_tel'], '温馨提醒，' . $storeInfo['name'] . '已经完成洗车，请您确认订单完成，感谢您的支持');
                 }
+            } else {
+                // 异常提醒短信
+                $userModel->sendSmsServer($orderInfo['user_tel'], '尊敬的用户，您的订单处理为异常订单，异常原因“' . $post['fail_reason'] . '”，若有疑问请联系商家，感谢您的支持');
             }
         }
 
