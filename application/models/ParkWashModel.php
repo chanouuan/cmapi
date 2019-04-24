@@ -610,6 +610,7 @@ class ParkWashModel extends Crud {
         $list = $this->getDb()->table('parkwash_card')->field('id,car_number,end_time,update_time,status')->where(['uid' => $uid])->select();
         if ($list) {
             foreach ($list as $k => $v) {
+                $list[$k]['end_time'] = substr($v['end_time'], 0, 10);
                 // 是否过期
                 $list[$k]['status'] = $v['status'] == 1 ? (strtotime($v['end_time']) < TIMESTAMP ? -1 : 1) : $v['status'];
             }
