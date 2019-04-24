@@ -21,7 +21,10 @@
                             下单时间：<?=$info['create_time']?>
                         </div>
                         <div class="layui-card-body">
-                            订单金额：<?=$info['pay']/100?> 元
+                            订单金额：<?=($info['pay']+$info['deduct'])/100?> 元
+                        </div>
+                        <div class="layui-card-body">
+                            已付款：<?=$info['pay']/100?> 元
                         </div>
                         <div class="layui-card-body">
                             支付方式：<?=$info['payway']?>

@@ -51,7 +51,7 @@
         <span class="x-right" style="line-height:40px">共有数据：<?=$pagesize['totalcount']?> 条</span>
     </xblock>
 
-    <table class="layui-table">
+    <table class="layui-table" lay-size="sm">
         <thead>
         <tr>
             <th>编号</th>
@@ -89,15 +89,15 @@
             <td><?=$v['status_str']?></td>
             <td><?=$v['entry_park_time']?></td>
             <td class="td-manage">
-                <span style="cursor: pointer" class="layui-badge layui-bg-blue" onclick="x_admin_show('查看详情','<?=gurl('xicheManage/parkOrderView',['id'=>$v['id']])?>')"><i class="layui-icon">&#xe60b;</i>详情</span>
+                <span style="cursor: pointer" class="layui-badge layui-bg-blue" onclick="x_admin_show('查看详情','<?=gurl('xicheManage/parkOrderView',['id'=>$v['id']])?>')">详情</span>
                 <?php if($v['status']==1||$v['status']==13){ ?>
-                <span style="cursor: pointer" class="layui-badge layui-bg-green" onclick="service(<?=$v['id']?>)"><i class="layui-icon">&#xe605;</i>开始服务</span>
+                <span style="cursor: pointer" class="layui-badge layui-bg-green" onclick="service(<?=$v['id']?>)">开始服务</span>
                 <?php } ?>
                 <?php if($v['status']==3){ ?>
-                <span style="cursor: pointer" class="layui-badge layui-bg-green" onclick="complete(<?=$v['id']?>)"><i class="layui-icon">&#xe605;</i>完成洗车</span>
+                <span style="cursor: pointer" class="layui-badge layui-bg-green" onclick="complete(<?=$v['id']?>)">完成洗车</span>
                 <?php } ?>
                 <?php if($v['status']==1||$v['status']==13||$v['status']==2||$v['status']==3){ ?>
-                <span style="cursor: pointer" class="layui-badge" onclick="fail(<?=$v['id']?>)"><i class="layui-icon">&#x1006;</i>异常</span>
+                <span style="cursor: pointer" class="layui-badge" onclick="fail(<?=$v['id']?>)">异常</span>
                 <?php } ?>
             </td>
         </tr>
