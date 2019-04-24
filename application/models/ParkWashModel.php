@@ -442,7 +442,7 @@ class ParkWashModel extends Crud {
 
         // 更新门店下单数、收益
         $this->getDb()->update('parkwash_store', [
-            'order_count' => ['order_count-1'], 'money' => ['money-' . ($orderInfo['pay'] + $orderInfo['deduct'])]
+            'order_count' => ['order_count-1'], 'money' => ['money-' . $orderInfo['pay']]
         ], [
             'id' => $orderInfo['store_id']
         ]);
@@ -1899,7 +1899,7 @@ class ParkWashModel extends Crud {
         $this->getDb()->update('parkwash_usercount', [
             'coupon_consume' => ['coupon_consume+' . ($tradeInfo['money'] - $tradeInfo['pay'])],
             'parkwash_count' => ['parkwash_count+1'],
-            'parkwash_consume' => ['parkwash_consume+' . $tradeInfo['money']],
+            'parkwash_consume' => ['parkwash_consume+' . $tradeInfo['pay']],
             'parkwash_firstorder' => 0
         ], [
             'uid' => $tradeInfo['trade_id']
@@ -1914,23 +1914,21 @@ class ParkWashModel extends Crud {
         // 更新门店下单数、收益
         $this->getDb()->update('parkwash_store', [
             'order_count' => ['order_count+1'],
-            'money' => ['money+' . $tradeInfo['money']]
+            'money' => ['money+' . $tradeInfo['pay']]
         ], [
             'id' => $orderInfo['store_id']
         ]);
 
         // 记录资金变动
         $this->pushTrades([
-            'uid' => $orderInfo['uid'], 'mark' => '-', 'money' => $tradeInfo['money'], 'title' => '支付停车场洗车费'
+            'uid' => $orderInfo['uid'], 'mark' => '-', 'money' => $tradeInfo['pay'], 'title' => '支付停车场洗车费'
         ]);
 
         // 记录订单状态改变
         $this->pushSequence([
             'orderid' => $orderInfo['id'],
             'uid' => $orderInfo['uid'],
-            'title' => template_replace('下单成功，支付 {$money} 元，预约时间：{$orderTime}', [
-                'money' => round_dollar($tradeInfo['money'], false), 'orderTime' => $orderInfo['order_time']
-            ])
+            'title' => '下单成功'
         ]);
 
         // 加入到入场车查询队列任务
@@ -2018,7 +2016,7 @@ class ParkWashModel extends Crud {
             'user_tel' => $tradeInfo['mark'],
             'car_number' => $carportInfo['car_number'],
             'card_type_id' => $cardTypeInfo['id'],
-            'money' => $tradeInfo['money'],
+            'money' => $tradeInfo['pay'],
             'start_time' => date('Y-m-d H:i:s', $vipStartTime),
             'end_time' => date('Y-m-d H:i:s', $vipEndTime),
             'duration' => ($cardTypeInfo['months'] ? $cardTypeInfo['months'] . '个月' : '') . ($cardTypeInfo['days'] ? $cardTypeInfo['days'] . '天' : ''),
@@ -2027,7 +2025,7 @@ class ParkWashModel extends Crud {
 
         // 记录资金变动
         $this->pushTrades([
-            'uid' => $tradeInfo['trade_id'], 'mark' => '-', 'money' => $tradeInfo['money'], 'title' => 'VIP缴费'
+            'uid' => $tradeInfo['trade_id'], 'mark' => '-', 'money' => $tradeInfo['pay'], 'title' => 'VIP缴费'
         ]);
 
         // 通知用户
@@ -2037,7 +2035,7 @@ class ParkWashModel extends Crud {
             'uid' => $tradeInfo['trade_id'],
             'title' => 'VIP缴费成功',
             'content' => template_replace('成功缴费 {$money} 元，VIP截止到：{$vipTime}', [
-                'money' => round_dollar($tradeInfo['money']), 'vipTime' => date('Y年n月j日 H:i:s', $vipEndTime)
+                'money' => round_dollar($tradeInfo['pay']), 'vipTime' => date('Y年n月j日 H:i:s', $vipEndTime)
             ])
         ]);
 
@@ -2065,7 +2063,7 @@ class ParkWashModel extends Crud {
             'platform' => 3,
             'authcode' => $tradeInfo['trade_id'],
             'trade_no' => $tradeInfo['ordercode'],
-            'money' => $tradeInfo['money'],
+            'money' => $tradeInfo['pay'],
             'remark' => '余额充值'
         ]);
         if ($result['errorcode'] !== 0) {
@@ -2080,7 +2078,7 @@ class ParkWashModel extends Crud {
 
         // 记录资金变动
         $this->pushTrades([
-            'uid' => $tradeInfo['trade_id'], 'mark' => '+', 'money' => $tradeInfo['money'], 'title' => '余额充值'
+            'uid' => $tradeInfo['trade_id'], 'mark' => '+', 'money' => $tradeInfo['pay'], 'title' => '余额充值'
         ]);
 
         // 通知用户
@@ -2150,6 +2148,10 @@ class ParkWashModel extends Crud {
         ], [
             'uid' => $param['uid']
         ]);
+        // 记录资金变动
+        $this->pushTrades([
+            'uid' => $param['uid'], 'mark' => '-', 'money' => $param['pay'], 'title' => '支付自助洗车费'
+        ]);
         return $order_id;
     }
 
@@ -2212,6 +2214,9 @@ class ParkWashModel extends Crud {
      */
     protected function pushTrades ($post) {
 
+        if ($post['money'] <= 0) {
+            return false;
+        }
         return $this->getDb()->insert('parkwash_trades', [
             'uid' => $post['uid'], 'mark' => $post['mark'], 'money' => $post['money'], 'title' => $post['title'], 'create_time' => date('Y-m-d H:i:s', TIMESTAMP)
         ]);
