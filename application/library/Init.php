@@ -1028,7 +1028,7 @@ class RateLimit
     protected static function mysql($key, $minNum, $hourNum, $dayNum)
     {
         $key = strval($key);
-        $limitVal = \app\library\DB::getInstance()->table('__tablepre__ratelimit')->field('id,min_num,hour_num,day_num,time,version')->where(['skey' => $key])->find();
+        $limitVal = \app\library\DB::getInstance()->table('__tablepre__ratelimit')->field('min_num,hour_num,day_num,time,version')->where(['skey' => $key])->find();
         $param = [
             'skey' => $key,
             'min_num' => 1,
@@ -1064,12 +1064,13 @@ class RateLimit
                 }
             }
             $param['version'] = ['version+1'];
-            if (!\app\library\DB::getInstance()->update('__tablepre__ratelimit', $param, ['id' => $limitVal['id'], 'version' => $limitVal['version']])) {
-                return false;
+            unset($param['skey']);
+            if (!\app\library\DB::getInstance()->update('__tablepre__ratelimit', $param, ['skey' => $key, 'version' => $limitVal['version']])) {
+                usleep(mt_rand(10000, 1000000)); // 10ms-1000ms
             }
         } else {
             if (!\app\library\DB::getInstance()->insert('__tablepre__ratelimit', $param)) {
-                return false;
+                usleep(mt_rand(10000, 1000000)); // 10ms-1000ms
             }
         }
         return true;
