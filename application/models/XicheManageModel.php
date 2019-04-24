@@ -252,6 +252,8 @@ class XicheManageModel extends Crud {
             return error('添加失败');
         }
 
+        F('CardType', null); // 删除缓存
+
         return success('OK');
     }
 
@@ -291,6 +293,8 @@ class XicheManageModel extends Crud {
             ], ['id' => $post['id']])) {
             return error('修改失败');
         }
+
+        F('CardType', null); // 删除缓存
 
         return success('OK');
     }
