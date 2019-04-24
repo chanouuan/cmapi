@@ -112,7 +112,7 @@ class Controller {
         if ($refDoc = $refClass->getMethod($action)->getDocComment()) {
             if (false !== strpos($refDoc, '@ratelimit')) {
                 preg_match('/@ratelimit(.+)/', $refDoc, $matches);
-                if (!RateLimit::grant($_SERVER['REMOTE_ADDR'] . $module . $action, trim($matches[1]))) {
+                if (!RateLimit::grant(substr($_SERVER['REMOTE_ADDR'], 0, 15), trim($matches[1]))) {
                     json(null, StatusCodes::getMessage(StatusCodes::ACCESS_NUM_OVERFLOW), StatusCodes::ACCESS_NUM_OVERFLOW, StatusCodes::STATUS_404);
                 }
             }
@@ -1027,7 +1027,7 @@ class RateLimit
 
     protected static function mysql($key, $minNum, $hourNum, $dayNum)
     {
-        $key = md5($key);
+        $key = strval($key);
         $limitVal = \app\library\DB::getInstance()->table('__tablepre__ratelimit')->field('id,min_num,hour_num,day_num,time,version')->where(['skey' => $key])->find();
         $param = [
             'skey' => $key,
