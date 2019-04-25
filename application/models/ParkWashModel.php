@@ -1647,6 +1647,7 @@ class ParkWashModel extends Crud {
 
         // 限制vip车一天只能洗一次
         if ($post['payway'] == 'vippay') {
+            $vipOrderLimitConfig = getConfig('xc', 'vip_order_limit');
             if ($this->getDb()->table('parkwash_order')
                 ->where([
                     'uid' => $uid,
@@ -1655,8 +1656,8 @@ class ParkWashModel extends Crud {
                     'order_time' => ['between', [date('Y-m-d 00:00:00', strtotime($poolInfo['today'])), date('Y-m-d 23:59:59', strtotime($poolInfo['today']))]]
                 ])
                 ->limit(1)
-                ->count()) {
-                return error('该vip车在「'.date('Y年n月j日', strtotime($poolInfo['today'])).'」已预定过');
+                ->count() >= $vipOrderLimitConfig) {
+                return error('该vip车在「'.date('Y年n月j日', strtotime($poolInfo['today'])).'」已预定过，当日最多可预订' . $vipOrderLimitConfig . '次');
             }
         }
 

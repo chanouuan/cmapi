@@ -1066,11 +1066,11 @@ class RateLimit
             $param['version'] = ['version+1'];
             unset($param['skey']);
             if (!\app\library\DB::getInstance()->update('__tablepre__ratelimit', $param, ['skey' => $key, 'version' => $limitVal['version']])) {
-                usleep(mt_rand(10000, 1000000)); // 10ms-1000ms
+                usleep(mt_rand(100000, 1000000)); // 100ms-1000ms
             }
         } else {
             if (!\app\library\DB::getInstance()->insert('__tablepre__ratelimit', $param)) {
-                usleep(mt_rand(10000, 1000000)); // 10ms-1000ms
+                usleep(mt_rand(100000, 1000000)); // 100ms-1000ms
             }
         }
         return true;
