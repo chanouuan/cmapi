@@ -1938,7 +1938,7 @@ class ParkWashModel extends Crud {
 
         // 微信模板消息通知用户
         $this->sendTemplateMessage($orderInfo['uid'], 'create_order', $tradeInfo['form_id'], '/pages/orderprofile/orderprofile?order_id=' . $orderInfo['id'], [
-            '￥' . round_dollar($tradeInfo['money'], false), $storeInfo['name'], $tradeInfo['uses'], $orderInfo['create_time'], '请您提前10分钟进入停车场并完善您的车位信息，感谢您的支持'
+            '￥' . round_dollar($tradeInfo['money'], false), $storeInfo['name'], $tradeInfo['uses'], $orderInfo['create_time'], '温馨提醒，您已成功预约' . $storeInfo['name'] . '的洗车服务，请您提前10分钟进入停车场并完善您的车位信息，感谢您的支持'
         ]);
 
         return success('OK');
