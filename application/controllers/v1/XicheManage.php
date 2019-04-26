@@ -516,24 +516,30 @@ class XicheManage extends ActionPDO {
                 $list[$k]['status_str'] = $modle->getParkOrderStatus($list[$k]['status']);
             }
             unset($brandList, $seriesList, $areaList, $storeList);
-            // 洗车提醒
-            $noPlaceCount = \app\library\DB::getInstance()
-                ->table('parkwash_order')
-                ->where([
-                    'order_time' => ['between', [date('Y-m-d H:i:s', TIMESTAMP - 1800), date('Y-m-d H:i:s', TIMESTAMP)]],
-                    'status' => 1,
-                    'place' => ''
-                ])
-                ->count();
         }
 
         return [
             'pagesize' => $pagesize,
             'list' => $list,
             'dateTime' => $modle->getSearchDateTime(),
-            'statusList' => $modle->getParkOrderStatus(),
-            'noPlaceCount' => $noPlaceCount
+            'statusList' => $modle->getParkOrderStatus()
         ];
+    }
+
+    /**
+     * 订单提醒
+     */
+    public function noticeAlert () {
+        // 没有填写车位的订单数量
+        $noPlaceCount = \app\library\DB::getInstance()
+            ->table('parkwash_order')
+            ->where([
+                'order_time' => ['between', [date('Y-m-d H:i:s', TIMESTAMP - 1800), date('Y-m-d H:i:s', TIMESTAMP + 600)]],
+                'status' => 1,
+                'place' => ''
+            ])
+            ->count();
+        return success($noPlaceCount);
     }
 
     /**

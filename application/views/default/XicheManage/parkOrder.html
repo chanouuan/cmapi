@@ -120,7 +120,22 @@
     <?php } ?>
 
 </div>
-
+<style>
+    .notice-order{
+        display:block;
+        width: 300px;
+        height: 160px;
+        border: 10px solid #F8F8F8;
+        border-top-width: 0;
+        padding: 10px;
+        line-height:20px;
+        overflow:auto;
+        background-color: #3F3F3F;
+        color: #eee;
+        font-size:12px;
+        font-family:Courier New;
+    }
+</style>
 <script>
     layui.use(['laydate'], function(){
         var laydate = layui.laydate;
@@ -130,7 +145,46 @@
         laydate.render({
             elem: '#end_time'
         });
+        setTimeout(function(){
+            loadNotice(function($noPlaceCount){
+                layer.open({
+                    type: 1,
+                    title: '订单提醒',
+                    closeBtn: 0,
+                    shade: [0],
+                    offset: 'rb',
+                    time: 8000,
+                    anim: 2,
+                    content: '<div class="notice-order"><i class="layui-icon">&#xe667;</i> 洗车提醒，有 '+$noPlaceCount+' 个订单用户未填写车位号，请和用户确认订单信息。</div>'
+                });
+            });
+        }, 10000);
     });
+    function loadNotice (show) {
+        $.ajax({
+            type: 'get',
+            url: "<?=gurl('xicheManage/noticeAlert')?>",
+            dataType: 'json',
+            timeout: 1000,
+            success: function(res){
+                if(res.errorcode == 0){
+                    if (res.message) {
+                        show(res.message);
+                    }
+                }
+            },
+            beforeSend: function(xhr){
+                console.log('--loadNotice');
+            },
+            error: function(xhr, type){
+            },
+            complete: function(xhr){
+                setTimeout(function(){
+                    loadNotice(show);
+                }, 10000);
+            }
+        });
+    }
     function fail(id){
         layer.prompt({
             formType: 2,
