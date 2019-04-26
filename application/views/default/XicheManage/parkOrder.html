@@ -151,11 +151,15 @@
                     type: 1,
                     title: '订单提醒',
                     closeBtn: 0,
-                    shade: [0],
+                    shade: false,
                     offset: 'rb',
                     time: 8000,
                     anim: 2,
-                    content: '<div class="notice-order"><i class="layui-icon">&#xe667;</i> 洗车提醒，有 '+$noPlaceCount+' 个订单用户未填写车位号，请和用户确认订单信息。</div>'
+                    resize: false,
+                    content: '<div class="notice-order"><i class="layui-icon">&#xe667;</i> 洗车提醒，有 '+$noPlaceCount+' 个订单用户未填写车位号，请和用户确认订单信息。</div>',
+                    end: function(){
+                        window.location.reload();
+                    }
                 });
             });
         }, 10000);

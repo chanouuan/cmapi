@@ -1406,7 +1406,7 @@ class ParkWashModel extends Crud {
         // 生成交易单
         if (!$this->getDb()->insert('__tablepre__payments', [
             'type' => 'vipcard',
-            'uses' => 'VIP缴费',
+            'uses' => '充值VIP',
             'trade_id' => $uid,
             'param_id' => $post['card_type_id'],
             'param_a' => $carportInfo['id'],
@@ -1429,7 +1429,7 @@ class ParkWashModel extends Crud {
                 'authcode' =>  $uid,
                 'trade_no' => $orderCode,
                 'money' => $cardTypeInfo['price'],
-                'remark' => '洗车VIP缴费'
+                'remark' => '洗车VIP充值'
             ]);
             if ($result['errorcode'] !== 0) {
                 // 回滚交易表
@@ -2025,7 +2025,7 @@ class ParkWashModel extends Crud {
 
         // 记录资金变动
         $this->pushTrades([
-            'uid' => $tradeInfo['trade_id'], 'mark' => '-', 'money' => $tradeInfo['pay'], 'title' => 'VIP缴费'
+            'uid' => $tradeInfo['trade_id'], 'mark' => '-', 'money' => $tradeInfo['pay'], 'title' => '充值VIP'
         ]);
 
         // 通知用户
@@ -2033,7 +2033,7 @@ class ParkWashModel extends Crud {
             'receiver' => 1,
             'notice_type' => 0,
             'uid' => $tradeInfo['trade_id'],
-            'title' => 'VIP缴费成功',
+            'title' => '充值VIP成功',
             'content' => template_replace('成功缴费 {$money} 元，VIP截止到：{$vipTime}', [
                 'money' => round_dollar($tradeInfo['pay']), 'vipTime' => date('Y年n月j日 H:i:s', $vipEndTime)
             ])
