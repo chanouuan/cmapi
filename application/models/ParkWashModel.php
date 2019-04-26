@@ -1359,11 +1359,10 @@ class ParkWashModel extends Crud {
             if (!$cardInfo['status']) {
                 return error('该卡已被禁用');
             }
-        } else {
-            // 每个用户只能有一张未过期的卡
-            if ($this->getDb()->table('parkwash_card')->where(['uid' => $uid, 'end_time' => ['>=', date('Y-m-d H:i:s', TIMESTAMP)]])->limit(1)->count()) {
-                return error('每位用户只能开通一辆车的vip哦');
-            }
+        }
+        // 每个用户只能有一张未过期的卡
+        if ($this->getDb()->table('parkwash_card')->where(['uid' => $uid, 'end_time' => ['>=', date('Y-m-d H:i:s', TIMESTAMP)], 'id' => ['<>', intval($cardInfo['id'])]])->limit(1)->count()) {
+            return error('每位用户只能开通一辆车的vip哦');
         }
 
         // 订单号
