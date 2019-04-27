@@ -796,6 +796,7 @@ class ParkWash extends ActionPDO {
     }
 
     public function task () {
+        \DebugLog::_debug(false);
         $timewheel = new \app\library\TimeWheel();
         $timer = $timewheel->tick();
         return (new ParkWashModel())->task(implode('', $timer));

@@ -10,7 +10,7 @@ class XicheManage extends ActionPDO {
 
     public function __init ()
     {
-        if (!in_array($this->_action, ['login', 'checkImgCode'])) {
+        if (!in_array($this->_action, ['login', 'checkImgCode', 'orderAlert', 'noticeAlert'])) {
             $this->_G['user'] = $this->loginCheck();
             if (empty($this->_G['user'])) {
                 $this->error('用户校验失败', gurl('xicheManage/login'));
@@ -531,6 +531,7 @@ class XicheManage extends ActionPDO {
      */
     public function orderAlert () {
 
+        \DebugLog::_debug(false);
         // 没有填写车位的订单数量
         $noPlaceCount = \app\library\DB::getInstance()
             ->table('parkwash_order')
@@ -551,6 +552,7 @@ class XicheManage extends ActionPDO {
      */
     public function noticeAlert () {
 
+        \DebugLog::_debug(false);
         $noticeList = \app\library\DB::getInstance()
             ->table('parkwash_notice')
             ->where([

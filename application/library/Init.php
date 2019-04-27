@@ -503,9 +503,15 @@ class DebugLog {
     private static $curl = [];
     private static $mysql = [];
 
+    private static $debug = true;
+
     public static function _init () {
         self::$start_time = microtime_float();
         self::$start_mem = memory_get_usage();
+    }
+
+    public static function _debug ($debug = true) {
+        self::$debug = $debug;
     }
 
     public static function _error ($error) {
@@ -619,14 +625,14 @@ class DebugLog {
     }
 
     private function writeLogs() {
-        if (DEBUG_LEVEL >= 3) {
-            self::_header();
-        }
-        if (DEBUG_LEVEL >= 2) {
-            self::_post();
-        }
-        if (DEBUG_LEVEL >= 1) {
-            if ($_SERVER['HTTP_USER_AGENT'] != 'Plan-Task') {
+        if (self::$debug) {
+            if (DEBUG_LEVEL >= 3) {
+                self::_header();
+            }
+            if (DEBUG_LEVEL >= 2) {
+                self::_post();
+            }
+            if (DEBUG_LEVEL >= 1) {
                 self::_log(array_merge(self::$info, self::$curl, self::$mysql), 'debug', true, 'Ym_Ymd', true, true);
             }
         }
