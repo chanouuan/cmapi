@@ -303,7 +303,7 @@ class ParkWashModel extends Crud {
 
         if (!$orderInfo = $this->findOrderInfo([
             'id' => $post['orderid'], 'uid' => $uid, 'status' => ['in', [1, 2]], 'xc_trade_id' => 0
-        ], 'id,place,area_id')) {
+        ], 'id,store_id,car_number,place,area_id')) {
             return error('订单不存在或无效');
         }
 
@@ -318,6 +318,20 @@ class ParkWashModel extends Crud {
         if (!$this->getDb()->update('parkwash_order', ['place' => $post['place'], 'area_id' => $post['area_id']], 'id = ' . $post['orderid'])) {
             return error('更新失败');
         }
+
+        // 更新车辆车位
+        $this->getDb()->update('parkwash_carport', ['place' => $post['place'], 'area_id' => $post['area_id'], 'update_time' => date('Y-m-d H:i:s', TIMESTAMP)], ['uid' => $uid, 'car_number' => $orderInfo['car_number']]);
+
+        // 通知商家
+        $this->pushNotice([
+            'receiver' => 2,
+            'notice_type' => 2, // 播报器
+            'orderid' => $orderInfo['id'],
+            'store_id' => $orderInfo['store_id'],
+            'uid' => $uid,
+            'title' => '更新车位',
+            'content' => 'updatePlace'
+        ]);
 
         return success('OK');
     }
@@ -1936,6 +1950,17 @@ class ParkWashModel extends Crud {
             'type' => 1, 'orderid' => $orderInfo['id'], 'param_var' => $orderInfo['car_number'], 'time' => $orderInfo['order_time'], 'create_time' => date('Y-m-d H:i:s', TIMESTAMP), 'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
         ]);
 
+        // 通知商家
+        $this->pushNotice([
+            'receiver' => 2,
+            'notice_type' => 2, // 播报器
+            'orderid' => $orderInfo['id'],
+            'store_id' => $orderInfo['store_id'],
+            'uid' => $orderInfo['uid'],
+            'title' => '下单通知',
+            'content' => 'create'
+        ]);
+
         // 微信模板消息通知用户
         $this->sendTemplateMessage($orderInfo['uid'], 'create_order', $tradeInfo['form_id'], '/pages/orderprofile/orderprofile?order_id=' . $orderInfo['id'], [
             '￥' . round_dollar($tradeInfo['money'], false), $storeInfo['name'], $tradeInfo['uses'], $orderInfo['create_time'], '温馨提醒，您已成功预约' . $storeInfo['name'] . '的洗车服务，请您提前10分钟进入停车场并完善您的车位信息，感谢您的支持'
@@ -2271,6 +2296,8 @@ class ParkWashModel extends Crud {
      * @return int 1是 0否
      */
     protected function checkBusinessHoursRange ($business_hours) {
+
+        return 1; // 前端不限制营业时间
 
         if (!$business_hours) {
             return 0;

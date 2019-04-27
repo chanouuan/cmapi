@@ -529,7 +529,8 @@ class XicheManage extends ActionPDO {
     /**
      * 订单提醒
      */
-    public function noticeAlert () {
+    public function orderAlert () {
+
         // 没有填写车位的订单数量
         $noPlaceCount = \app\library\DB::getInstance()
             ->table('parkwash_order')
@@ -539,7 +540,43 @@ class XicheManage extends ActionPDO {
                 'place' => ''
             ])
             ->count();
-        return success($noPlaceCount);
+
+        return success([
+            'noPlaceCount' => $noPlaceCount
+        ]);
+    }
+
+    /**
+     * 商家通知
+     */
+    public function noticeAlert () {
+
+        $noticeList = \app\library\DB::getInstance()
+            ->table('parkwash_notice')
+            ->where([
+                'receiver' => 2, 'notice_type' => 2, 'is_read' => 0, 'create_time' => ['>', date('Y-m-d', TIMESTAMP)]
+            ])
+            ->field('id,title,content')
+            ->select();
+        if ($noticeList) {
+            \app\library\DB::getInstance()->update('parkwash_notice', ['is_read' => 1], [
+                'id' => ['in', array_column($noticeList, 'id')]
+            ]);
+            $noticeData = [];
+            $audioPath = [
+                'create' => APPLICATION_URL . '/static/audio/on.mp3',
+                'updatePlace' => APPLICATION_URL . '/static/audio/on.mp3'
+            ];
+            foreach ($noticeList as $k => $v) {
+                $noticeData[$v['title']]['title'] = $v['title'];
+                $noticeData[$v['title']]['audio'] = $audioPath[$v['content']];
+                $noticeData[$v['title']]['num'] ++;
+            }
+            unset($noticeList);
+        }
+        return success([
+            'noticeData' => $noticeData
+        ]);
     }
 
     /**

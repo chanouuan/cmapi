@@ -148,7 +148,7 @@
           </ul>
           <div class="layui-tab-content">
             <div class="layui-tab-item layui-show">
-                <iframe src="<?=gurl('XicheManage/welcome')?>" frameborder="0" scrolling="yes" class="x-iframe"></iframe>
+                <iframe id="iframe-main" src="<?=gurl('XicheManage/welcome')?>" frameborder="0" scrolling="yes" class="x-iframe"></iframe>
             </div>
           </div>
         </div>
@@ -158,8 +158,128 @@
     <!-- 中部结束 -->
     <!-- 底部开始 -->
     <div class="footer">
-        <div class="copyright">Copyright ©2019 All Rights Reserved</div>
+        <div class="copyright">
+            Copyright ©2019 All Rights Reserved
+        </div>
+        <audio id="audioObj" src=""></audio>
+        <canvas style="position: absolute; right: 5px; bottom: 5px; display: none" id="audioCanvas" width="30" height="30"></canvas>
     </div>
     <!-- 底部结束 -->
+<script type="text/javascript">
+
+    layui.use(['layer'], function(){
+        drawCircle(audioCanvas, 0);
+        audioObj.addEventListener('ended', function(){
+            audioCanvas.style.display = 'none';
+            createAudio(shiftAudio());
+        }, false);
+        audioObj.addEventListener('timeupdate', function(){
+            if (!isNaN(audioObj.duration)) {
+                var progressValue = audioObj.currentTime/audioObj.duration;
+                if(progressValue == 1){
+                    progressValue = 0;
+                }
+                drawCircle(audioCanvas, progressValue);
+            }
+        }, false);
+        layer.confirm('是否开启语音播报？',function(index){
+            layer.closeAll();
+            audioOn = true;
+            createAudio({
+                audio: '<?=APPLICATION_URL?>/static/audio/on.mp3',
+            });
+            loadNotice();
+        });
+    });
+
+    var audioOn = false;
+    var audioList = [];
+    var audioObj = document.getElementById('audioObj');
+    var audioCanvas = document.getElementById('audioCanvas');
+    function pushAudio (src) {
+        audioList.push(src);
+    }
+    function shiftAudio(){
+        return audioList.length ? audioList.shift() : null;
+    }
+
+    function loadNotice () {
+        if (!audioOn) {
+            return;
+        }
+        setTimeout(function(){
+            $.ajax({
+                type: 'get',
+                url: "<?=gurl('xicheManage/noticeAlert')?>",
+                dataType: 'json',
+                timeout: 1000,
+                success: function(res){
+                    var result = res.result;
+                    if (result.noticeData) {
+                        if (result.noticeData) {
+                            for (var n in result.noticeData) {
+                                pushAudio(result.noticeData[n]);
+                            }
+                            result = null;
+                            // 播放声音
+                            createAudio(shiftAudio());
+                        }
+                    } else {
+                        loadNotice();
+                    }
+                },
+                beforeSend: function(xhr){
+                    console.log('--loadNotice');
+                },
+                error: function(xhr, type){
+                    console.log('--loadNotice Error' + type);
+                    loadNotice();
+                }
+            });
+        }, 30000);
+    }
+
+    function createAudio (src) {
+        if (!src) {
+            loadNotice();
+            return;
+        }
+        if (src.title && typeof src.title != 'undefined') {
+            layer.msg('<i class="layui-icon">&#xe667;</i> 正在播报' + src.title + ' (' + src.num + '条)');
+        }
+        audioCanvas.style.display = 'block';
+        drawCircle(audioCanvas, 0);
+        audioObj.src = src.audio;
+        try {
+            audioObj.pause();
+            audioObj.play();
+        } catch (e) {
+            console.log('--audio play error' + JSON.stringify(e))
+            loadNotice();
+        }
+    }
+
+    function drawCircle (canvas, percentage) {
+        var canvasWidth = 30;
+        var innerR = canvasWidth * 0.8 * 0.5;//半径
+        var ctx;
+        canvas.setAttribute('width', canvasWidth + 'px');
+        canvas.setAttribute('height', canvasWidth + 'px');
+        if (canvas.getContext) {
+            ctx = canvas.getContext('2d');
+        }
+        ctx.translate(canvasWidth / 2, canvasWidth / 2);
+        ctx.beginPath();
+        ctx.arc(0, 0, innerR, 0, Math.PI * 2, false);
+        ctx.lineWidth = canvasWidth / 10;
+        ctx.strokeStyle = "#F0F0F0";
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(0, 0, innerR, Math.PI * 3 / 2, (Math.PI * 3 / 2 + Math.PI * 2 / 180 + percentage * Math.PI * 2), false);
+        ctx.lineWidth = canvasWidth / 10;
+        ctx.strokeStyle = "#EEBD44";
+        ctx.stroke();
+    }
+</script>
 </body>
 </html>
