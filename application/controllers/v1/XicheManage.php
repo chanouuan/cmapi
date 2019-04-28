@@ -566,7 +566,7 @@ class XicheManage extends ActionPDO {
             ]);
             $noticeData = [];
             $audioPath = [
-                'create' => APPLICATION_URL . '/static/audio/create.ogg',
+                'create' => APPLICATION_URL . '/static/audio/create.mp3',
                 'updatePlace' => APPLICATION_URL . '/static/audio/entryCar.mp3',
                 'entryCar' => APPLICATION_URL . '/static/audio/entryCar.mp3'
             ];
