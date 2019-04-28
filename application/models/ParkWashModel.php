@@ -2269,7 +2269,6 @@ class ParkWashModel extends Crud {
         }
         $geohash = new Geohash();
         $hash = $geohash->encode($location[0], $location[1]);
-        unset($geohash);
         $len = strlen($hash);
         if (!$len) {
             return null;
