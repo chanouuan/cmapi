@@ -454,7 +454,7 @@ class XicheManage extends ActionPDO {
             $condition['place'] = ['like', $_GET['place'] . '%'];
         }
         if ($_GET['payway']) {
-            $condition['payway'] = $_GET['payway'] == 'vippay' ? 'vippay' : ['<>', 'vippay'];
+            $condition['payway'] = $_GET['payway'];
         }
         if ($_GET['status']) {
             if ($_GET['status'] == 13) {

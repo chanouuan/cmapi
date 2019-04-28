@@ -30,9 +30,11 @@
             </div>
             <div class="layui-input-inline">
                 <select name="payway">
-                    <option value="">是否会员</option>
-                    <option <?php if($_GET['payway']=='vippay'){ ?>selected<?php } ?> value="vippay">会员用户</option>
-                    <option <?php if($_GET['payway']=='novippay'){ ?>selected<?php } ?> value="novippay">普通用户</option>
+                    <option value="">支付方式</option>
+                    <option <?php if($_GET['payway']=='cbpay'){ ?>selected<?php } ?> value="cbpay">车币</option>
+                    <option <?php if($_GET['payway']=='wxpaywash'){ ?>selected<?php } ?> value="wxpaywash">微信</option>
+                    <option <?php if($_GET['payway']=='vippay'){ ?>selected<?php } ?> value="vippay">洗车VIP</option>
+                    <option <?php if($_GET['payway']=='firstpay'){ ?>selected<?php } ?> value="firstpay">首单免费</option>
                 </select>
             </div>
             <input value="<?=$_GET['start_time']?>" class="layui-input" id="start_time" name="start_time" placeholder="预约开始日期" readonly>

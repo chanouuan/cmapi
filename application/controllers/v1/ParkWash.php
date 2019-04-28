@@ -83,7 +83,7 @@ class ParkWash extends ActionPDO {
     }
 
     /**
-     * 获取用户信息 <span style="color:red">改</span>
+     * 获取用户信息
      * @login
      * @ratelimit
      * @return array
@@ -98,9 +98,9 @@ class ParkWash extends ActionPDO {
      *     "gender":1, //性别 0未知 1男 2女
      *     "money":0, //余额 (分)
      *     "ispw":0, //是否已设置密码
-     *     "vip_status"1, //vip状态 0不是vip 1未过期 -1已过期 <span style="color:red">新</span>
-     *     "vip_expire","", //vip截止时间 <span style="color:red">新</span>
-     *     "firstorder":0, //首单免费状态 0未启用或已使用过 1首单免费已激活(当次下单免费) <span style="color:red">新</span>
+     *     "vip_status"1, //vip状态 0不是vip 1未过期 -1已过期
+     *     "vip_expire","", //vip截止时间
+     *     "firstorder":0, //首单免费状态 0未启用或已使用过 1首单免费已激活(当次下单免费)
      * }}
      */
     public function getUserInfo () {
@@ -143,6 +143,7 @@ class ParkWash extends ActionPDO {
     /**
      * 发送短信验证码
      * @ratelimit
+     * @repeatlimit
      * @param *telephone 手机号
      * @return array
      * {
@@ -341,7 +342,7 @@ class ParkWash extends ActionPDO {
     }
 
     /**
-     * 获取我的车辆 <span style="color:red">改</span>
+     * 获取我的车辆
      * @login
      * @ratelimit
      * @return array
@@ -362,7 +363,7 @@ class ParkWash extends ActionPDO {
      *      series_id:1, //车系ID
      *      series_name:"北汽幻速", //车系名称
      *      isdefault:0, //是否默认选择,
-     *      isvip:1, //是否vip 1是 0不是vip或已过期 <span style="color:red">新</span>
+     *      isvip:1, //是否vip 1是 0不是vip或已过期
      * }]}
      */
     public function getCarport () {
@@ -467,6 +468,7 @@ class ParkWash extends ActionPDO {
      * 下单
      * @login
      * @ratelimit
+     * @repeatlimit
      * @param *store_id 门店ID
      * @param *carport_id 车辆ID
      * @param area_id 区域ID
@@ -483,12 +485,6 @@ class ParkWash extends ActionPDO {
      * }}
      */
     public function createCard () {
-        // 限制重复请求时间
-        if (defined('RATE_LIMIT_DIFF_TIME')) {
-            if (RATE_LIMIT_DIFF_TIME < 2000) {
-                return error('你已提交订单');
-            }
-        }
         return (new ParkWashModel())->createCard($this->_G['user']['uid'], $_POST);
     }
 
@@ -496,6 +492,7 @@ class ParkWash extends ActionPDO {
      * 查询支付是否成功
      * @login
      * @ratelimit
+     * @repeatlimit
      * @param *tradeid 交易单ID(createCard/recharge接口获取)
      * @return array
      * {
@@ -669,8 +666,9 @@ class ParkWash extends ActionPDO {
 
     /**
      * 修改订单车位
-     * @ratelimit
      * @login
+     * @ratelimit
+     * @repeatlimit
      * @description 订单状态为已支付才能修改订单车位
      * @param *orderid 订单ID
      * @param *place 车位号
@@ -689,6 +687,7 @@ class ParkWash extends ActionPDO {
     /**
      * 充值
      * @ratelimit
+     * @repeatlimit
      * @login
      * @param *money 充值金额(分)
      * @param *payway 支付方式(wxpaywash小程序支付)
@@ -730,7 +729,7 @@ class ParkWash extends ActionPDO {
     }
 
     /**
-     * 获取会员卡类型 <span style="color:red">New</span>
+     * 获取会员卡类型
      * @ratelimit
      * @return array
      * {
@@ -748,7 +747,7 @@ class ParkWash extends ActionPDO {
     }
 
     /**
-     * 获取我的会员卡 <span style="color:red">New</span>
+     * 获取我的会员卡
      * @ratelimit
      * @login
      * @return array
@@ -767,7 +766,7 @@ class ParkWash extends ActionPDO {
     }
 
     /**
-     * 删除会员卡 <span style="color:red">New</span>
+     * 删除会员卡
      * @ratelimit
      * @login
      * @param *id 会员卡ID
@@ -783,8 +782,9 @@ class ParkWash extends ActionPDO {
     }
 
     /**
-     * 会员卡开卡/续费 <span style="color:red">New</span>
+     * 会员卡开卡/续费
      * @ratelimit
+     * @repeatlimit
      * @login
      * @param *car_number 车牌号
      * @param *card_type_id 会员卡类型ID
