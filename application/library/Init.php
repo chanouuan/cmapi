@@ -121,7 +121,7 @@ class Controller {
                         $diffTime = intval($matches[1]);
                         $diffTime = $diffTime > 0 ? $diffTime : 2000;
                         if (RATE_LIMIT_DIFF_TIME < $diffTime) {
-                            json(null, StatusCodes::getMessage(StatusCodes::REQUEST_REPEAT), StatusCodes::REQUEST_REPEAT, StatusCodes::STATUS_404);
+                            json(null, StatusCodes::getMessage(StatusCodes::REQUEST_REPEAT), StatusCodes::REQUEST_REPEAT, StatusCodes::STATUS_OK);
                         }
                     }
                 }
