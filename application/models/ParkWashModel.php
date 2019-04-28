@@ -2404,6 +2404,7 @@ class ParkWashModel extends Crud {
         if (false !== strpos($timer, '1h')) {
             $this->taskCleanExpireTrade();
             $this->taskCleanRatelimit();
+            $this->taskCleanNotice();
         }
         // 每 300 秒执行
         if (false !== strpos($timer, '300s')) {
@@ -2519,6 +2520,7 @@ class ParkWashModel extends Crud {
         unset($queueList);
 
         $existsData = [];
+        $orderId = [];
         foreach ($orderData as $k => $v) {
             if (isset($entryParkData[$k])) {
                 $this->getDb()->update('parkwash_order', [
@@ -2527,6 +2529,7 @@ class ParkWashModel extends Crud {
                     'entry_order_sn' => $entryParkData[$k]['order_sn']
                 ], ['id' => ['in', $v]]);
                 $existsData = array_merge($existsData, array_keys($v));
+                $orderId = array_merge($orderId, $v);
             }
         }
         if ($existsData) {
@@ -2534,6 +2537,25 @@ class ParkWashModel extends Crud {
             $this->getDb()->delete('parkwash_order_queue', [
                 'id' => ['in', $existsData]
             ]);
+        }
+        if ($orderId) {
+            // 通知商家
+            $orderId = array_unique($orderId);
+            $list = $this->getDb()->table('parkwash_order')->field('store_id')->where(['id' => ['in', $orderId]])->group('store_id')->select();
+            $list = array_column($list, 'store_id', 'store_id');
+            $data = [];
+            foreach ($list as $k => $v) {
+                $data[] = [
+                    'receiver' => 2,
+                    'notice_type' => 2, // 播报器
+                    'store_id' => $v,
+                    'title' => '车辆入场',
+                    'content' => 'entryCar',
+                    'create_time' => date('Y-m-d H:i:s', TIMESTAMP)
+                ];
+            }
+            $this->getDb()->insert('parkwash_notice', $data);
+            unset($list, $data);
         }
 
         return true;
@@ -2572,6 +2594,14 @@ class ParkWashModel extends Crud {
 
         unset($orderList);
         return true;
+    }
+
+    /**
+     * 清理商家通知
+     */
+    protected function taskCleanNotice () {
+
+        return $this->getDb()->delete('parkwash_notice', ['receiver' => 2, 'notice_type' => 2, 'createtime' => ['<', date('Y-m-d', TIMESTAMP - 86400)]]);
     }
 
     /**

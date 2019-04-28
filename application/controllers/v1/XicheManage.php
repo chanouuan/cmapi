@@ -567,12 +567,15 @@ class XicheManage extends ActionPDO {
             $noticeData = [];
             $audioPath = [
                 'create' => APPLICATION_URL . '/static/audio/on.mp3',
-                'updatePlace' => APPLICATION_URL . '/static/audio/on.mp3'
+                'updatePlace' => APPLICATION_URL . '/static/audio/on.mp3',
+                'entryCar' => APPLICATION_URL . '/static/audio/on.mp3'
             ];
             foreach ($noticeList as $k => $v) {
-                $noticeData[$v['title']]['title'] = $v['title'];
-                $noticeData[$v['title']]['audio'] = $audioPath[$v['content']];
-                $noticeData[$v['title']]['num'] ++;
+                if (isset($audioPath[$v['content']])) {
+                    $noticeData[$v['title']]['title'] = $v['title'];
+                    $noticeData[$v['title']]['audio'] = $audioPath[$v['content']];
+                    $noticeData[$v['title']]['num'] ++;
+                }
             }
             unset($noticeList);
         }
