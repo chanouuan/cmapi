@@ -30,7 +30,7 @@ class User extends ActionPDO {
             return $result;
         }
         $result['result']['platform'] = $this->_G['header']['platform'];
-        $result['result']['timestamp'] = microtime_float();
+        $result['result']['timestamp'] = MICROTIME;
         $result['result']['sign'] = $this->setSign($result['result']);
         return $result;
     }
@@ -53,7 +53,7 @@ class User extends ActionPDO {
             return $result;
         }
         $result['result']['platform'] = $this->_G['header']['platform'];
-        $result['result']['timestamp'] = microtime_float();
+        $result['result']['timestamp'] = MICROTIME;
         $result['result']['sign'] = $this->setSign($result['result']);
         return $result;
     }
@@ -79,7 +79,7 @@ class User extends ActionPDO {
      */
     protected function setSign($data = []) {
         if (!isset($data['timestamp'])) {
-            $data['timestamp'] = microtime_float();
+            $data['timestamp'] = MICROTIME;
         }
 
         $kv = $this->getKv();

@@ -483,6 +483,12 @@ class ParkWash extends ActionPDO {
      * }}
      */
     public function createCard () {
+        // 限制重复请求时间
+        if (defined('RATE_LIMIT_DIFF_TIME')) {
+            if (RATE_LIMIT_DIFF_TIME < 2000) {
+                return error('你已提交订单');
+            }
+        }
         return (new ParkWashModel())->createCard($this->_G['user']['uid'], $_POST);
     }
 

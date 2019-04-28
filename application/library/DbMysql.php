@@ -18,7 +18,7 @@ class DbMysql extends Db {
 
     public function connect ($config)
     {
-        $time = microtime_float();
+        $time = microtime(true);
         try {
             $this->_db = new \PDO('mysql:dbname=' . $config['database'] . ';host=' . $config['server'] . ';port=' . $config['port'] . ';charset=utf8', $config['user'], $config['pwd'], [
                     \PDO::MYSQL_ATTR_INIT_COMMAND => 'SET NAMES utf8mb4'
@@ -32,7 +32,7 @@ class DbMysql extends Db {
         $this->_db->setAttribute(\PDO::ATTR_STRINGIFY_FETCHES, false); // 提取的时候不将数值转换为字符串
         $this->_db->setAttribute(\PDO::ATTR_EMULATE_PREPARES, false); // 禁用本地预处理语句的模拟
         $this->_config = $config;
-        DebugLog::_mysql(concat('[', round(microtime_float() - $time, 3), 's] Connect dsn: mysql:dbname=', $this->_config['database'], ';host=' . $this->_config['server'], ';port=' . $this->_config['port'], ' From ', __CLASS__));
+        DebugLog::_mysql(concat('[', round(microtime(true) - $time, 3), 's] Connect dsn: mysql:dbname=', $this->_config['database'], ';host=' . $this->_config['server'], ';port=' . $this->_config['port'], ' From ', __CLASS__));
     }
 
     public function close ()
@@ -387,7 +387,7 @@ class DbMysql extends Db {
         }
         $parameters = $this->getBindValue();
         $lastSql = $this->putLastSql($query . json_unicode_encode($parameters));
-        $time = microtime_float();
+        $time = microtime(true);
         try {
             $statement = $this->_db->prepare($query);
             if (!empty($parameters)) {
@@ -403,7 +403,7 @@ class DbMysql extends Db {
         } catch (\PDOException $e) {
             // 记录日志
             if ($reconnection === false) {
-                DebugLog::_mysql(null, concat('[', round(microtime_float() - $time, 3), 's] ', $lastSql), $this->error($e->errorInfo));
+                DebugLog::_mysql(null, concat('[', round(microtime(true) - $time, 3), 's] ', $lastSql), $this->error($e->errorInfo));
             }
             if ($reconnection === false && ($e->errorInfo[1] == 2006 || $e->errorInfo[1] == 2013)) {
                 $this->close();
@@ -420,7 +420,7 @@ class DbMysql extends Db {
         }
         // 记录日志
         if ($this->_debug === true && $reconnection === false) {
-            DebugLog::_mysql(null, concat('[', round(microtime_float() - $time, 3), 's] ', $lastSql));
+            DebugLog::_mysql(null, concat('[', round(microtime(true) - $time, 3), 's] ', $lastSql));
         }
         if (isset($invoke)) {
             return call_user_func_array($invoke, [$statement]);

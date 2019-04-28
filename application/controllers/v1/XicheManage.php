@@ -566,9 +566,9 @@ class XicheManage extends ActionPDO {
             ]);
             $noticeData = [];
             $audioPath = [
-                'create' => APPLICATION_URL . '/static/audio/on.mp3',
-                'updatePlace' => APPLICATION_URL . '/static/audio/on.mp3',
-                'entryCar' => APPLICATION_URL . '/static/audio/on.mp3'
+                'create' => APPLICATION_URL . '/static/audio/create.ogg',
+                'updatePlace' => APPLICATION_URL . '/static/audio/entryCar.mp3',
+                'entryCar' => APPLICATION_URL . '/static/audio/entryCar.mp3'
             ];
             foreach ($noticeList as $k => $v) {
                 if (isset($audioPath[$v['content']])) {
@@ -771,7 +771,7 @@ class XicheManage extends ActionPDO {
                 $list[$k]['telephone'] = isset($cmUserList[$v['uid']]) ? $cmUserList[$v['uid']]['member_name'] : '已删';
                 $list[$k]['money'] = isset($cmUserList[$v['uid']]) ? $cmUserList[$v['uid']]['available_predeposit'] : '已删';
                 $list[$k]['expire'] = isset($vipList[$v['uid']]) ? $vipList[$v['uid']] : '';
-                $list[$k]['isvip'] = isset($vipList[$v['uid']]) ? (strtotime($vipList[$v['uid']]) > TIMESTAMP ? '是' : '已过期') : '';
+                $list[$k]['isvip'] = isset($vipList[$v['uid']]) ? (strtotime($vipList[$v['uid']]) > TIMESTAMP ? '是' : '已过期') : '否';
             }
             unset($cmUserList, $cardList, $vipList);
         }

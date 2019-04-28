@@ -479,7 +479,7 @@ function str_conver ($str, $in_charset = 'GBK', $out_charset = 'UTF-8')
 
 function https_request ($url, $post = null, $headers = null, $timeout = 3, $encode = 'json', $reload = 1, $st = 0)
 {
-    $st = $st ? $st : microtime_float();
+    $st = $st ? $st : microtime(true);
     $curl = curl_init();
     curl_setopt($curl, CURLOPT_URL, $url);
     curl_setopt($curl, CURLOPT_TIMEOUT, $timeout);
@@ -504,13 +504,13 @@ function https_request ($url, $post = null, $headers = null, $timeout = 3, $enco
             '[Args] ' . json_unicode_encode(func_get_args()),
             '[Info] ' . json_unicode_encode(curl_getinfo($curl)),
             '[Fail] ' . $error,
-            '[Time] ' . round(microtime_float() - $st, 3) . 's'
+            '[Time] ' . round(microtime(true) - $st, 3) . 's'
         ], 'curlerror');
         curl_close($curl);
         throw new \Exception($error);
     }
     curl_close($curl);
-    \DebugLog::_curl($url, $headers, $post, round(microtime_float() - $st, 3), $reponse);
+    \DebugLog::_curl($url, $headers, $post, round(microtime(true) - $st, 3), $reponse);
     if ($encode == 'json') {
         if (!$reponse) {
             return [];
@@ -542,11 +542,6 @@ function getgpc ($k, $type = 'GP')
             break;
     }
     return isset($var[$k]) ? $var[$k] : NULL;
-}
-
-function microtime_float ()
-{
-    return array_sum(explode(' ', microtime()));
 }
 
 function safepost (&$data)
@@ -873,7 +868,7 @@ function check_car_license($license)
 function setSign(& $data = [])
 {
     if (!isset($data['time'])) {
-        $data['time'] = microtime_float();
+        $data['time'] = MICROTIME;
     }
     if (!isset($data['nonce_str'])) {
         $data['nonce_str'] = str_shuffle('abc0123456789');

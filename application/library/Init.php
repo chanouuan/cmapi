@@ -494,7 +494,6 @@ class ComposerAutoloader {
 
 class DebugLog {
 
-    private static $start_time = 0;
     private static $start_mem = 0;
 
     private static $info = [];
@@ -506,7 +505,6 @@ class DebugLog {
     private static $debug = true;
 
     public static function _init () {
-        self::$start_time = microtime_float();
         self::$start_mem = memory_get_usage();
     }
 
@@ -647,7 +645,7 @@ class DebugLog {
             array_splice($message, 0, 0, '[' . date('Y-m-d H:i:s', TIMESTAMP) . ']' );
         }
         if ($delay) {
-            $message[] = '[RunTime:' . round(microtime_float() - self::$start_time, 2) . 's]';
+            $message[] = '[RunTime:' . round(microtime(true) - MICROTIME, 2) . 's]';
         }
         if ($mem) {
             $message[] = '[Mem:' . round((memory_get_usage() - self::$start_mem) / 1024, 2) . 'k]';
@@ -1034,15 +1032,17 @@ class RateLimit
     protected static function mysql($key, $minNum, $hourNum, $dayNum)
     {
         $key = md5($key);
-        $limitVal = \app\library\DB::getInstance()->table('__tablepre__ratelimit')->field('min_num,hour_num,day_num,time,version')->where(['skey' => $key])->find();
+        $limitVal = \app\library\DB::getInstance()->table('__tablepre__ratelimit')->field('min_num,hour_num,day_num,time,microtime,version')->where(['skey' => $key])->find();
         $param = [
             'skey' => $key,
             'min_num' => 1,
             'hour_num' => 1,
             'day_num' => 1,
-            'time' => TIMESTAMP
+            'time' => TIMESTAMP,
+            'microtime' => intval((MICROTIME - intval(MICROTIME)) * 1000)
         ];
         if ($limitVal) {
+            define('RATE_LIMIT_DIFF_TIME', intval((MICROTIME - ($limitVal['time'] + $limitVal['microtime'] / 1000)) * 1000));
             $currentTime = date('YmdHi', TIMESTAMP);
             $lastTime = date('YmdHi', $limitVal['time']);
             if ($minNum > 0) {
@@ -1072,13 +1072,14 @@ class RateLimit
             $param['version'] = ['version+1'];
             unset($param['skey']);
             if (!\app\library\DB::getInstance()->update('__tablepre__ratelimit', $param, ['skey' => $key, 'version' => $limitVal['version']])) {
-                usleep(mt_rand(100000, 1000000)); // 100ms-1000ms
+                usleep(mt_rand(200000, 1200000)); // 200ms-1200ms
             }
         } else {
             if (!\app\library\DB::getInstance()->insert('__tablepre__ratelimit', $param)) {
-                usleep(mt_rand(100000, 1000000)); // 100ms-1000ms
+                usleep(mt_rand(200000, 1200000)); // 200ms-1200ms
             }
         }
+        unset($limitVal);
         return true;
     }
 }
