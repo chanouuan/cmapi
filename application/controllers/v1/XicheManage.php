@@ -739,6 +739,18 @@ class XicheManage extends ActionPDO {
         $userModel = new UserModel();
 
         $condition = [];
+        if ($_GET['status']) {
+            if ($_GET['status'] == 1) {
+                // 普通用户
+                $condition['vip_expire'] = null;
+            } else if ($_GET['status'] == 2) {
+                // 会员用户
+                $condition['vip_expire'] = ['>', date('Y-m-d H:i:s', TIMESTAMP)];
+            } else if ($_GET['status'] == 3) {
+                // 过期会员
+                $condition['vip_expire'] = ['<', date('Y-m-d H:i:s', TIMESTAMP)];
+            }
+        }
         if ($_GET['telephone']) {
             $userInfo = $userModel->getUserInfoCondition([
                 'member_name' => $_GET['telephone']
@@ -755,25 +767,12 @@ class XicheManage extends ActionPDO {
         if ($list) {
             $cmUserList = $userModel->getUserList(['member_id' => ['in', array_column($list, 'uid')]], 'member_id,member_name,available_predeposit');
             $cmUserList = array_column($cmUserList, null, 'member_id');
-            // vip状态
-            $cardList = $modle->getList('parkwash_card', ['uid' => ['in', array_column($list, 'uid')], 'status' => 1], null, null, 'uid,end_time');
-            $vipList = [];
-            foreach ($cardList as $k => $v) {
-                if (isset($vipList[$v['uid']])) {
-                    if (strtotime($vipList[$v['uid']]) < strtotime($v['end_time'])) {
-                        $vipList[$v['uid']] = $v['end_time'];
-                    }
-                } else {
-                    $vipList[$v['uid']] = $v['end_time'];
-                }
-            }
             foreach ($list as $k => $v) {
                 $list[$k]['telephone'] = isset($cmUserList[$v['uid']]) ? $cmUserList[$v['uid']]['member_name'] : '已删';
                 $list[$k]['money'] = isset($cmUserList[$v['uid']]) ? $cmUserList[$v['uid']]['available_predeposit'] : '已删';
-                $list[$k]['expire'] = isset($vipList[$v['uid']]) ? $vipList[$v['uid']] : '';
-                $list[$k]['isvip'] = isset($vipList[$v['uid']]) ? (strtotime($vipList[$v['uid']]) > TIMESTAMP ? '是' : '已过期') : '否';
+                $list[$k]['isvip'] = $v['vip_expire'] ? (strtotime($v['vip_expire']) > TIMESTAMP ? '是' : '已过期') : '否';
             }
-            unset($cmUserList, $cardList, $vipList);
+            unset($cmUserList);
         }
 
         return [

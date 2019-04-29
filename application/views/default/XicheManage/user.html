@@ -10,6 +10,14 @@
 <div class="x-body">
     <div class="layui-row">
         <form class="layui-form layui-col-md12 x-so" method="get">
+            <div class="layui-input-inline">
+                <select name="status">
+                    <option value="">用户状态</option>
+                    <option <?php if($_GET['status']==1){ ?>selected<?php } ?> value="1">普通用户</option>
+                    <option <?php if($_GET['status']==2){ ?>selected<?php } ?> value="2">会员用户</option>
+                    <option <?php if($_GET['status']==3){ ?>selected<?php } ?> value="3">过期会员</option>
+                </select>
+            </div>
             <input value="<?=$_GET['telephone']?>" maxlength="11" type="tel" name="telephone" placeholder="请输入手机号" autocomplete="off" class="layui-input">
             <input value="<?=$_GET['start_time']?>" class="layui-input" id="start_time" name="start_time" placeholder="注册开始日期" readonly>
             <input value="<?=$_GET['end_time']?>" class="layui-input" id="end_time" name="end_time" placeholder="注册截止日期" readonly>
@@ -41,7 +49,7 @@
             <td><?=$v['telephone']?></td>
             <td><?=$v['money']?></td>
             <td><?=$v['isvip']?></td>
-            <td><?=$v['expire']?></td>
+            <td><?=$v['vip_expire']?></td>
             <td><?=$v['parkwash_count']?></td>
             <td><?=$v['parkwash_consume']/100?></td>
             <td><?=$v['xiche_count']?></td>

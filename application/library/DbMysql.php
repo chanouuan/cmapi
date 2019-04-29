@@ -70,17 +70,17 @@ class DbMysql extends Db {
                     $v[1] = is_array($v[1]) ? $v[1] : explode(',', $v[1]);
                     $placeholder = [];
                     foreach ($v[1] as $kk => $vv) {
-                        $name = concat($prepare, $kk);
-                        $placeholder[] = concat(':', $name);
+                        $name = $prepare . $kk;
+                        $placeholder[] = ':' . $name;
                         $parameters[$name] = $vv;
                     }
-                    $vals[] = concat('(', implode(',', $placeholder), ')');
+                    $vals[] = '(' . implode(',', $placeholder) . ')';
                 } elseif ($v[0] == 'between' || $v[0] == 'BETWEEN') {
                     if (is_array($v[1])) {
                         $placeholder = [];
                         foreach ($v[1] as $kk => $vv) {
-                            $name = concat($prepare, $kk);
-                            $placeholder[] = concat(':', $name);
+                            $name = $prepare . $kk;
+                            $placeholder[] = ':' . $name;
                             $parameters[$name] = $vv;
                         }
                         $vals[] = implode(' AND ', $placeholder);
@@ -88,14 +88,20 @@ class DbMysql extends Db {
                         $vals[] = $v[1];
                     }
                 } else {
-                    $vals[] = concat(':', $prepare);
-                    $parameters[$prepare] = $v[1];
+                    if (isset($v[1])) {
+                        $vals[] = ':' . $prepare;
+                        $parameters[$prepare] = $v[1];
+                    }
                 }
+            } else if (is_null($v)) {
+                $vals[] = 'AND';
+                $vals[] = $k;
+                $vals[] = 'IS NULL';
             } else {
                 $vals[] = 'AND';
                 $vals[] = $k;
                 $vals[] = '=';
-                $vals[] = concat(':', $prepare);
+                $vals[] = ':' . $prepare;
                 $parameters[$prepare] = $v;
             }
         }

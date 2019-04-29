@@ -553,22 +553,20 @@ class ParkWashModel extends Crud {
         if ($userInfo['errorcode'] !== 0) {
             return $userInfo;
         }
+        $userCount = $this->getDb()->table('parkwash_usercount')->field('parkwash_firstorder,vip_expire')->where(['uid' => $uid])->limit(1)->find();
         $userInfo['result']['vip_status'] = 0; // vip状态 0不是vip 1未过期 -1已过期
         // 获取vip信息
-        $vipInfo = $this->getDb()->table('parkwash_carport')->field('max(vip_expire) as vip_expire')->where(['uid' => $uid])->limit(1)->find();
-        if ($vipInfo && $vipInfo['vip_expire']) {
-            $userInfo['result']['vip_expire'] = $vipInfo['vip_expire'];
-            $userInfo['result']['vip_status'] = strtotime($vipInfo['vip_expire']) > TIMESTAMP ? 1 : -1;
+        if ($userCount['vip_expire']) {
+            $userInfo['result']['vip_expire'] = $userCount['vip_expire'];
+            $userInfo['result']['vip_status'] = strtotime($userCount['vip_expire']) > TIMESTAMP ? 1 : -1;
         }
         // 获取首单免费权限
         $userInfo['result']['firstorder'] = 0; // 首单免费状态 0未启用或已使用过 1首单免费
         $firstFreeConfig = getConfig('xc', 'wash_order_first_free');
         if ($firstFreeConfig) {
-            $userCount = $this->getDb()->table('parkwash_usercount')->field('parkwash_firstorder')->where(['uid' => $uid])->limit(1)->find();
-            if ($userCount) {
-                $userInfo['result']['firstorder'] = $userCount['parkwash_firstorder'] ? 1 : 0;
-            }
+            $userInfo['result']['firstorder'] = $userCount['parkwash_firstorder'] ? 1 : 0;
         }
+        unset($userCount);
         return $userInfo;
     }
 
@@ -2028,6 +2026,11 @@ class ParkWashModel extends Crud {
                 'vip_expire' => date('Y-m-d H:i:s', $vipEndTime),
                 'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
             ], ['id' => $carportInfo['id'], 'update_time' => $carportInfo['update_time']])) {
+                return false;
+            }
+            if (false === $db->update('parkwash_usercount', [
+                'vip_expire' => date('Y-m-d H:i:s', $vipEndTime)
+            ], ['uid' => $tradeInfo['trade_id']])) {
                 return false;
             }
             return true;
