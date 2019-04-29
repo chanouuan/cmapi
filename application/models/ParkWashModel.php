@@ -2600,7 +2600,7 @@ class ParkWashModel extends Crud {
      */
     protected function taskCleanNotice () {
 
-        return $this->getDb()->delete('parkwash_notice', ['receiver' => 2, 'notice_type' => 2, 'createtime' => ['<', date('Y-m-d', TIMESTAMP - 86400)]]);
+        return $this->getDb()->delete('parkwash_notice', ['receiver' => 2, 'notice_type' => 2, 'create_time' => ['<', date('Y-m-d', TIMESTAMP - 86400)]]);
     }
 
     /**
