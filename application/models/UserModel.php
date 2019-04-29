@@ -465,7 +465,7 @@ class UserModel extends Crud {
         $data = [];
         $data['consume_ordersn'] = date('YmdHis').(rand()%10).(rand()%10).(rand()%10).(rand()%10).(rand()%10);
         $data['business_ordersn'] = date('YmdHis').(rand()%10).(rand()%10).(rand()%10).(rand()%10).(rand()%10);
-        $data['business_type'] = 100 + $post['platform']; // 新定义支付场景，商城消费
+        $data['business_type'] = 200 + $post['platform']; // 新定义支付场景，商城消费
         $data['discount_id'] = 0;
         $data['member_id'] = $userInfo['uid'];
         $data['pay_type'] = 1; // 支付方式，车币支付
@@ -585,7 +585,7 @@ class UserModel extends Crud {
             $data['pdr_member_id'] = $userInfo['uid'];
             $data['pdr_member_name'] = $userInfo['telephone'];
             $data['pdr_amount'] = $post['money'] / 100;
-            $data['pdr_payment_code'] = 100 + $post['platform']; // 新定义111为商城充值
+            $data['pdr_payment_code'] = 200 + $post['platform']; // 新定义111为商城充值
             $data['pdr_payment_state'] = '1'; // 充值成功
             $data['pdr_add_time'] = TIMESTAMP;
             $data['pdr_admin'] = $post['remark'];
@@ -606,7 +606,7 @@ class UserModel extends Crud {
                 $param['pay_ordersn'] = date('YmdHis').(rand()%10).(rand()%10).(rand()%10).(rand()%10).(rand()%10);
                 $param['business_ordersn'] = $data['pdr_sn'];
                 $param['pay_level'] = 9; // 充值
-                $param['pay_type'] = 100 + $post['platform']; // 商城充值
+                $param['pay_type'] = 200 + $post['platform']; // 商城充值
                 $param['pay_amount'] = $data['pdr_amount'];
                 $param['pay_state'] = 2; // 1：申请中，2：成功，3：失败
                 $param['member_id'] = $userInfo['uid'];
