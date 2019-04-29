@@ -42,6 +42,7 @@ class Index extends \ActionPDO {
 
     public function __init ()
     {
+        \DebugLog::_debug(false);
         header('Access-Control-Allow-Origin: *'); // 允许任意域名发起的跨域请求
         header('Access-Control-Allow-Headers: X-Requested-With,X_Requested_With');
         if (!isset($_SERVER['PHP_AUTH_USER']) ||
