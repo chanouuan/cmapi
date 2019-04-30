@@ -608,11 +608,21 @@ class ParkWashModel extends Crud {
      */
     public function deleteMemberCard ($uid, $post) {
 
+        $post['id'] = intval($post['id']);
+        if (!$info = $this->getDb()->table('parkwash_card')->field('car_number')->where(['uid' => $uid, 'id' => $post['id']])->find()) {
+            return error('该会员卡不存在');
+        }
         if (!$this->getDb()->delete('parkwash_card', [
-            'uid' => $uid, 'id' => intval($post['id']), 'end_time' => ['<', date('Y-m-d H:i:s', TIMESTAMP)]
+            'uid' => $uid, 'id' => $post['id'], 'end_time' => ['<', date('Y-m-d H:i:s', TIMESTAMP)]
         ])) {
             return error('未过期的vip卡不能删除');
         }
+        $this->getDb()->update('parkwash_carport', [
+            'vip_expire' => null
+        ], ['uid' => $uid, 'car_number' => $info['car_number']]);
+        $this->getDb()->update('parkwash_usercount', [
+            'vip_expire' => null
+        ], ['uid' => $uid]);
         return success('OK');
     }
 
@@ -1963,7 +1973,7 @@ class ParkWashModel extends Crud {
 
         // 微信模板消息通知用户
         $this->sendTemplateMessage($orderInfo['uid'], 'create_order', $tradeInfo['form_id'], '/pages/orderprofile/orderprofile?order_id=' . $orderInfo['id'], [
-            '￥' . round_dollar($tradeInfo['money'], false), $storeInfo['name'], $tradeInfo['uses'], $orderInfo['create_time'], '温馨提醒，您已成功预约' . $storeInfo['name'] . '的洗车服务，请您提前10分钟进入停车场并完善您的车位信息，感谢您的支持'
+            '￥' . round_dollar($tradeInfo['pay'], false), $storeInfo['name'], $tradeInfo['uses'], $orderInfo['create_time'], '温馨提醒，您已成功预约' . $storeInfo['name'] . '的洗车服务，请您提前10分钟进入停车场并完善您的车位信息，感谢您的支持'
         ]);
 
         return success('OK');
