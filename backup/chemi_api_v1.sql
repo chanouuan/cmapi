@@ -11,7 +11,7 @@
  Target Server Version : 50616
  File Encoding         : 65001
 
- Date: 29/04/2019 11:03:54
+ Date: 30/04/2019 18:13:17
 */
 
 SET NAMES utf8mb4;
@@ -2417,14 +2417,15 @@ CREATE TABLE `parkwash_card_type`  (
   `sort` mediumint(9) NULL DEFAULT 0 COMMENT '排序 由大到小',
   `status` tinyint(1) NULL DEFAULT NULL COMMENT '状态 1启用 0禁用',
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = MyISAM AUTO_INCREMENT = 10 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '卡包类型' ROW_FORMAT = Dynamic;
+) ENGINE = MyISAM AUTO_INCREMENT = 11 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '卡包类型' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of parkwash_card_type
 -- ----------------------------
-INSERT INTO `parkwash_card_type` VALUES (1, '月卡', 1, 0, 30, '2019-04-26 15:39:57', '2019-04-18 17:18:15', 0, 1);
-INSERT INTO `parkwash_card_type` VALUES (2, '季卡', 3, 0, 90, '2019-04-26 15:30:14', '2019-04-18 17:18:15', 0, 1);
-INSERT INTO `parkwash_card_type` VALUES (3, '年卡', 12, 0, 365, '2019-04-26 15:30:57', '2019-04-18 17:18:15', 0, 1);
+INSERT INTO `parkwash_card_type` VALUES (1, '月卡', 1, 0, 30, '2019-04-30 14:05:50', '2019-04-18 17:18:15', 0, 1);
+INSERT INTO `parkwash_card_type` VALUES (2, '季卡', 3, 0, 90, '2019-04-30 13:57:54', '2019-04-18 17:18:15', 0, 0);
+INSERT INTO `parkwash_card_type` VALUES (3, '年卡', 12, 0, 365, '2019-04-30 13:57:59', '2019-04-18 17:18:15', 0, 0);
+INSERT INTO `parkwash_card_type` VALUES (10, '45天vip', 9900, 0, 45, '2019-04-29 14:10:21', '2019-04-29 11:36:46', 1, 0);
 
 -- ----------------------------
 -- Table structure for parkwash_carport
@@ -2572,7 +2573,13 @@ CREATE TABLE `parkwash_park_area`  (
   `status` tinyint(1) NULL DEFAULT 1 COMMENT '状态 1正常 0失效',
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `park_id`(`park_id`) USING BTREE
-) ENGINE = MyISAM AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '停车场区域' ROW_FORMAT = Dynamic;
+) ENGINE = MyISAM AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '停车场区域' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of parkwash_park_area
+-- ----------------------------
+INSERT INTO `parkwash_park_area` VALUES (1, 1, '负1层', 'A区', 1);
+INSERT INTO `parkwash_park_area` VALUES (2, 1, '负1层', 'B区', 1);
 
 -- ----------------------------
 -- Table structure for parkwash_parking
@@ -2586,7 +2593,12 @@ CREATE TABLE `parkwash_parking`  (
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `index`(`area_id`, `place`) USING BTREE,
   INDEX `area_id`(`area_id`) USING BTREE
-) ENGINE = MyISAM AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '车位状态' ROW_FORMAT = Fixed;
+) ENGINE = MyISAM AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '车位状态' ROW_FORMAT = Fixed;
+
+-- ----------------------------
+-- Records of parkwash_parking
+-- ----------------------------
+INSERT INTO `parkwash_parking` VALUES (1, 2, '115', 0);
 
 -- ----------------------------
 -- Table structure for parkwash_pool
@@ -2635,7 +2647,13 @@ CREATE TABLE `parkwash_store`  (
   `update_time` datetime(0) NULL DEFAULT NULL COMMENT '更新时间',
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `adcode`(`adcode`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '洗车门店' ROW_FORMAT = Compact;
+) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '洗车门店' ROW_FORMAT = Compact;
+
+-- ----------------------------
+-- Records of parkwash_store
+-- ----------------------------
+INSERT INTO `parkwash_store` VALUES (1, 520100, '车秘未来洗车-腾达广场店', NULL, '中山西路', '15985107027', '106.707092,26.577723', 'wkezhnmdrqwt', 5, 0, '9:00-22:00', '51免费洗车', 1, 0, 1, 10, 8, 5, 10, 1, 12345, 4, '2019-04-29 11:31:35', '2019-04-30 09:48:15');
+INSERT INTO `parkwash_store` VALUES (2, 520100, '洗车五福店', '', '贵阳市摩根中心', '15023767336', '106.622640,26.644340', 'wkezd62nx8fx', 5, 0, '9:00-23:00', '54', 1000, 0, 1, 2, 1, 1, 20, 2, 12345, 0, '2019-04-30 13:34:52', '2019-04-30 13:34:52');
 
 -- ----------------------------
 -- Table structure for parkwash_store_item
@@ -2649,7 +2667,13 @@ CREATE TABLE `parkwash_store_item`  (
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `index`(`store_id`, `item_id`) USING BTREE,
   INDEX `store_id`(`store_id`) USING BTREE
-) ENGINE = MyISAM AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Fixed;
+) ENGINE = MyISAM AUTO_INCREMENT = 6 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Fixed;
+
+-- ----------------------------
+-- Records of parkwash_store_item
+-- ----------------------------
+INSERT INTO `parkwash_store_item` VALUES (4, 1, 1, 1);
+INSERT INTO `parkwash_store_item` VALUES (5, 2, 1, 1000);
 
 -- ----------------------------
 -- Table structure for parkwash_trades
@@ -2709,9 +2733,9 @@ INSERT INTO `pro_config` VALUES (2, 'xc', 'apikey', 'text', '64BCD13B69924837B6D
 INSERT INTO `pro_config` VALUES (3, 'xc', 'schedule_days', 'number', '3', 3, 30, '排班天数');
 INSERT INTO `pro_config` VALUES (4, 'xc', 'wash_order_expire', 'number', '300', 300, 3600, '停车场洗车未支付订单超时时间 (秒)');
 INSERT INTO `pro_config` VALUES (6, 'xc', 'carport_count', 'number', '5', 1, 10, '每个用户最多添加车辆的数量');
-INSERT INTO `pro_config` VALUES (7, 'xc', 'user_day_order_limit', 'number', '0', 0, 10, '每个用户每天下单数量限制 (0为不限制)');
+INSERT INTO `pro_config` VALUES (7, 'xc', 'user_day_order_limit', 'number', '7', 0, 10, '每个用户每天下单数量限制 (0为不限制)');
 INSERT INTO `pro_config` VALUES (8, 'xc', 'wash_order_first_free', 'bool', '1', NULL, NULL, '是否开启停车场洗车首单免费活动');
-INSERT INTO `pro_config` VALUES (9, 'xc', 'cancel_order_mintime', 'number', '300', 0, 86400, '距预约时间多久将不能取消订单 (秒)');
+INSERT INTO `pro_config` VALUES (9, 'xc', 'cancel_order_mintime', 'number', '60', 0, 86400, '距预约时间多久将不能取消订单 (秒)  (0为不限制)');
 INSERT INTO `pro_config` VALUES (10, 'xc', 'vip_order_limit', 'number', '10', 1, 100, 'vip会员单天内下单数量限制');
 
 -- ----------------------------
@@ -2741,18 +2765,7 @@ CREATE TABLE `pro_loginbinding`  (
   UNIQUE INDEX `index`(`platform`, `authcode`) USING BTREE,
   INDEX `uid`(`uid`) USING BTREE,
   INDEX `authcode`(`authcode`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 8 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '第三方平台绑定' ROW_FORMAT = Compact;
-
--- ----------------------------
--- Records of pro_loginbinding
--- ----------------------------
-INSERT INTO `pro_loginbinding` VALUES (1, 3, 61423, 'xc', '61423', '', '18926475276', '2019-04-25 11:22:24');
-INSERT INTO `pro_loginbinding` VALUES (2, 3, 61427, 'xc', '61427', '', '15023767336', '2019-04-25 11:22:24');
-INSERT INTO `pro_loginbinding` VALUES (3, 3, 61433, 'xc', '61433', '', '17621094331', '2019-04-25 11:25:57');
-INSERT INTO `pro_loginbinding` VALUES (4, 3, 58274, 'xc', '58274', '', '15985107027', '2019-04-28 09:28:43');
-INSERT INTO `pro_loginbinding` VALUES (5, 3, 61430, 'xc', '61430', '', '13511989494', '2019-04-28 10:21:21');
-INSERT INTO `pro_loginbinding` VALUES (6, 3, 61428, 'xc', '61428', '', '18300873822', '2019-04-28 10:53:33');
-INSERT INTO `pro_loginbinding` VALUES (7, 3, 60351, 'xc', '60351', '', '18798799483', '2019-04-28 17:51:48');
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '第三方平台绑定' ROW_FORMAT = Compact;
 
 -- ----------------------------
 -- Table structure for pro_payments
@@ -2825,52 +2838,6 @@ CREATE TABLE `pro_ratelimit`  (
 ) ENGINE = MEMORY CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '访问限流控制' ROW_FORMAT = Fixed STORAGE MEMORY;
 
 -- ----------------------------
--- Records of pro_ratelimit
--- ----------------------------
-INSERT INTO `pro_ratelimit` VALUES ('366476c3e19ca43262bba15787fa4cfe', 2, 5, 5, 1556503182, 185, 4);
-INSERT INTO `pro_ratelimit` VALUES ('7db0dd38397803133fecc8cb9138b353', 1, 1, 1, 1556501816, 261, 0);
-INSERT INTO `pro_ratelimit` VALUES ('0bbcb24cd61a176d7338aeb18fb66442', 3, 5, 5, 1556501834, 344, 4);
-INSERT INTO `pro_ratelimit` VALUES ('44ba489343165e986ce623ba11b1d633', 2, 2, 4, 1556503955, 81, 3);
-INSERT INTO `pro_ratelimit` VALUES ('9f6ef17cf36c4b0d362d453dd782d38b', 2, 2, 3, 1556503955, 65, 2);
-INSERT INTO `pro_ratelimit` VALUES ('38ca00cdbfb65278a8055ff659386cc7', 1, 1, 10, 1556506407, 678, 9);
-INSERT INTO `pro_ratelimit` VALUES ('809c9f0a6e99ad65f2c1d58454a476c3', 1, 3, 3, 1556501929, 936, 2);
-INSERT INTO `pro_ratelimit` VALUES ('479d65b34b3dc293db3830713a10d8d1', 2, 2, 2, 1556500460, 688, 1);
-INSERT INTO `pro_ratelimit` VALUES ('bf31d019ce164937bcc0ffef0940b569', 1, 1, 11, 1556506398, 467, 10);
-INSERT INTO `pro_ratelimit` VALUES ('eab3550049f9fae41407cf4fb1274856', 1, 1, 7, 1556506396, 120, 6);
-INSERT INTO `pro_ratelimit` VALUES ('bdc2f2609544470432346e3f7f81ca5e', 1, 6, 6, 1556501898, 835, 5);
-INSERT INTO `pro_ratelimit` VALUES ('bebfa2039a13247e15f985885e9872b5', 1, 1, 10, 1556506415, 315, 9);
-INSERT INTO `pro_ratelimit` VALUES ('26fc6a65e41f8dabe57cd4f0e02ed7e8', 1, 3, 3, 1556501897, 145, 2);
-INSERT INTO `pro_ratelimit` VALUES ('ad62591b89e890235f289f3feb7054be', 1, 5, 5, 1556501880, 50, 4);
-INSERT INTO `pro_ratelimit` VALUES ('b3a7db304b55592aeb61a8077b2a4caa', 1, 11, 11, 1556501898, 824, 10);
-INSERT INTO `pro_ratelimit` VALUES ('f1999d5a8f30b0fbdbaa6867ae6ad540', 1, 5, 5, 1556501880, 58, 4);
-INSERT INTO `pro_ratelimit` VALUES ('64b0117250d1d2afca8736c881dd9ee0', 1, 1, 16, 1556506933, 374, 15);
-INSERT INTO `pro_ratelimit` VALUES ('baea011e16a9dc3b837cec34198b5a0f', 1, 4, 4, 1556501463, 32, 3);
-INSERT INTO `pro_ratelimit` VALUES ('353045a358b57e49355f0389ce9bfd18', 1, 5, 5, 1556501462, 585, 4);
-INSERT INTO `pro_ratelimit` VALUES ('6c03620233ff9e410580fbca43f55a96', 1, 1, 12, 1556503955, 162, 11);
-INSERT INTO `pro_ratelimit` VALUES ('e622bb84e18e4df3624b92ed99d1fd6e', 3, 7, 7, 1556501257, 784, 6);
-INSERT INTO `pro_ratelimit` VALUES ('d2e81b81b229361487acbea5d2a8ad50', 1, 1, 8, 1556506394, 489, 7);
-INSERT INTO `pro_ratelimit` VALUES ('1252f349a2dfce2c3146679f41e759b5', 1, 2, 2, 1556502482, 69, 1);
-INSERT INTO `pro_ratelimit` VALUES ('700416460b931abe14ae68ebc1f32697', 1, 15, 15, 1556502986, 824, 14);
-INSERT INTO `pro_ratelimit` VALUES ('bb4b3ef914a4b9c141bc206bf2614aa2', 2, 3, 33, 1556506933, 902, 32);
-INSERT INTO `pro_ratelimit` VALUES ('94249ada222419bf967e349ffa8ea809', 2, 2, 26, 1556506406, 105, 25);
-INSERT INTO `pro_ratelimit` VALUES ('7445a1d1bc78691488f5747aa27f149d', 2, 7, 210, 1556506935, 312, 209);
-INSERT INTO `pro_ratelimit` VALUES ('a7f497097411988fdc66f4da82f028b8', 3, 3, 124, 1556506827, 867, 123);
-INSERT INTO `pro_ratelimit` VALUES ('bcafb064ed19c2983272cfc9dc1ad996', 3, 3, 127, 1556506827, 940, 126);
-INSERT INTO `pro_ratelimit` VALUES ('0c2a9fa4e3f349412dffceb8526fac79', 1, 1, 15, 1556506918, 871, 14);
-INSERT INTO `pro_ratelimit` VALUES ('6de8c8b94a6472eda2f42c7a9d60d6f5', 1, 2, 17, 1556506921, 749, 16);
-INSERT INTO `pro_ratelimit` VALUES ('e25427d6a1bff3bc64eac227fa6681f6', 2, 5, 165, 1556506922, 543, 164);
-INSERT INTO `pro_ratelimit` VALUES ('a230fd590a6e176a43017ae877f84f02', 1, 1, 1, 1556493997, 23, 0);
-INSERT INTO `pro_ratelimit` VALUES ('98e305192e4e2dbec7c8efcb177d0a89', 1, 1, 1, 1556493996, 992, 0);
-INSERT INTO `pro_ratelimit` VALUES ('c558f8f6219cd5b1cfbb2435a0d34a95', 1, 1, 1, 1556493996, 985, 0);
-INSERT INTO `pro_ratelimit` VALUES ('3d05975128e7f6b4351833ee4d554662', 1, 1, 1, 1556493996, 965, 0);
-INSERT INTO `pro_ratelimit` VALUES ('d8511270070e150c101de19593cc59c8', 2, 2, 2, 1556493997, 15, 1);
-INSERT INTO `pro_ratelimit` VALUES ('a905b67216a77b12e2c63a15189f6421', 3, 3, 3, 1556494003, 147, 2);
-INSERT INTO `pro_ratelimit` VALUES ('e54e5e1b58d859fdeadb87bd1e1693a2', 3, 3, 3, 1556494003, 207, 2);
-INSERT INTO `pro_ratelimit` VALUES ('ffc3b6b6e18b6b7a3c65a63492c40ce3', 1, 1, 1, 1556493947, 606, 0);
-INSERT INTO `pro_ratelimit` VALUES ('83b054d26be9f5554ed35bbf872119b6', 1, 1, 1, 1556493946, 572, 0);
-INSERT INTO `pro_ratelimit` VALUES ('d75aebd18d7bd0b7155d892a18e5253f', 2, 4, 4, 1556494003, 209, 3);
-
--- ----------------------------
 -- Table structure for pro_session
 -- ----------------------------
 DROP TABLE IF EXISTS `pro_session`;
@@ -2888,23 +2855,7 @@ CREATE TABLE `pro_session`  (
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `u`(`userid`, `clienttype`) USING BTREE,
   INDEX `u1`(`userid`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 178 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Compact;
-
--- ----------------------------
--- Records of pro_session
--- ----------------------------
-INSERT INTO `pro_session` VALUES (1, 61427, '5cc666dd81846', 'pc', NULL, NULL, NULL, 1, '1.204.114.159', '2019-04-29 10:52:13');
-INSERT INTO `pro_session` VALUES (2, 61423, '5cc576ef7af0a', 'mp', NULL, NULL, NULL, 1, '1.204.114.159', '2019-04-28 17:48:31');
-INSERT INTO `pro_session` VALUES (3, 61427, '5cc6692a11f07', 'mp', NULL, NULL, NULL, 1, '106.109.13.130', '2019-04-29 11:02:01');
-INSERT INTO `pro_session` VALUES (4, 61433, '5cc653d6c94e4', 'mp', NULL, NULL, NULL, 1, '1.204.114.159', '2019-04-29 09:31:02');
-INSERT INTO `pro_session` VALUES (62, 48225, '5cc65d042a480', 'pc', NULL, NULL, NULL, 1, '192.168.1.164', '2019-04-29 10:10:11');
-INSERT INTO `pro_session` VALUES (105, 48225, '5cc54a6f3c936', 'wx', NULL, NULL, NULL, 1, '223.104.96.121', '2019-04-28 14:38:39');
-INSERT INTO `pro_session` VALUES (109, 61427, '5cc4fc4f92705', 'mobile', NULL, NULL, NULL, 1, '106.109.0.132', '2019-04-28 09:05:19');
-INSERT INTO `pro_session` VALUES (113, 58274, '5cc549b36c15d', 'mp', NULL, NULL, NULL, 1, '223.104.95.191', '2019-04-28 14:35:31');
-INSERT INTO `pro_session` VALUES (128, 61430, '5cc54b8b25a51', 'mp', NULL, NULL, NULL, 1, '223.104.95.187', '2019-04-28 14:43:22');
-INSERT INTO `pro_session` VALUES (133, 61428, '5cc515ae1763b', 'mp', NULL, NULL, NULL, 1, '1.204.114.159', '2019-04-28 10:53:33');
-INSERT INTO `pro_session` VALUES (144, 61427, '5cc545e812ea2', 'wx', NULL, NULL, NULL, 1, '106.108.64.97', '2019-04-28 14:19:20');
-INSERT INTO `pro_session` VALUES (147, 60351, '5cc577b484558', 'mp', NULL, NULL, NULL, 1, '221.13.1.26', '2019-04-28 17:51:48');
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Compact;
 
 -- ----------------------------
 -- Table structure for pro_smscode
@@ -2920,12 +2871,7 @@ CREATE TABLE `pro_smscode`  (
   `day_fc` tinyint(2) UNSIGNED NULL DEFAULT 0 COMMENT '天级限制',
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE INDEX `tel`(`tel`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8 COLLATE = utf8_general_ci COMMENT = '短信验证码' ROW_FORMAT = Compact;
-
--- ----------------------------
--- Records of pro_smscode
--- ----------------------------
-INSERT INTO `pro_smscode` VALUES (1, '15023767336', '295655', 1556432347, 1, 1, 1);
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8 COLLATE = utf8_general_ci COMMENT = '短信验证码' ROW_FORMAT = Compact;
 
 -- ----------------------------
 -- Table structure for pro_trades
@@ -2980,7 +2926,7 @@ INSERT INTO `pro_xiche_device` VALUES (2, 520100, '106.622178,26.674343', 'wkezd
 INSERT INTO `pro_xiche_device` VALUES (3, 520100, '106.618780,26.641560', 'wkezd1vqmdsx', 'C区', '贵阳市观山湖', 0, 0, 'F52700A408497E', 1, 0, 0, '20160401114150', '贵阳', 100, '{\"AreaID\":20160401114150,\"AreaName\":\"贵阳\",\"Price\":1,\"Channel1\":1800,\"Channel2\":1800,\"Channel3\":1800,\"Channel4\":1800,\"Channel5\":1800,\"MaxPauseTime\":10,\"WashTotal\":30,\"NotPauseTime\":2,\"FromTime\":\"18:30\",\"ToTime\":\"00:57\",\"VXPrice\":10}', '2019-01-16 16:14:53', '2019-04-18 16:24:00', 0);
 INSERT INTO `pro_xiche_device` VALUES (4, 520100, '106.796978,26.605943', 'wkezq5rnvgq8', 'B区', ' 贵阳市', 0, 0, 'F527007504ADD3', 0, 0, 17, '20160401114150', '深圳4', 100, '{\"AreaID\":20160401114150,\"AreaName\":\"贵阳\",\"Price\":1,\"Channel1\":1800,\"Channel2\":1800,\"Channel3\":1800,\"Channel4\":1800,\"Channel5\":1800,\"MaxPauseTime\":10,\"WashTotal\":30,\"NotPauseTime\":2,\"FromTime\":\"18:30\",\"ToTime\":\"00:57\",\"VXPrice\":10}', '2019-01-16 16:15:55', '2019-04-16 09:29:10', 0);
 INSERT INTO `pro_xiche_device` VALUES (5, 520100, '106.546278,26.659643', 'wkez8t0xsjxj', 'C区', '123', 0, 0, 'F52700B1058AA7', 0, 0, 0, '20160401114150', '贵阳', 100, '{\"AreaID\":20160401114150,\"AreaName\":\"贵阳\",\"Price\":1,\"Channel1\":1800,\"Channel2\":1800,\"Channel3\":1800,\"Channel4\":1800,\"Channel5\":1800,\"MaxPauseTime\":10,\"WashTotal\":30,\"NotPauseTime\":2,\"FromTime\":\"18:30\",\"ToTime\":\"00:57\",\"VXPrice\":10}', '2019-01-18 10:56:10', '2019-04-16 09:29:13', 0);
-INSERT INTO `pro_xiche_device` VALUES (6, 520100, '106.649778,26.663843', 'wkezdy5bpuw6', 'C区', 'bbb', 2, 200, 'F52700B1058AAA', 1, 0, 239, '20160401114149', '深圳123', 100, '{\"AreaID\":20160401114149,\"AreaName\":\"深圳\",\"Price\":1,\"Channel1\":1800,\"Channel2\":500,\"Channel3\":720,\"Channel4\":600,\"Channel5\":800,\"MaxPauseTime\":10,\"WashTotal\":30,\"NotPauseTime\":2,\"FromTime\":\"17:50\",\"ToTime\":\"22:30\",\"VXPrice\":10}', '2019-04-14 16:04:27', '2019-04-24 16:19:11', 0);
+INSERT INTO `pro_xiche_device` VALUES (6, 520100, '106.649778,26.663843', 'wkezdy5bpuw6', 'C区', 'bbb', 2, 200, 'F52700B1058AAA', 0, 0, 239, '20160401114149', '深圳123', 100, '{\"AreaID\":20160401114149,\"AreaName\":\"深圳\",\"Price\":1,\"Channel1\":1800,\"Channel2\":1800,\"Channel3\":1800,\"Channel4\":1800,\"Channel5\":1800,\"MaxPauseTime\":10,\"WashTotal\":30,\"NotPauseTime\":2,\"FromTime\":\"17:50\",\"ToTime\":\"22:30\",\"VXPrice\":10}', '2019-04-14 16:04:27', '2019-04-29 11:44:24', 0);
 
 -- ----------------------------
 -- Table structure for pro_xiche_log
@@ -2999,14 +2945,7 @@ CREATE TABLE `pro_xiche_log`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `devcode`(`devcode`) USING BTREE,
   INDEX `orderno`(`orderno`) USING BTREE
-) ENGINE = MyISAM AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
-
--- ----------------------------
--- Records of pro_xiche_log
--- ----------------------------
-INSERT INTO `pro_xiche_log` VALUES (1, 'COrder', '用户支付1元,保存订单到洗车机异常', 61427, '201904281419277768672972657', 'F52700B503D9BB', '{\"trade\":{\"id\":71,\"trade_id\":61427,\"param_id\":1,\"param_a\":null,\"pay\":100,\"money\":100,\"ordercode\":\"201904281419277768672972657\",\"payway\":\"cbpay\"},\"result\":{\"errorcode\":-1,\"errNo\":-1,\"message\":\"\",\"result\":{\"url\":\"http:\\/\\/xicheba.net\\/chemi\\/API\\/Handler\\/COrder\",\"post\":{\"apiKey\":\"64BCD13B69924837B6DF728F685A05B8\",\"DevCode\":\"F52700B503D9BB\",\"OrderNo\":\"201904281419277768672972657\",\"totalFee\":100},\"result\":\"此设备不在线！\"}}}', '2019-04-28 14:19:27', NULL);
-INSERT INTO `pro_xiche_log` VALUES (2, 'ReportStatus', '洗车机状态上报异常(ReportStatus)', NULL, NULL, NULL, '{\"get\":[],\"post\":[],\"result\":{\"errorcode\":-1,\"errNo\":-1,\"message\":\"apikey错误\",\"result\":[]}}', '2019-04-29 09:29:25', NULL);
-INSERT INTO `pro_xiche_log` VALUES (3, 'ReportStatus', '洗车机状态上报异常(ReportStatus)', NULL, NULL, NULL, '{\"get\":[],\"post\":[],\"result\":{\"errorcode\":-1,\"errNo\":-1,\"message\":\"apikey错误\",\"result\":[]}}', '2019-04-29 09:29:38', NULL);
+) ENGINE = MyISAM AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for pro_xiche_login
