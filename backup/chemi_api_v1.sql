@@ -11,7 +11,7 @@
  Target Server Version : 50616
  File Encoding         : 65001
 
- Date: 30/04/2019 18:13:17
+ Date: 30/04/2019 18:27:45
 */
 
 SET NAMES utf8mb4;
@@ -2834,8 +2834,8 @@ CREATE TABLE `pro_ratelimit`  (
   `time` int(10) UNSIGNED NULL DEFAULT NULL COMMENT '访问时间',
   `microtime` mediumint(3) UNSIGNED NULL DEFAULT NULL COMMENT '毫秒',
   `version` int(10) UNSIGNED NULL DEFAULT 0 COMMENT '版本号',
-  PRIMARY KEY (`skey`) USING HASH
-) ENGINE = MEMORY CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '访问限流控制' ROW_FORMAT = Fixed STORAGE MEMORY;
+  PRIMARY KEY (`skey`) USING BTREE
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '访问限流控制' ROW_FORMAT = Compact;
 
 -- ----------------------------
 -- Table structure for pro_session
