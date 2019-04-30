@@ -389,8 +389,10 @@ class ParkWashModel extends Crud {
 
         // 已到预约时间的订单不能取消
         $cancelOrderMintimeConfig = getConfig('xc', 'cancel_order_mintime');
-        if (strtotime($orderInfo['order_time']) < (TIMESTAMP + $cancelOrderMintimeConfig)) {
-            return error($cancelOrderMintimeConfig > 0 ? ('预约时间之前' . ($cancelOrderMintimeConfig / 60) . '分钟不能取消订单') : '已到预约时间的订单不能取消');
+        if ($cancelOrderMintimeConfig > 0) {
+            if (strtotime($orderInfo['order_time']) < (TIMESTAMP + $cancelOrderMintimeConfig)) {
+                return error($cancelOrderMintimeConfig > 60 ? ('预约时间之前' . ($cancelOrderMintimeConfig / 60) . '分钟不能取消订单') : '已到预约时间的订单不能取消');
+            }
         }
 
         $storeInfo = $this->findStoreInfo(['id' => $orderInfo['store_id']], 'id,tel,daily_cancel_limit');
