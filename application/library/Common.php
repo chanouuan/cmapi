@@ -1,5 +1,10 @@
 <?php
 
+function mb_str_split ($str)
+{
+    return empty($str) ? [] : preg_split('/(?<!^)(?!$)/u', $str);
+}
+
 function var_exists ($obj, $var, $default = '')
 {
     return isset($obj[$var]) ? $obj[$var] : $default;
