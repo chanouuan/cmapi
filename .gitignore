@@ -12,5 +12,6 @@ npm-debug.log
 yarn-error.log
 .env
 /cache
+/conf
 /log
 /public/upload
