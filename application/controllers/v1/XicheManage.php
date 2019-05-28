@@ -467,7 +467,6 @@ class XicheManage extends ActionPDO {
                 $condition['fail_reason'] = ['<>', ''];
             } else {
                 $condition['status'] = $_GET['status'];
-                $condition['entry_park_id'] = 0;
                 $condition['fail_reason'] = '';
             }
         } else {

@@ -168,7 +168,7 @@ class DbMysql extends Db {
         });
     }
 
-    public function insert ($tablename, $fieldlist, $parameters = null, $replace = false)
+    public function insert ($tablename, $fieldlist, $parameters = null, $replace = false, $insert_id = false)
     {
         $key = [];
         $value = [];
@@ -200,9 +200,15 @@ class DbMysql extends Db {
         $value = implode(',', $value);
         $query = ($replace ? 'REPLACE' : 'INSERT') . ' INTO ' . $this->parseTableName($tablename) . ' (' . $key . ') VALUES ' . $value;
         unset($key, $value);
-        return $this->execute($query, $parameters, function  ($statement) {
+        $result = $this->execute($query, $parameters, function  ($statement) {
             return $statement->rowCount();
         });
+        if ($result) {
+            if ($insert_id) {
+                return $this->getlastid();
+            }
+        }
+        return $result;
     }
 
     public function update ($tablename, $fieldlist, $where, $parameters = null)

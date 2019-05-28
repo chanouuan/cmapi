@@ -371,7 +371,7 @@ class ParkWashModel extends Crud {
             'title' => '用户确认完成订单'
         ]);
 
-        return success();
+        return success('OK');
     }
 
     /**

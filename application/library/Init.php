@@ -108,24 +108,24 @@ class Controller {
             $action = '__notfund';
         }
 
-        $refClass = new ReflectionClass($referer);
-        if ($refDoc = $refClass->getMethod($action)->getDocComment()) {
-            if (false !== strpos($refDoc, '@ratelimit')) {
-                preg_match('/@ratelimit(.+)/', $refDoc, $matches);
-                if (!RateLimit::grant($_SERVER['REMOTE_ADDR'] . $module . $action, trim($matches[1]))) {
-                    json(null, StatusCodes::getMessage(StatusCodes::ACCESS_NUM_OVERFLOW), StatusCodes::ACCESS_NUM_OVERFLOW, StatusCodes::STATUS_404);
-                }
-                if (defined('RATE_LIMIT_DIFF_TIME')) {
-                    if (false !== strpos($refDoc, '@repeatlimit')) {
-                        preg_match('/@repeatlimit(.+)/', $refDoc, $matches);
-                        $diffTime = intval($matches[1]);
-                        $diffTime = $diffTime > 0 ? $diffTime : 2000;
-                        if (RATE_LIMIT_DIFF_TIME < $diffTime) {
-                            json(null, StatusCodes::getMessage(StatusCodes::REQUEST_REPEAT), StatusCodes::REQUEST_REPEAT, StatusCodes::STATUS_OK);
-                        }
+        $ratelimit = $referer->__ratelimit();
+        if (!empty($ratelimit) && isset($ratelimit[$action])) {
+            $ratelimit = $ratelimit[$action];
+            if (!RateLimit::grant($ratelimit['url'] ? $ratelimit['url'] : ($_SERVER['REMOTE_ADDR'] . $module . $action), $ratelimit['rule'], $ratelimit['engine'])) {
+                json(null, StatusCodes::getMessage(StatusCodes::ACCESS_NUM_OVERFLOW), StatusCodes::ACCESS_NUM_OVERFLOW, StatusCodes::STATUS_404);
+            }
+            if (defined('RATE_LIMIT_DIFF_TIME')) {
+                if ($ratelimit['interval']) {
+                    if (RATE_LIMIT_DIFF_TIME < $ratelimit['interval']) {
+                        json(null, StatusCodes::getMessage(StatusCodes::REQUEST_REPEAT), StatusCodes::REQUEST_REPEAT, StatusCodes::STATUS_OK);
                     }
                 }
             }
+        }
+        unset($ratelimit);
+
+        $refClass = new ReflectionClass($referer);
+        if ($refDoc = $refClass->getMethod($action)->getDocComment()) {
             if (false !== strpos($refDoc, '@login')) {
                 $referer->_G['user'] = $referer->loginCheck();
                 if (empty($referer->_G['user'])) {
@@ -198,6 +198,11 @@ abstract class ActionPDO {
     public function __notfund ()
     {
         return error('Undefined Action: ' . $this->_module . $this->_action);
+    }
+
+    public function __ratelimit ()
+    {
+        return null;
     }
 
     public function help ()
@@ -1027,7 +1032,7 @@ class Route
 
 class RateLimit
 {
-    public static function grant($key, $rule = null, $adapter = 'mysql')
+    public static function grant($key, $rule = null, $adapter = null)
     {
         if ($rule) {
             list($minNum, $hourNum, $dayNum) = explode('|', $rule);
@@ -1036,6 +1041,7 @@ class RateLimit
             $hourNum = 5000;
             $dayNum = 10000;
         }
+        $adapter = $adapter ? $adapter : 'mysql';
         return self::{$adapter}($key, $minNum, $hourNum, $dayNum);
     }
 
