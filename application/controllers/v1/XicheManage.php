@@ -476,8 +476,10 @@ class XicheManage extends ActionPDO {
             $condition['order_time'] = ['between', [$_GET['start_time'] . ' 00:00:00', $_GET['end_time'] . ' 23:59:59']];
         }
 
-        $count = $modle->getCount('parkwash_order', $condition);
-        $pagesize = getPageParams($_GET['page'], $count);
+        if (empty($_GET['export'])) {
+            $count = $modle->getCount('parkwash_order', $condition);
+            $pagesize = getPageParams($_GET['page'], $count);
+        }
         $list = $modle->getList('parkwash_order', $condition, $pagesize['limitstr'], 'id desc', 'id,entry_park_id,entry_park_time,store_id,create_time,car_number,brand_id,series_id,user_tel,order_time,area_id,place,items,pay,payway,status,fail_reason');
 
         if ($list) {
@@ -515,6 +517,24 @@ class XicheManage extends ActionPDO {
                 $list[$k]['status_str'] = $modle->getParkOrderStatus($list[$k]['status']);
             }
             unset($brandList, $seriesList, $areaList, $storeList);
+        }
+
+        // 导出
+        if ($_GET['export']) {
+            header('Content-type: text/html; charset=utf-8');
+            header('cache-control:public');
+            header('content-type:application/octet-stream');
+            header('content-disposition:attachment; filename=停车场洗车订单_' . date('Ymd', TIMESTAMP) . '.csv');
+            $input = [
+                '编号,店铺,下单时间,车牌,车系,用户手机,预约时间,区域,车位号,套餐,支付金额,支付方式,状态,入场时间'
+            ];
+            foreach ($list as $k => $v) {
+                $input[] = implode(',', [
+                    $v['id'], $v['store_name'], $v['create_time'], $v['car_number'], $v['car_name'], $v['user_tel'], $v['order_time'], $v['area_name'] . $v['area_floor'], $v['place'], $v['items'], $v['pay'], $v['payway'], $v['status_str'], $v['entry_park_time']
+                ]);
+            }
+            echo implode("\n", $input);
+            exit(0);
         }
 
         return [
@@ -668,20 +688,41 @@ class XicheManage extends ActionPDO {
             $condition['create_time'] = ['between', [$_GET['start_time'] . ' 00:00:00', $_GET['end_time'] . ' 23:59:59']];
         }
 
-        $row = \app\library\DB::getInstance()
-            ->table('parkwash_card_record')
-            ->field('count(*) as count,sum(money) as money')
-            ->where($condition)
-            ->find();
-        $count = $row['count'];
-        $totalMoney = $row['money'];
-        $pagesize = getPageParams($_GET['page'], $count);
+        if (empty($_GET['export'])) {
+            $row = \app\library\DB::getInstance()
+                ->table('parkwash_card_record')
+                ->field('count(*) as count,sum(money) as money')
+                ->where($condition)
+                ->find();
+            $count = $row['count'];
+            $totalMoney = $row['money'];
+            $pagesize = getPageParams($_GET['page'], $count);
+        }
         $list = $modle->getList('parkwash_card_record', $condition, $pagesize['limitstr']);
         $cardType = $modle->getList('parkwash_card_type', null, null, 'sort desc');
         $cardType = array_column($cardType, 'name', 'id');
 
         foreach ($list as $k => $v) {
             $list[$k]['card_type_name'] = isset($cardType[$v['card_type_id']]) ? $cardType[$v['card_type_id']] : $v['card_type_id'];
+            $list[$k]['money'] = round_dollar($v['money']);
+        }
+
+        // 导出
+        if ($_GET['export']) {
+            header('Content-type: text/html; charset=utf-8');
+            header('cache-control:public');
+            header('content-type:application/octet-stream');
+            header('content-disposition:attachment; filename=洗车卡_' . date('Ymd', TIMESTAMP) . '.csv');
+            $input = [
+                '编号,用户,车牌号,卡类型,缴费,截止时间,时长,缴费时间'
+            ];
+            foreach ($list as $k => $v) {
+                $input[] = implode(',', [
+                    $v['id'], $v['user_tel'], $v['car_number'], $v['card_type_name'], $v['money'], $v['end_time'], $v['duration'], $v['create_time']
+                ]);
+            }
+            echo implode("\n", $input);
+            exit(0);
         }
 
         return [

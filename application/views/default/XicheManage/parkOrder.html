@@ -50,6 +50,9 @@
         <a href="?<?=burl('start_time='.$dateTime['month_start'].'&end_time='.$dateTime['month_end'])?>" class="layui-btn <?php if($dateTime['month_start']==$_GET['start_time']&&$dateTime['month_end']==$_GET['end_time']){ ?>layui-btn-primary<?php } ?>">本月</a>
         <a href="?<?=burl('start_time='.$dateTime['lastmonth_start'].'&end_time='.$dateTime['lastmonth_end'])?>" class="layui-btn <?php if($dateTime['lastmonth_start']==$_GET['start_time']&&$dateTime['lastmonth_end']==$_GET['end_time']){ ?>layui-btn-primary<?php } ?>">上月</a>
         <a href="?<?=burl('start_time='.$dateTime['year_start'].'&end_time='.$dateTime['year_end'])?>" class="layui-btn <?php if($dateTime['year_start']==$_GET['start_time']&&$dateTime['year_end']==$_GET['end_time']){ ?>layui-btn-primary<?php } ?>">本年</a>
+        <a href="?<?=burl('export=1')?>" class="layui-btn layui-btn-normal" target="temp">导出到CSV</a>
+        <iframe id="temp" name="temp" style="display: none;"></iframe>
+
         <span class="x-right" style="line-height:40px">共有订单：<?=$pagesize['totalcount']?> 条</span>
     </xblock>
 

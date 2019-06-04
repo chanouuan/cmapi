@@ -26,6 +26,8 @@
         </form>
     </div>
     <xblock>
+        <a href="?<?=burl('export=1')?>" class="layui-btn layui-btn-normal" target="temp">导出到CSV</a>
+        <iframe id="temp" name="temp" style="display: none;"></iframe>
         <span class="x-left" style="line-height:40px">总金额：<?=$totalMoney?>元</span>
         <span class="x-right" style="line-height:40px">共有数据：<?=$pagesize['totalcount']?> 条</span>
     </xblock>
@@ -49,7 +51,7 @@
             <td><?=$v['user_tel']?></td>
             <td><?=$v['car_number']?></td>
             <td><?=$v['card_type_name']?></td>
-            <td><?=round_dollar($v['money'],false)?></td>
+            <td><?=$v['money']?></td>
             <td><?=$v['end_time']?></td>
             <td><?=$v['duration']?></td>
             <td><?=$v['create_time']?></td>

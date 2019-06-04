@@ -655,14 +655,25 @@ class UserModel extends Crud {
     }
 
     /**
+     * 验证图片验证码
+     */
+    public function checkImgCode ($code, $keep = true)
+    {
+        if (!preg_match("/^[0-9]{4,6}$/", $code)) {
+            return false;
+        }
+        $name = sprintf("%u", ip2long(get_ip()));
+        if ($keep) {
+            return $this->getDb()->table('__tablepre__smscode')->where(['tel' => $name, 'code' => $code])->count();
+        }
+        return $this->getDb()->delete('__tablepre__smscode', ['tel' => $name, 'code' => $code]);
+    }
+
+    /**
      * 验证短信验证码
      */
     public function checkSmsCode ($telephone, $code)
     {
-        // 是否开启短信验证
-        if (!getSysConfig('sms_verify')) {
-            return true;
-        }
         if (!preg_match("/^1[0-9]{10}$/", $telephone) || !preg_match("/^[0-9]{4,6}$/", $code)) {
             return false;
         }
@@ -684,6 +695,31 @@ class UserModel extends Crud {
         return $result['code'] == $code
             && $result['errorcount'] <= 10
             && $result['sendtime'] > (TIMESTAMP - 300);
+    }
+
+    /**
+     * 保存图片验证码
+     */
+    public function saveImgCode ($code)
+    {
+        $name = sprintf("%u", ip2long(get_ip()));
+        $result = $this->getDb()->table('__tablepre__smscode')->field('id')->where(['tel' => $name])->find();
+        if (!$result) {
+            if (!$this->getDb()->insert('__tablepre__smscode', [
+                'tel' => $name, 'code' => $code
+            ])) {
+                return error('error');
+            }
+        } else {
+            if (false === $this->getDb()->update('__tablepre__smscode', [
+                'code' => $code
+            ], [
+                'tel' => $name
+            ])) {
+                return error('error');
+            }
+        }
+        return success('OK');
     }
 
     /**

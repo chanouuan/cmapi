@@ -21,6 +21,13 @@ class ParkWashModel extends Crud {
         $userModel = new UserModel();
         $xicheModel = new XicheModel();
 
+        if (isset($post['msgcode'])) {
+            // 短信验证
+            if (!$userModel->checkSmsCode($post['telephone'], $post['msgcode'])) {
+                return error('验证码错误！');
+            }
+        }
+
         // 获取用户
         $userInfo = $userModel->getUserInfoCondition([
             'member_name' => $post['telephone']

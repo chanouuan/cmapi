@@ -50,7 +50,9 @@ class Index extends \ActionPDO {
             $_SERVER['PHP_AUTH_USER'] != 'admin' ||
             $_SERVER['PHP_AUTH_PW'] != 'chemi_123456') {
             header('HTTP/1.1 401 Unauthorized');
+            http_response_code(401);
             header('WWW-Authenticate: Basic realm="Administrator Secret"');
+            exit('Administrator Secret!');
         }
     }
 
@@ -188,7 +190,7 @@ class Index extends \ActionPDO {
         $path = APPLICATION_PATH . '/log/' . $path . '.log';
         $list = get_list_dir(APPLICATION_PATH . '/log');
         foreach ($list as $k => $v) {
-            $list[$k] = str_replace(APPLICATION_PATH . '/log', '', $v) . ' ' . byte_convert(filesize($v));
+            $list[$k] = str_replace(APPLICATION_PATH . '/log', '', $v) . ' ' . byte_convert(filesize($v)) . ' <a href="' . APPLICATION_URL . '/index/logger?path=' . str_replace([APPLICATION_PATH . '/log', '.log'], '', $v) . '&clear=1">DEL</a>';
         }
         if ($_GET['clear']) {
             if (file_exists($path)) {

@@ -997,7 +997,7 @@ function get_list_dir ($root, $paths = [])
     $files = (array) glob($root);
     foreach ($files as $path) {
         if (is_dir($path)) {
-            $paths = array_merge($paths, get_list_dir($path . '/*', $paths));
+            $paths = get_list_dir($path . '/*', $paths);
         } else {
             $paths[] = $path;
         }

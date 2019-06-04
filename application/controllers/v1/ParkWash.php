@@ -21,10 +21,10 @@ class ParkWash extends ActionPDO {
             'getLastOrderInfo' => [],
             'unbindMiniprogram' => [],
             'sendSms' => [
-                'rule' => '5|10|20',
-                'interval' => 2000
+                'interval' => 1000
             ],
             'checkSmsCode' => [],
+            'getImgCode' => [],
             'getStoreList' => [],
             'getNearbyStore' => [],
             'getXicheDeviceList' => [],
@@ -65,11 +65,13 @@ class ParkWash extends ActionPDO {
     }
 
     /**
-     * 登录
+     * 登录 <span style="color:red">*新增支持手机号登录</span>
      * @description 只支持微信小程序登录
-     * @param *encryptedData 手机号加密数据
-     * @param *iv 加密算法的初始向量
      * @param *code 小程序登录凭证
+     * @param encryptedData 手机号加密数据
+     * @param iv 加密算法的初始向量（当encryptedData填写时，此值必填）
+     * @param telephone 手机号
+     * @param msgcode 短信验证码（当telephone填写时，此值必填）
      * @return array
      * {
      * "errNo":0, // 错误码 0成功 -1失败
@@ -119,6 +121,12 @@ class ParkWash extends ActionPDO {
             }
             $userInfo['result']['token'] = $loginInfo['token'];
             return $userInfo;
+        }
+
+        if (empty($reponse['telephone'])) {
+            // 手机号方式登录
+            $reponse['telephone'] = getgpc('telephone');
+            $reponse['msgcode'] = strval(getgpc('msgcode'));
         }
 
         // 绑定小程序
@@ -190,6 +198,7 @@ class ParkWash extends ActionPDO {
     /**
      * 发送短信验证码
      * @param *telephone 手机号
+     * @param *imgcode 图片验证码
      * @return array
      * {
      * "errNo":0, // 错误码 0成功 -1失败
@@ -198,11 +207,30 @@ class ParkWash extends ActionPDO {
      * }
      */
     public function sendSms () {
-        return (new UserModel())->sendSmsCode($_POST);
+        $userModel = new UserModel();
+        if (!$userModel->checkImgCode(getgpc('imgcode'))) {
+            return error('验证码错误');
+        }
+        $result = $userModel->sendSmsCode($_POST);
+        if ($result['errorcode'] === 0) {
+            $userModel->checkImgCode(getgpc('imgcode'), false);
+        }
+        return $result;
     }
 
     /**
-     * 验证验证码
+     * 获取图片验证码 <span style="color:red">New</span>
+     * @return jpg
+     */
+    public function getImgCode () {
+        $checkcode = new \app\library\Checkcode();
+        $checkcode->doimage();
+        (new UserModel())->saveImgCode($checkcode->get_code());
+        return null;
+    }
+
+    /**
+     * 验证短信验证码
      * @param *telephone 手机号
      * @param *code 短信验证码
      * @return array
