@@ -521,10 +521,12 @@ class XicheManage extends ActionPDO {
 
         // 导出
         if ($_GET['export']) {
+            $fileName = '停车场洗车'. '_' . date('Ymd', TIMESTAMP);
+            $fileName = preg_match('/(Chrome|Firefox)/i', $_SERVER['HTTP_USER_AGENT']) && !preg_match('/edge/i', $_SERVER['HTTP_USER_AGENT']) ? $fileName : urlencode($fileName);
             header('Content-type: text/html; charset=utf-8');
             header('cache-control:public');
             header('content-type:application/octet-stream');
-            header('content-disposition:attachment; filename=停车场洗车订单_' . date('Ymd', TIMESTAMP) . '.csv');
+            header('content-disposition:attachment; filename=' . $fileName . '.csv');
             $input = [
                 '编号,店铺,下单时间,车牌,车系,用户手机,预约时间,区域,车位号,套餐,支付金额,支付方式,状态,入场时间'
             ];
@@ -709,12 +711,14 @@ class XicheManage extends ActionPDO {
 
         // 导出
         if ($_GET['export']) {
+            $fileName = '洗车卡'. '_' . date('Ymd', TIMESTAMP);
+            $fileName = preg_match('/(Chrome|Firefox)/i', $_SERVER['HTTP_USER_AGENT']) && !preg_match('/edge/i', $_SERVER['HTTP_USER_AGENT']) ? $fileName : urlencode($fileName);
             header('Content-type: text/html; charset=utf-8');
             header('cache-control:public');
             header('content-type:application/octet-stream');
-            header('content-disposition:attachment; filename=洗车卡_' . date('Ymd', TIMESTAMP) . '.csv');
+            header('content-disposition:attachment; filename=' . $fileName . '.csv');
             $input = [
-                '编号,用户,车牌号,卡类型,缴费,截止时间,时长,缴费时间'
+                '编号,用户,车牌号,卡类型,缴费(元),截止时间,时长,缴费时间'
             ];
             foreach ($list as $k => $v) {
                 $input[] = implode(',', [

@@ -21,6 +21,7 @@ class ParkWash extends ActionPDO {
             'getLastOrderInfo' => [],
             'unbindMiniprogram' => [],
             'sendSms' => [
+                'rule' => '5|10|20',
                 'interval' => 1000
             ],
             'checkSmsCode' => [],
@@ -198,7 +199,6 @@ class ParkWash extends ActionPDO {
     /**
      * 发送短信验证码
      * @param *telephone 手机号
-     * @param *imgcode 图片验证码
      * @return array
      * {
      * "errNo":0, // 错误码 0成功 -1失败
@@ -207,6 +207,8 @@ class ParkWash extends ActionPDO {
      * }
      */
     public function sendSms () {
+        return (new UserModel())->sendSmsCode($_POST);
+        // 不启用图片验证码
         $userModel = new UserModel();
         if (!$userModel->checkImgCode(getgpc('imgcode'))) {
             return error('验证码错误');
