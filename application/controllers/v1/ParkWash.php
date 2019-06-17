@@ -137,6 +137,11 @@ class ParkWash extends ActionPDO {
         if ($result['errorcode'] === 0) {
             // 插入 userCount 表
             $parkwashModel->saveUserCount($result['result']['uid']);
+        } else {
+            // 兼容前端小程序逻辑
+            return success([
+                'token' => ''
+            ]);
         }
         return $result;
     }
@@ -207,6 +212,7 @@ class ParkWash extends ActionPDO {
      * }
      */
     public function sendSms () {
+        $_POST['len'] = 4;
         return (new UserModel())->sendSmsCode($_POST);
         // 不启用图片验证码
         $userModel = new UserModel();

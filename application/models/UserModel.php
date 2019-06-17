@@ -731,7 +731,14 @@ class UserModel extends Crud {
             return error('手机号为空或格式错误');
         }
 
-        $code = (rand() % 10) . (rand() % 10) . (rand() % 10) . (rand() % 10) . (rand() % 10) . (rand() % 10);
+        // 验证码长度
+        $len = isset($post['len']) && $post['len'] ? $post['len'] : 6;
+        $len = $len >= 4 && $len <= 6 ? $len : 6;
+        $arr = range(1, $len);
+        foreach ($arr as $k => $v) {
+            $arr[$k] = (rand() % 10);
+        }
+        $code = implode('', $arr);
 
         $resultSms = $this->getDb()
             ->table('__tablepre__smscode')
