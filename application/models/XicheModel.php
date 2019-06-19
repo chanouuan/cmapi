@@ -408,7 +408,7 @@ class XicheModel extends Crud {
     /**
      * 支付前登录
      */
-    public function login ($post) {
+    public function login ($post, $extra = []) {
         $post['telephone'] = trim($post['telephone']);
         $post['msgcode'] = trim($post['msgcode']); // 短信验证码
         $post['password'] = trim($post['password']); // 用户密码
@@ -471,7 +471,7 @@ class XicheModel extends Crud {
         $userInfo = $userInfo['result'];
 
         // 登录成功
-        $loginret = $userModel->setloginstatus($userInfo['uid'], uniqid());
+        $loginret = $userModel->setloginstatus($userInfo['uid'], uniqid(), $extra);
         if ($loginret['errorcode'] !== 0) {
             return $loginret;
         }

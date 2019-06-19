@@ -498,6 +498,11 @@ class ParkWashModel extends Crud {
             'type' => 1, 'orderid' => $orderInfo['id']
         ]);
 
+        // 删除订单未开始服务缓存
+        $this->getDb()->delete('parkwash_order_hatch', [
+            'orderid' => $orderInfo['id']
+        ]);
+
         return success('OK');
     }
 
@@ -1937,7 +1942,7 @@ class ParkWashModel extends Crud {
         ]);
 
         // 获取订单信息
-        $orderInfo = $this->findOrderInfo(['id' => $tradeInfo['order_id']], 'id,uid,store_id,car_number,order_time,create_time');
+        $orderInfo = $this->findOrderInfo(['id' => $tradeInfo['order_id']], 'id,uid,store_id,car_number,order_time,create_time,item_id');
 
         // 获取门店信息
         $storeInfo = $this->findStoreInfo(['id' => $orderInfo['store_id']], 'id,name,tel');
@@ -1965,6 +1970,11 @@ class ParkWashModel extends Crud {
         // 加入到入场车查询队列任务
         $this->getDb()->insert('parkwash_order_queue', [
             'type' => 1, 'orderid' => $orderInfo['id'], 'param_var' => $orderInfo['car_number'], 'time' => $orderInfo['order_time'], 'create_time' => date('Y-m-d H:i:s', TIMESTAMP), 'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
+        ]);
+
+        // 加入到预分配缓存表，用于员工新订单显示
+        $this->getDb()->insert('parkwash_order_hatch', [
+            'orderid' => $orderInfo['id'], 'store_id' => $orderInfo['store_id'], 'item_id' => $orderInfo['item_id'], 'create_time' => date('Y-m-d H:i:s', TIMESTAMP)
         ]);
 
         // 通知商家

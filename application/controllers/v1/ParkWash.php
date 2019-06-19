@@ -66,7 +66,7 @@ class ParkWash extends ActionPDO {
     }
 
     /**
-     * 登录 <span style="color:red">*新增支持手机号登录</span>
+     * 登录
      * @description 只支持微信小程序登录
      * @param *code 小程序登录凭证
      * @param encryptedData 手机号加密数据
@@ -227,7 +227,7 @@ class ParkWash extends ActionPDO {
     }
 
     /**
-     * 获取图片验证码 <span style="color:red">New</span>
+     * 获取图片验证码
      * @return jpg
      */
     public function getImgCode () {
@@ -677,16 +677,16 @@ class ParkWash extends ActionPDO {
      *     "list":[{
      *          "id":5, //订单ID
      *          "order_type":"parkwash", //订单类型 (xc自助洗车 parkwash停车场洗车)
-     *          "order_code":"201904010900005", //订单号
+     *          "order_code":"", //订单号
      *          "car_number":"", //车牌号
      *          "place":"A002", //车位号
      *          "pay":0, //支付金额 (分)
      *          "refundpay":0, //自助洗车退款金额 (分)
      *          "payway":"车币支付", //支付方式
      *          "items":[], //洗车套餐JSON
-     *          "order_time":"2019-04-01 14:00:00", //预约时间
-     *          "create_time":"2019-04-01 09:00:00", //下单时间
-     *          "update_time":"2019-04-01 09:00:00", //更新时间
+     *          "order_time":"", //预约时间
+     *          "create_time":"", //下单时间
+     *          "update_time":"", //更新时间
      *          "brand_name":"斯柯达", //汽车品牌名
      *          "series_name":"昊锐", //汽车款型
      *          "area_floor":"负一楼", //楼层
@@ -711,7 +711,7 @@ class ParkWash extends ActionPDO {
      * "result":{
      *      "id":4, //订单ID
      *      "order_type":"parkwash", //订单类型 (xc自助洗车 parkwash停车场洗车)
-     *      "order_code":"201904010900005", //订单号
+     *      "order_code":"", //订单号
      *      "store_id":1, //门店ID
      *      "brand_id":1, //品牌ID
      *      "series_id":1, //车系ID
@@ -722,21 +722,17 @@ class ParkWash extends ActionPDO {
      *      "refundpay":0, //自助洗车退款金额 (分)
      *      "payway":"车币支付", //支付方式
      *      "items":[], //洗车套餐JSON
-     *      "order_time":"2019-04-01 14:00:00", //预约时间
-     *      "create_time":"2019-04-01 09:00:00", //下单时间
-     *      "update_time":"2019-04-01 09:00:00", //更新时间
+     *      "order_time":"", //预约时间
+     *      "create_time":"", //下单时间
+     *      "update_time":"", //更新时间
      *      "brand_name":"斯柯达", //汽车品牌名
      *      "series_name":"昊锐", //汽车款型
      *      "area_floor":"负一楼", //楼层
      *      "area_name":"A区", //区域
      *      "store_name":"门店0" //服务网点
-     *      "location":"106.328468,25.844113", //经纬度
+     *      "location":"", //经纬度
      *      "status":1, //订单状态 (-1已取消 1已支付 3服务中 4已完成 5确认完成)
-     *      "sequence":[{
-     *          "title":"下单成功，等待商家接单", //订单状态改变事件
-     *          "create_time":"2019-04-02 16:38:43" //事件时间
-     *      }]
-     * }
+     * }}
      */
     public function getOrderInfo () {
         return (new ParkWashModel())->getOrderInfo($this->_G['user']['uid'], $_POST);

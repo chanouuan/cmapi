@@ -68,22 +68,12 @@ class UserModel extends Crud {
             return error('请输入6-32位密码');
         }
 
-        $userInfo = $this->getUserInfo($post['uid']);
-        if ($userInfo['errorcode'] !== 0) {
-            return $userInfo;
-        }
-        $userInfo = $userInfo['result'];
-
-        if ($userInfo['ispw']) {
-            return error('你已设置过密码');
-        }
-
         if (false === $this->getDb('chemiv2')->update('chemi_member', [
             'member_passwd' => md5(md5($post['password']))
         ], 'member_id = ' . $post['uid'])) {
             return error('密码设置失败');
         }
-        return success('密码设置成功');
+        return success('OK');
     }
 
     /**
@@ -1287,6 +1277,27 @@ class UserModel extends Crud {
             }
         }
         return $licenseId;
+    }
+
+    /**
+     * hash密码
+     * @param $pwd
+     * @return string
+     */
+    public function hashPassword ($pwd)
+    {
+        return password_hash($pwd, PASSWORD_BCRYPT);
+    }
+
+    /**
+     * 密码hash验证
+     * @param $pwd 密码明文
+     * @param $hash hash密码
+     * @return bool
+     */
+    public function passwordVerify ($pwd, $hash)
+    {
+        return password_verify($pwd, $hash);
     }
 
 }
