@@ -24,7 +24,10 @@ class ParkWashEmployee extends ActionPDO {
             'checkTakeOrder'  => ['interval' => 1000],
             'takeOrder'       => ['interval' => 2000],
             'completeOrder'   => ['interval' => 2000],
-            'remarkOrder'     => []
+            'remarkOrder'     => [],
+            'onLine'          => [],
+            'onRemind'        => [],
+            'statistics'      => ['interval' => 1000]
         ];
     }
 
@@ -273,6 +276,69 @@ class ParkWashEmployee extends ActionPDO {
     public function remarkOrder ()
     {
         return (new ParkWashEmployeeModel())->remarkOrder($this->_G['user']['uid'], $_POST);
+    }
+
+    /**
+     * 设置在线状态
+     * @login
+     * @param state 状态（1在线0离线，默认0）
+     * @return array
+     * {
+     * "errNo":0, //错误码 0成功 -1失败
+     * "message":"", //错误消息
+     * "result":[]
+     * }
+     */
+    public function onLine ()
+    {
+        return (new ParkWashEmployeeModel())->onLine($this->_G['user']['uid'], getgpc('state'));
+    }
+
+    /**
+     * 设置订单提醒状态
+     * @login
+     * @param state 状态（1启动0关闭，默认0）
+     * @return array
+     * {
+     * "errNo":0, //错误码 0成功 -1失败
+     * "message":"", //错误消息
+     * "result":[]
+     * }
+     */
+    public function onRemind ()
+    {
+        return (new ParkWashEmployeeModel())->onRemind($this->_G['user']['uid'], getgpc('state'));
+    }
+
+    /**
+     * 统计
+     * @login
+     * @param start_time 开始时间（格式：2019-01-01，默认今日）
+     * @param end_time 截止时间（格式：2019-01-01，默认今日）
+     * @param lastpage 分页参数
+     * @return array
+     * {
+     * "errNo":0, //错误码 0成功 -1失败
+     * "message":"",
+     * "result":{
+     *     "limit":10, //每页最大显示数
+     *     "lastpage":"", //分页参数 (下一页携带的参数)
+     *     "total_pay":0, //总收入（元）
+     *     "complete_count":0, //完成单数
+     *     "list":[{
+     *          "id":5, //订单ID
+     *          "car_number":"", //车牌号
+     *          "item_name":“”, //洗车套餐
+     *          "complete_time":"", //完成时间
+     *          "brand_name":"斯柯达", //汽车品牌名
+     *          "series_name":"昊锐", //汽车款型
+     *          "pay":0, //收益（元）
+     *      }]
+     * }}
+     */
+    public function statistics ()
+    {
+        return (new ParkWashEmployeeModel())->statistics($this->_G['user']['uid'], $_POST);
     }
 
     /**
