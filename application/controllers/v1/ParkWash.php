@@ -16,52 +16,39 @@ class ParkWash extends ActionPDO {
     public function __ratelimit ()
     {
         return [
-            'login' => [],
-            'getUserInfo' => [],
-            'getLastOrderInfo' => [],
-            'unbindMiniprogram' => [],
-            'sendSms' => [
-                'rule' => '5|10|20',
-                'interval' => 1000
-            ],
-            'checkSmsCode' => [],
-            'getImgCode' => [],
-            'getStoreList' => [],
-            'getNearbyStore' => [],
+            'login'              => ['interval' => 1000],
+            'getUserInfo'        => [],
+            'getLastOrderInfo'   => [],
+            'unbindMiniprogram'  => [],
+            'sendSms'            => ['rule' => '5|10|20', 'interval' => 1000],
+            'checkSmsCode'       => [],
+            'getImgCode'         => [],
+            'getStoreList'       => [],
+            'getNearbyStore'     => [],
             'getXicheDeviceList' => [],
-            'getBrandList' => [],
-            'getSeriesList' => [],
-            'getParkArea' => [],
-            'getCarport' => [],
-            'addCarport' => [],
-            'updateCarport' => [],
-            'deleteCarport' => [],
-            'getPoolList' => [],
-            'getStoreItem' => [],
-            'createCard' => [
-                'interval' => 2000
-            ],
-            'payQuery' => [
-                'interval' => 2000
-            ],
-            'getNoticeList' => [],
-            'cancelOrder' => [],
-            'confirmOrder' => [],
-            'getOrderList' => [],
-            'getOrderInfo' => [],
-            'updatePlace' => [
-                'interval' => 2000
-            ],
-            'recharge' => [
-                'interval' => 2000
-            ],
-            'getTradeList' => [],
-            'getCardTypeList' => [],
-            'getCardList' => [],
-            'deleteMemberCard' => [],
-            'renewalsCard' => [
-                'interval' => 2000
-            ]
+            'getBrandList'       => [],
+            'getSeriesList'      => [],
+            'getParkArea'        => [],
+            'getCarport'         => [],
+            'addCarport'         => [],
+            'updateCarport'      => [],
+            'deleteCarport'      => [],
+            'getPoolList'        => [],
+            'getStoreItem'       => [],
+            'createCard'         => ['interval' => 2000],
+            'payQuery'           => ['interval' => 2000],
+            'getNoticeList'      => [],
+            'cancelOrder'        => [],
+            'confirmOrder'       => [],
+            'getOrderList'       => [],
+            'getOrderInfo'       => [],
+            'updatePlace'        => ['interval' => 2000],
+            'recharge'           => ['interval' => 2000],
+            'getTradeList'       => [],
+            'getCardTypeList'    => [],
+            'getCardList'        => [],
+            'deleteMemberCard'   => [],
+            'renewalsCard'       => ['interval' => 2000]
         ];
     }
 
@@ -127,7 +114,7 @@ class ParkWash extends ActionPDO {
         if (empty($reponse['telephone'])) {
             // 手机号方式登录
             $reponse['telephone'] = getgpc('telephone');
-            $reponse['msgcode'] = strval(getgpc('msgcode'));
+            $reponse['msgcode']   = strval(getgpc('msgcode'));
         }
 
         // 绑定小程序
@@ -147,7 +134,7 @@ class ParkWash extends ActionPDO {
     }
 
     /**
-     * 获取用户信息
+     * 获取用户信息 <span style="color:red">有改动</span>
      * @login
      * @return array
      * {
@@ -159,14 +146,16 @@ class ParkWash extends ActionPDO {
      *     "avatar":"", //头像地址
      *     "nickname":"", //昵称
      *     "gender":1, //性别 0未知 1男 2女
-     *     "money":0, //余额 (分)
+     *     "money":0, //余额 (分) <span style="color:red">*已包含赠送金额</span>
+     *     "give":0, //充值赠送金额 (分) <span style="color:red">新增</span>
      *     "ispw":0, //是否已设置密码
      *     "vip_status"1, //vip状态 0不是vip 1未过期 -1已过期
      *     "vip_expire","", //vip截止时间
      *     "firstorder":0, //首单免费状态 0未启用或已使用过 1首单免费已激活(当次下单免费)
      * }}
      */
-    public function getUserInfo () {
+    public function getUserInfo ()
+    {
         return (new ParkWashModel())->getUserInfo($this->_G['user']['uid']);
     }
 
@@ -552,14 +541,14 @@ class ParkWash extends ActionPDO {
     }
 
     /**
-     * 下单
+     * 下单 <span style="color:red">有改动</span>
      * @login
      * @param *store_id 门店ID
      * @param *carport_id 车辆ID
      * @param area_id 区域ID
      * @param place 车位号
      * @param *pool_id 排班ID
-     * @param *items 套餐ID(多个用逗号分隔)
+     * @param *items 套餐ID
      * @param *payway 支付方式(cbpay车币支付wxpaywash小程序支付)
      * @return array
      * {
@@ -569,7 +558,8 @@ class ParkWash extends ActionPDO {
      *      "tradeid":1, //交易单ID (用于后续发起支付)
      * }}
      */
-    public function createCard () {
+    public function createCard ()
+    {
         return (new ParkWashModel())->createCard($this->_G['user']['uid'], $_POST);
     }
 
@@ -757,9 +747,26 @@ class ParkWash extends ActionPDO {
     }
 
     /**
-     * 充值
+     * 获取充值卡类型 <span style="color:red">New</span>
+     * @return array
+     * {
+     * "errNo":0, // 错误码 0成功 -1失败
+     * "message":"", //错误消息
+     * "result":[{
+     *     "id":10, //卡ID
+     *     "price":1, //价格 (元)
+     *     "give":0, //赠送金额 (元)
+     * }]}
+     */
+    public function getRechargeCardType ()
+    {
+        return (new ParkWashModel())->getRechargeCardType();
+    }
+
+    /**
+     * 充值 <span style="color:red">有改动</span>
      * @login
-     * @param *money 充值金额(分)
+     * @param *type_id 充值卡类型ID
      * @param *payway 支付方式(wxpaywash小程序支付)
      * @return array
      * {
@@ -769,7 +776,8 @@ class ParkWash extends ActionPDO {
      *      "tradeid":1, //交易单ID (用于后续发起支付)
      * }}
      */
-    public function recharge () {
+    public function recharge ()
+    {
         return (new ParkWashModel())->recharge($this->_G['user']['uid'], $_POST);
     }
 
