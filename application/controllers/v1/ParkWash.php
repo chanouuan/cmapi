@@ -436,7 +436,6 @@ class ParkWash extends ActionPDO {
      *      area_floor:"负一楼", //楼层
      *      area_name:"A区", //区域名称
      *      brand_id:15788, //品牌ID
-     *      brand_logo:"", //品牌logo图片地址
      *      brand_name:"北汽幻速", //品牌名称
      *      car_number:"", //车牌号
      *      name:"北汽幻速", //车全称

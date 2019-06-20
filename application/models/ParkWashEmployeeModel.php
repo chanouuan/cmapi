@@ -61,15 +61,13 @@ class ParkWashEmployeeModel extends Crud {
             return success($result);
         }
 
-        $brandList  = $this->getDb()->table('parkwash_car_brand')->field('id,name')->where(['id' => ['in', array_unique(array_column($orderList, 'brand_id'))]])->select();
-        $brandList  = array_column($brandList, null, 'id');
-        $seriesList = $this->getDb()->table('parkwash_car_series')->field('id,name')->where(['id' => ['in', array_unique(array_column($orderList, 'series_id'))]])->select();
-        $seriesList = array_column($seriesList, null, 'id');
+        $brandList  = $this->getBrandNameById(array_column($orderList, 'brand_id'));
+        $seriesList = $this->getSeriesNameById(array_column($orderList, 'series_id'));
 
         foreach ($orderList as $k => $v) {
             $orderList[$k]['pay']         = round_dollar($v['pay']);
-            $orderList[$k]['brand_name']  = $brandList[$v['brand_id']]['name'];
-            $orderList[$k]['series_name'] = $seriesList[$v['series_id']]['name'];
+            $orderList[$k]['brand_name']  = $brandList[$v['brand_id']];
+            $orderList[$k]['series_name'] = $seriesList[$v['series_id']];
             unset($orderList[$k]['brand_id'], $orderList[$k]['series_id']);
         }
         unset($brandList, $seriesList);
@@ -375,14 +373,12 @@ class ParkWashEmployeeModel extends Crud {
             return error('订单不存在或无效');
         }
 
-        $brandInfo = $this->getDb()->table('parkwash_car_brand')->field('name')->where(['id' => $orderInfo['brand_id']])->find();
-        $seriesInfo = $this->getDb()->table('parkwash_car_series')->field('name')->where(['id' => $orderInfo['series_id']])->find();
         if ($orderInfo['area_id']) {
             $areaInfo = $this->getDb()->table('parkwash_park_area')->field('floor,name')->where(['id' => $orderInfo['area_id']])->find();
         }
         $orderInfo['order_code']    = str_replace(['-', ' ', ':'], '', $orderInfo['create_time']) . $orderInfo['id']; // 组合订单号
-        $orderInfo['brand_name']    = $brandInfo['name'];
-        $orderInfo['series_name']   = $seriesInfo['name'];
+        $orderInfo['brand_name']    = $this->getBrandNameById($orderInfo['brand_id']);
+        $orderInfo['series_name']   = $this->getSeriesNameById($orderInfo['series_id']);
         $orderInfo['area_floor']    = strval($areaInfo['floor']);
         $orderInfo['area_name']     = strval($areaInfo['name']);
         $orderInfo['payway']        = ParkWashPayWay::getMessage($orderInfo['payway']);
@@ -392,8 +388,7 @@ class ParkWashEmployeeModel extends Crud {
         $orderInfo['complete_time'] = strval($orderInfo['complete_time']);
         $orderInfo['cancel_time']   = strval($orderInfo['cancel_time']);
 
-        unset($orderInfo['brand_id'], $orderInfo['series_id'], $orderInfo['area_id']);
-        unset($brandInfo, $seriesInfo, $areaInfo);
+        unset($areaInfo, $orderInfo['brand_id'], $orderInfo['series_id'], $orderInfo['area_id']);
 
         // 帮手
         if (ParkWashOrderStatus::inService($orderInfo['status'])) {
@@ -496,18 +491,17 @@ class ParkWashEmployeeModel extends Crud {
             return success($result);
         }
 
-        $brandList = $this->getDb()->table('parkwash_car_brand')->field('id,name')->where(['id' => ['in', array_unique(array_column($orderList, 'brand_id'))]])->select();
-        $brandList = array_column($brandList, null, 'id');
-        $seriesList = $this->getDb()->table('parkwash_car_series')->field('id,name')->where(['id' => ['in', array_unique(array_column($orderList, 'series_id'))]])->select();
-        $seriesList = array_column($seriesList, null, 'id');
+        $brandList  = $this->getBrandNameById(array_column($orderList, 'brand_id'));
+        $seriesList = $this->getSeriesNameById(array_column($orderList, 'series_id'));
+
         $areaList = array_filter(array_unique(array_column($orderList, 'area_id')));
         if ($areaList) {
             $areaList = $this->getDb()->table('parkwash_park_area')->field('id,floor,name')->where(['id' => ['in', $areaList]])->select();
             $areaList = array_column($areaList, null, 'id');
         }
         foreach ($orderList as $k => $v) {
-            $orderList[$k]['brand_name'] = $brandList[$v['brand_id']]['name'];
-            $orderList[$k]['series_name'] = $seriesList[$v['series_id']]['name'];
+            $orderList[$k]['brand_name'] = $brandList[$v['brand_id']];
+            $orderList[$k]['series_name'] = $seriesList[$v['series_id']];
             $orderList[$k]['area_floor'] = isset($areaList[$v['area_id']]) ? $areaList[$v['area_id']]['floor'] : '';
             $orderList[$k]['area_name'] = isset($areaList[$v['area_id']]) ? $areaList[$v['area_id']]['name'] : '';
             unset($orderList[$k]['brand_id'], $orderList[$k]['series_id'], $orderList[$k]['area_id']);
@@ -629,6 +623,54 @@ class ParkWashEmployeeModel extends Crud {
         unset($userInfo['password'], $userInfo['status']);
 
         return success($userInfo);
+    }
+
+    /**
+     * 获取汽车车系名称
+     */
+    public function getSeriesNameById ($id)
+    {
+        if (empty($id)) {
+            return [];
+        }
+        if (false === F('CarSeriesById')) {
+            $list = $this->getDb()->table('parkwash_car_series')->field('id,name')->select();
+            $list = array_column($list, 'name', 'id');
+            F('CarSeriesById', $list);
+        }
+        $list = F('CarSeriesById');
+        if (!is_array($id)) {
+            return isset($list[$id]) ? $list[$id] : '';
+        }
+        $data = [];
+        foreach ($id as $v) {
+            $data[$v] = isset($list[$v]) ? $list[$v] : '';
+        }
+        return $data;
+    }
+
+    /**
+     * 获取汽车品牌名称
+     */
+    public function getBrandNameById ($id)
+    {
+        if (empty($id)) {
+            return [];
+        }
+        if (false === F('CarBrandById')) {
+            $list = $this->getDb()->table('parkwash_car_brand')->field('id,name')->select();
+            $list = array_column($list, 'name', 'id');
+            F('CarBrandById', $list);
+        }
+        $list = F('CarBrandById');
+        if (!is_array($id)) {
+            return isset($list[$id]) ? $list[$id] : '';
+        }
+        $data = [];
+        foreach ($id as $v) {
+            $data[$v] = isset($list[$v]) ? $list[$v] : '';
+        }
+        return $data;
     }
 
 }
