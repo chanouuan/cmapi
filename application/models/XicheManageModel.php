@@ -9,6 +9,49 @@ use app\library\LocationUtils;
 class XicheManageModel extends Crud {
 
     /**
+     * 套餐编辑
+     */
+    public function carTypeUpdate ($post)
+    {
+        $post['name'] = trim_space($post['name']);
+        if (empty($post['name'])) {
+            return error('名称不能为空');
+        }
+        if (false === $this->getDb()->update('parkwash_car_type', [
+                'name' => $post['name']
+            ], ['id' => $post['id']])) {
+            return error('修改失败');
+        }
+        return success('OK');
+    }
+
+    /**
+     * 套餐添加
+     */
+    public function carTypeAdd ($post)
+    {
+        $post['name'] = trim_space($post['name']);
+        if (empty($post['name'])) {
+            return error('名称不能为空');
+        }
+        if (!$this->getDb()->insert('parkwash_car_type', [
+            'name' => $post['name']
+        ])) {
+            return error('添加失败');
+        }
+        return success('OK');
+    }
+
+    /**
+     * 获取车类型
+     */
+    public function getCarTypeItem ()
+    {
+        $list = $this->getList('parkwash_car_type', null, null, null);
+        return array_column($list, 'name', 'id');
+    }
+
+    /**
      * 获取车辆入场信息
      */
     public function entryParkInfo ($orderid) {
@@ -178,13 +221,14 @@ class XicheManageModel extends Crud {
         $post['price'] = floatval($post['price']);
         $post['price'] = $post['price'] < 0 ? 0 : $post['price'];
         $post['price'] = intval($post['price'] * 100);
+        $post['car_type_id'] = intval($post['car_type_id']);
 
         if (empty($post['name'])) {
             return error('项目名不能为空');
         }
 
         if (false === $this->getDb()->update('parkwash_item', [
-            'name' => $post['name'], 'price' => $post['price']
+            'name' => $post['name'], 'price' => $post['price'], 'car_type_id' => $post['car_type_id']
         ], ['id' => $post['id']])) {
             return error('修改失败');
         }
@@ -200,13 +244,14 @@ class XicheManageModel extends Crud {
         $post['price'] = floatval($post['price']);
         $post['price'] = $post['price'] < 0 ? 0 : $post['price'];
         $post['price'] = intval($post['price'] * 100);
+        $post['car_type_id'] = intval($post['car_type_id']);
 
         if (empty($post['name'])) {
             return error('项目名不能为空');
         }
 
         if (!$this->getDb()->insert('parkwash_item', [
-            'name' => $post['name'], 'price' => $post['price']
+            'name' => $post['name'], 'price' => $post['price'], 'car_type_id' => $post['car_type_id']
         ])) {
             return error('添加失败');
         }

@@ -1,0 +1,38 @@
+<?php include('header.html'); ?>
+
+<body>
+<div class="x-nav">
+      <span class="layui-breadcrumb">
+        <a><cite>套餐设置</cite></a>
+      </span>
+    <a class="layui-btn layui-btn-small" style="line-height:1.6em;margin-top:3px;float:right" href="javascript:location.replace(location.href);" title="刷新"><i class="layui-icon" style="line-height:30px">ဂ</i></a>
+</div>
+<div class="x-body">
+    <xblock>
+        <button class="layui-btn" onclick="x_admin_show('添加车型','<?=gurl('xicheManage/carTypeAdd')?>')"><i class="layui-icon"></i>添加</button>
+    </xblock>
+    <table class="layui-table">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>名称</th>
+            <th>操作</th>
+        </tr>
+        </thead>
+        <tbody>
+        <?php foreach($list as $k=>$v){ ?>
+        <tr>
+            <td><?=$k?></td>
+            <td><?=$v?></td>
+            <td class="td-manage">
+                <button class="layui-btn layui-btn layui-btn-xs" onclick="x_admin_show('编辑车型','<?=gurl('xicheManage/carTypeUpdate',['id'=>$k])?>')"><i class="layui-icon"></i>编辑</button>
+            </td>
+        </tr>
+        <?php } ?>
+        </tbody>
+    </table>
+</div>
+
+</body>
+
+</html>

@@ -332,7 +332,7 @@ class ParkWashEmployee extends ActionPDO {
      *          "complete_time":"", //完成时间
      *          "brand_name":"斯柯达", //汽车品牌名
      *          "series_name":"昊锐", //汽车款型
-     *          "pay":0, //收益（元）
+     *          "employee_salary":0, //收益（元）
      *      }]
      * }}
      */

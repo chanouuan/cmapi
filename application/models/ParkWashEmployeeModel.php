@@ -14,7 +14,7 @@ class ParkWashEmployeeModel extends Crud {
     public function statistics ($uid, $post)
     {
         // 最后排序字段
-        $post['lastpage'] = intval($post['lastpage']);
+        $post['lastpage']   = intval($post['lastpage']);
         // 搜索时间
         $post['start_time'] = strtotime($post['start_time']);
         $post['end_time']   = strtotime($post['start_time']);
@@ -48,8 +48,8 @@ class ParkWashEmployeeModel extends Crud {
         ];
 
         // 获取统计
-        $totalList = $this->getDb()->table('parkwash_order')->field('sum(pay+deduct) as pay, count(*) as count')->where($condition)->find();
-        $result['total_pay']      = round_dollar(intval($totalList['pay']));
+        $totalList = $this->getDb()->table('parkwash_order')->field('sum(employee_salary) as employee_salary, count(*) as count')->where($condition)->find();
+        $result['total_pay']      = round_dollar(intval($totalList['employee_salary']));
         $result['complete_count'] = intval($totalList['count']);
 
         if ($post['lastpage'] > 0) {
@@ -57,7 +57,7 @@ class ParkWashEmployeeModel extends Crud {
         }
 
         // 获取订单
-        if (!$orderList = $this->getDb()->table('parkwash_order')->field('id,pay+deduct as pay,car_number,brand_id,series_id,item_name,complete_time')->where($condition)->order('id desc')->limit($result['limit'])->select()) {
+        if (!$orderList = $this->getDb()->table('parkwash_order')->field('id,employee_salary,car_number,brand_id,series_id,item_name,complete_time')->where($condition)->order('id desc')->limit($result['limit'])->select()) {
             return success($result);
         }
 
@@ -65,14 +65,14 @@ class ParkWashEmployeeModel extends Crud {
         $seriesList = $this->getSeriesNameById(array_column($orderList, 'series_id'));
 
         foreach ($orderList as $k => $v) {
-            $orderList[$k]['pay']         = round_dollar($v['pay']);
-            $orderList[$k]['brand_name']  = $brandList[$v['brand_id']];
-            $orderList[$k]['series_name'] = $seriesList[$v['series_id']];
+            $result['lastpage'] = $v['id'];
+            $orderList[$k]['employee_salary'] = round_dollar($v['employee_salary']);
+            $orderList[$k]['brand_name']      = $brandList[$v['brand_id']];
+            $orderList[$k]['series_name']     = $seriesList[$v['series_id']];
             unset($orderList[$k]['brand_id'], $orderList[$k]['series_id']);
         }
         unset($brandList, $seriesList);
 
-        $result['lastpage'] = end($orderList)['id'];
         $result['list'] = $orderList;
         unset($orderList);
 
@@ -141,7 +141,7 @@ class ParkWashEmployeeModel extends Crud {
             return error('员工不存在或已禁用');
         }
 
-        if (!$orderInfo = $this->getDb()->table('parkwash_order')->field('id,uid,store_id,user_tel,status')->where(['id' => $post['orderid'], 'employee_id' => $uid])->limit(1)->find()) {
+        if (!$orderInfo = $this->getDb()->table('parkwash_order')->field('id,uid,store_id,item_id,user_tel,status')->where(['id' => $post['orderid'], 'employee_id' => $uid])->limit(1)->find()) {
             return error('订单不存在或无效');
         }
 
@@ -149,11 +149,17 @@ class ParkWashEmployeeModel extends Crud {
             return error('该订单已不在服务中');
         }
 
+        // 获取员工收益
+        if (!$itemInfo = $this->getDb()->table('parkwash_store_item')->field('employee_salary')->where(['store_id' => $orderInfo['store_id'], 'item_id' => $orderInfo['item_id']])->find()) {
+            return error('该订单不能结算');
+        }
+
         // 更新订单状态
         if (!$this->getDb()->update('parkwash_order', [
-            'status'        => ParkWashOrderStatus::COMPLETE,
-            'complete_time' => date('Y-m-d H:i:s', TIMESTAMP),
-            'update_time'   => date('Y-m-d H:i:s', TIMESTAMP)
+            'status'          => ParkWashOrderStatus::COMPLETE,
+            'complete_time'   => date('Y-m-d H:i:s', TIMESTAMP),
+            'update_time'     => date('Y-m-d H:i:s', TIMESTAMP),
+            'employee_salary' => $itemInfo['employee_salary']
         ], [
             'id'     => $post['orderid'],
             'status' => ParkWashOrderStatus::IN_SERVICE
@@ -161,16 +167,19 @@ class ParkWashEmployeeModel extends Crud {
             return error('更新订单失败');
         }
 
+        // 更新员工总收益
+        $this->getDb()->update('parkwash_employee', [
+            'money' => ['money+' . $itemInfo['employee_salary']], 'state_work' => 0
+        ], ['id' => $uid]);
+
         // 更新员工工作状态
-        $employeeIds = [$uid];
         $helperList = $this->getDb()->table('parkwash_order_helper')->field('helper_id')->where(['orderid' => $post['orderid']])->select();
         if ($helperList) {
             $helperList = array_column($helperList, 'helper_id');
-            $employeeIds = array_merge($employeeIds, $helperList);
+            $this->getDb()->update('parkwash_employee', [
+                'state_work' => 0
+            ], ['id' => ['in', $helperList]]);
         }
-        $this->getDb()->update('parkwash_employee', [
-            'state_work' => 0
-        ], ['id' => ['in', $employeeIds]]);
 
         // 删除入场车查询队列任务
         $this->getDb()->delete('parkwash_order_queue', [
@@ -283,11 +292,6 @@ class ParkWashEmployeeModel extends Crud {
         $this->getDb()->update('parkwash_employee', [
             'state_work' => 1
         ], ['id' => ['in', $employeeIds]]);
-
-        // 更新员工收益
-        $this->getDb()->update('parkwash_employee', [
-            'money' => ['money+' . ($orderInfo['pay'] + $orderInfo['deduct'])]
-        ], ['id' => $uid]);
 
         // 删除入场车查询队列任务
         $this->getDb()->delete('parkwash_order_queue', [
@@ -500,15 +504,15 @@ class ParkWashEmployeeModel extends Crud {
             $areaList = array_column($areaList, null, 'id');
         }
         foreach ($orderList as $k => $v) {
-            $orderList[$k]['brand_name'] = $brandList[$v['brand_id']];
+            $result['lastpage'] = $v['id'];
+            $orderList[$k]['brand_name']  = $brandList[$v['brand_id']];
             $orderList[$k]['series_name'] = $seriesList[$v['series_id']];
-            $orderList[$k]['area_floor'] = isset($areaList[$v['area_id']]) ? $areaList[$v['area_id']]['floor'] : '';
-            $orderList[$k]['area_name'] = isset($areaList[$v['area_id']]) ? $areaList[$v['area_id']]['name'] : '';
+            $orderList[$k]['area_floor']  = isset($areaList[$v['area_id']]) ? $areaList[$v['area_id']]['floor'] : '';
+            $orderList[$k]['area_name']   = isset($areaList[$v['area_id']]) ? $areaList[$v['area_id']]['name'] : '';
             unset($orderList[$k]['brand_id'], $orderList[$k]['series_id'], $orderList[$k]['area_id']);
         }
         unset($brandList, $seriesList, $areaList);
 
-        $result['lastpage'] = end($orderList)['id'];
         $result['list'] = $orderList;
         unset($orderList);
 

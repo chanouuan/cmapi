@@ -17,6 +17,7 @@
             <th>ID</th>
             <th>项目名</th>
             <th>建议价 (元)</th>
+            <th>服务车型</th>
             <th>操作</th>
         </tr>
         </thead>
@@ -26,6 +27,7 @@
             <td><?=$v['id']?></td>
             <td><?=$v['name']?></td>
             <td><?=round_dollar($v['price'])?></td>
+            <td><?=$v['car_type']?></td>
             <td class="td-manage">
                 <button class="layui-btn layui-btn layui-btn-xs" onclick="x_admin_show('编辑项目','<?=gurl('xicheManage/itemUpdate',['id'=>$v['id']])?>')"><i class="layui-icon"></i>编辑</button>
                 <button class="layui-btn-danger layui-btn layui-btn-xs" onclick="del(<?=$v['id']?>)"><i class="layui-icon"></i>删除</button>

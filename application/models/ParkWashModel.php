@@ -940,7 +940,7 @@ class ParkWashModel extends Crud {
         $post['store_id']  = intval($post['store_id']);
         $post['series_id'] = intval($post['series_id']);
 
-        // 获取车系的车系
+        // 获取车系的车型
         $seriesInfo = $this->getDb()->table('parkwash_car_series')->field('car_type_id')->where(['id' => $post['series_id']])->limit(1)->find();
 
         if (!$itemList = $this->getDb()
@@ -948,7 +948,7 @@ class ParkWashModel extends Crud {
             ->join('join parkwash_item item on item.id = store_item.item_id')
             ->field('item.id,item.name,store_item.price')->where([
                 'store_item.store_id' => $post['store_id'],
-                'item.car_type_id'    => $seriesInfo['car_type_id'],
+                'item.car_type_id'    => ['in (0, ' . $seriesInfo['car_type_id'] . ')'],
             ])->select()) {
             return success([]);
         }

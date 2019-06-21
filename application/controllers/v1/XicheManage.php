@@ -51,12 +51,51 @@ class XicheManage extends ActionPDO {
     }
 
     /**
+     * 车型列表
+     */
+    public function carType ()
+    {
+        return [
+            'list' => (new XicheManageModel())->getCarTypeItem()
+        ];
+    }
+
+    /**
+     * 车型添加
+     */
+    public function carTypeAdd ()
+    {
+        if (submitcheck()) {
+            return (new XicheManageModel())->carTypeAdd($_POST);
+        }
+        return [];
+    }
+
+    /**
+     * 车型编辑
+     */
+    public function carTypeUpdate ()
+    {
+        $model = new XicheManageModel();
+        if (submitcheck()) {
+            return $model->itemUpdate($_POST);
+        }
+        return [
+            'info' => $model->getInfo('parkwash_car_type', ['id' => getgpc('id')])
+        ];
+    }
+
+    /**
      * 套餐列表
      */
-    public function item () {
-
-        $list = (new XicheManageModel())->getList('parkwash_item', null, null, null);
-
+    public function item ()
+    {
+        $model = new XicheManageModel();
+        $list = $model->getList('parkwash_item', null, null, null);
+        $carType = $model->getCarTypeItem();
+        foreach ($list as $k => $v) {
+            $list[$k]['car_type'] = isset($carType[$v['car_type_id']]) ? $carType[$v['car_type_id']] : '不限';
+        }
         return [
             'list' => $list
         ];
@@ -65,27 +104,33 @@ class XicheManage extends ActionPDO {
     /**
      * 套餐添加
      */
-    public function itemAdd () {
+    public function itemAdd ()
+    {
+        $model = new XicheManageModel();
 
         if (submitcheck()) {
-            return (new XicheManageModel())->itemAdd($_POST);
+            return $model->itemAdd($_POST);
         }
 
-        return [];
+        return [
+            'carType' => $model->getCarTypeItem()
+        ];
     }
 
     /**
      * 套餐编辑
      */
-    public function itemUpdate () {
+    public function itemUpdate ()
+    {
+        $model = new XicheManageModel();
 
         if (submitcheck()) {
-            return (new XicheManageModel())->itemUpdate($_POST);
+            return $model->itemUpdate($_POST);
         }
 
-        $info = (new XicheManageModel())->getInfo('parkwash_item', ['id' => getgpc('id')]);
         return [
-            'info' => $info
+            'info' => $model->getInfo('parkwash_item', ['id' => getgpc('id')]),
+            'carType' => $model->getCarTypeItem()
         ];
     }
 

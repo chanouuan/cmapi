@@ -20,6 +20,19 @@
                 </div>
             </div>
             <div class="layui-form-item">
+                <label class="layui-form-label">
+                    服务车型
+                </label>
+                <div class="layui-input-inline">
+                    <select name="car_type_id">
+                        <option value="">不限</option>
+                        <?php foreach($carType as $k=>$v){ ?>
+                        <option <?php if($info['car_type_id']==$k){ ?>selected<?php } ?> value="<?=$k?>"><?=$v?></option>
+                        <?php } ?>
+                    </select>
+                </div>
+            </div>
+            <div class="layui-form-item">
                 <input type="hidden" name="id" value="<?=$info['id']?>">
                 <input type="hidden" name="formhash" value="<?=encode_formhash()?>">
                 <label class="layui-form-label"></label>
