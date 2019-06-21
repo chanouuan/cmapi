@@ -1212,41 +1212,33 @@ class ParkWashModel extends Crud {
     /**
      * 获取自助洗车机列表
      */
-    public function getXicheDeviceList ($post) {
-
+    public function getXicheDeviceList ($post)
+    {
         // 城市
-        $post['adcode'] = intval($post['adcode']);
+        $post['adcode']   = intval($post['adcode']);
         // 最后排序字段
         $post['lastpage'] = intval($post['lastpage']);
-        // 排序字段
-        $post['ordername'] = 'geohash';
-        $post['ordersort'] = 'asc';
 
         // 查询字段
         $field = [
             'id', 'areaname', 'address', 'location', 'usetime', 'isonline', 'price', 'order_count', 'parameters', 'sort'
         ];
-        $minField = [
-            'id', 'location'
-        ];
+
         // 结果返回
         $result = [
-            'limit' => 10,
+            'limit'    => 10,
             'lastpage' => '',
-            'list' => []
+            'list'     => []
+        ];
+        $condition = [
+            'adcode' => $post['adcode']
         ];
 
-        // 经纬度排序
-        if ($post['ordername'] == 'geohash') {
-            $geohash = $this->geoOrder($post['lon'], $post['lat']);
-            if (!$geohash) {
-                // 经纬度错误
-                return success($result);
-            } else {
-                $minField[] = $geohash . ' as geohash';
-            }
+        $geohash = $this->geoOrder($post['lon'], $post['lat']);
+
+        if ($geohash) {
             // 获取附近洗车机
-            if (!$list = $this->getDb()->table('pro_xiche_device')->field($minField)->where(['adcode' => $post['adcode'], 'geohash' => ['<', 10]])->order('geohash')->limit(1000)->select()) {
+            if (!$list = $this->getDb()->table('pro_xiche_device')->field(['id', 'location', $geohash . ' as geohash'])->where(['adcode' => $post['adcode'], 'geohash' => ['<', 10]])->order('geohash')->limit(1000)->select()) {
                 return success($result);
             }
             foreach ($list as $k => $v) {
@@ -1259,11 +1251,18 @@ class ParkWashModel extends Crud {
                 return success($result);
             }
             $condition['id'] = ['in', array_column($list, 'id')];
+            $limit = $result['limit'];
             $order = 'field(id,' . implode(',', array_column($list, 'id')) . ')';
+        } else {
+            // 经纬度错误
+            $count    = $this->getDb()->table('pro_xiche_device')->where($condition)->count();
+            $pagesize = getPageParams($post['lastpage'], $count, $result['limit']);
+            $limit    = $pagesize['limitstr'];
+            $order    = 'id';
         }
 
         // 获取洗车机
-        if (!$list = $this->getDb()->table('pro_xiche_device')->field($field)->where($condition)->order($order)->limit($result['limit'])->select()) {
+        if (!$list = $this->getDb()->table('pro_xiche_device')->field($field)->where($condition)->order($order)->limit($limit)->select()) {
             return success($result);
         }
 
@@ -1277,10 +1276,8 @@ class ParkWashModel extends Crud {
             } else {
                 $list[$k]['use_state'] = 0;
             }
-            if ($post['ordername'] == 'geohash') {
-                // 获取距离公里
-                $list[$k]['distance'] = round(LocationUtils::getDistance($v['location'], $post) / 1000, 2);
-            }
+            // 获取距离公里
+            $list[$k]['distance'] = round(LocationUtils::getDistance($v['location'], $post) / 1000, 2);
             unset($list[$k]['isonline'], $list[$k]['usetime'], $list[$k]['geohash'], $list[$k]['sort'], $list[$k]['parameters']);
         }
 
@@ -1293,61 +1290,57 @@ class ParkWashModel extends Crud {
     /**
      * 获取门店列表
      */
-    public function getStoreList ($post) {
-
+    public function getStoreList ($post)
+    {
         // 城市
-        $post['adcode'] = intval($post['adcode']);
+        $post['adcode']    = intval($post['adcode']);
         // 最后排序字段
-        $post['lastpage'] = intval($post['lastpage']);
-        // 排序字段
-        $post['ordername'] = 'geohash';
-        $post['ordersort'] = 'asc';
+        $post['lastpage']  = intval($post['lastpage']);
 
         // 查询字段
         $field = [
             'id', 'name', 'logo', 'address', 'tel', 'location', 'business_hours', 'market', 'price', '(order_count * order_count_ratio) as order_count', 'status', 'sort'
         ];
-        $minField = [
-            'id', 'location'
-        ];
+
         // 结果返回
         $result = [
-            'limit' => 10,
+            'limit'    => 10,
             'lastpage' => '',
-            'list' => []
+            'list'     => []
         ];
         $condition = [
             'adcode' => $post['adcode']
         ];
 
-        // 经纬度排序
-        if ($post['ordername'] == 'geohash') {
-            $geohash = $this->geoOrder($post['lon'], $post['lat']);
-            if (!$geohash) {
-                // 经纬度错误
-                return success($result);
-            } else {
-                $minField[] = $geohash . ' as geohash';
-            }
+        $geohash = $this->geoOrder($post['lon'], $post['lat']);
+
+        if ($geohash) {
             // 获取附近门店
-            if (!$list = $this->getDb()->table('parkwash_store')->field($minField)->where(['adcode' => $post['adcode'], 'geohash' => ['<', 10]])->order('geohash')->limit(1000)->select()) {
+            if (!$list = $this->getDb()->table('parkwash_store')->field(['id', 'location', 'status', $geohash . ' as geohash'])->where(['adcode' => $post['adcode'], 'geohash' => ['<', 10]])->order('geohash')->limit(1000)->select()) {
                 return success($result);
             }
             foreach ($list as $k => $v) {
                 $list[$k]['distance'] = LocationUtils::getDistance($v['location'], $post);
             }
-            // 按照距离进行排序
-            array_multisort(array_column($list, 'distance'), SORT_ASC, SORT_NUMERIC,  $list);
+            // 按状态降序再按距离升序
+            array_multisort(array_column($list, 'status'), SORT_DESC, SORT_NUMERIC, array_column($list, 'distance'), SORT_ASC, SORT_NUMERIC,  $list);
             // 分页
             if (!$list = array_slice($list, $post['lastpage'] * $result['limit'], $result['limit'])) {
                 return success($result);
             }
             $condition['id'] = ['in', array_column($list, 'id')];
+            $limit = $result['limit'];
             $order = 'field(id,' . implode(',', array_column($list, 'id')) . ')';
+        } else {
+            // 经纬度错误
+            $count    = $this->getDb()->table('parkwash_store')->where($condition)->count();
+            $pagesize = getPageParams($post['lastpage'], $count, $result['limit']);
+            $limit    = $pagesize['limitstr'];
+            $order    = 'status desc';
         }
 
         // 获取门店
-        if (!$list = $this->getDb()->table('parkwash_store')->field($field)->where($condition)->order($order)->limit($result['limit'])->select()) {
+        if (!$list = $this->getDb()->table('parkwash_store')->field($field)->where($condition)->order($order)->limit($limit)->select()) {
             return success($result);
         }
 
@@ -1357,10 +1350,8 @@ class ParkWashModel extends Crud {
                 $v['logo'] = json_decode($v['logo'], true);
                 $list[$k]['logo'] = httpurl(getthumburl($v['logo'][0]));
             }
-            if ($post['ordername'] == 'geohash') {
-                // 获取距离公里
-                $list[$k]['distance'] = round(LocationUtils::getDistance($v['location'], $post) / 1000, 2);
-            }
+            // 获取距离公里
+            $list[$k]['distance'] = round(LocationUtils::getDistance($v['location'], $post) / 1000, 2);
             // 是否在营业时间
             $list[$k]['is_business_hour'] = $this->checkBusinessHoursRange($v['business_hours']);
             unset($list[$k]['geohash'], $list[$k]['sort']);
