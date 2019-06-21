@@ -668,6 +668,9 @@ class DebugLog {
         $destination = concat(APPLICATION_PATH, DIRECTORY_SEPARATOR, 'log', DIRECTORY_SEPARATOR, str_replace('_', DIRECTORY_SEPARATOR, date($rule, TIMESTAMP)), '_', $logfile, '.log');
         mkdirm(dirname($destination));
         error_log(implode("\r\n", $message) . "\r\n\r\n", 3, $destination);
+        if (filesize($destination) > 20971520) {
+            rename($destination, str_replace('.log', '_' . date('His', TIMESTAMP) . '.log', $destination));
+        }
     }
 
     /**
