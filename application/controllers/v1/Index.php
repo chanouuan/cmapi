@@ -188,9 +188,11 @@ class Index extends \ActionPDO {
         $path = ltrim(str_replace('.', '', $path), '/');
         $path = $path ? $path : (date('Ym') . '/' . date('Ymd') . '_debug');
         $path = APPLICATION_PATH . '/log/' . $path . '.log';
-        $list = get_list_dir(APPLICATION_PATH . '/log');
-        foreach ($list as $k => $v) {
-            $list[$k] = str_replace(APPLICATION_PATH . '/log', '', $v) . ' ' . byte_convert(filesize($v)) . ' <a href="' . APPLICATION_URL . '/index/logger?path=' . str_replace([APPLICATION_PATH . '/log', '.log'], '', $v) . '&clear=1">DEL</a>';
+        if ($_GET['dir']) {
+            $list = get_list_dir(APPLICATION_PATH . '/log');
+            foreach ($list as $k => $v) {
+                $list[$k] = str_replace(APPLICATION_PATH . '/log', '', $v) . ' ' . byte_convert(filesize($v)) . ' <a href="' . APPLICATION_URL . '/index/logger?path=' . str_replace([APPLICATION_PATH . '/log', '.log'], '', $v) . '&dir=1&clear=1">DEL</a>';
+            }
         }
         if ($_GET['clear']) {
             if (file_exists($path)) {

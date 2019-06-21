@@ -248,7 +248,7 @@ abstract class ActionPDO {
                 array_splice($paramList, 0, 0, '*token string 登录Token');
             }
             foreach ($paramList as $kk => $vv) {
-                $vv = array_slice(array_filter(explode(' ', trim($vv))), 0, 3);
+                $vv = array_filter(explode(' ', trim($vv) , 3));
                 if (count($vv) == 2) {
                     array_splice($vv, 1, 0, 'string');
                 }

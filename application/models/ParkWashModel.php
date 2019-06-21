@@ -935,14 +935,21 @@ class ParkWashModel extends Crud {
     /**
      * 获取洗车店洗车套餐
      */
-    public function getStoreItem ($post) {
+    public function getStoreItem ($post)
+    {
+        $post['store_id']  = intval($post['store_id']);
+        $post['series_id'] = intval($post['series_id']);
 
-        $post['store_id'] = intval($post['store_id']);
+        // 获取车系的车系
+        $seriesInfo = $this->getDb()->table('parkwash_car_series')->field('car_type_id')->where(['id' => $post['series_id']])->limit(1)->find();
 
         if (!$itemList = $this->getDb()
             ->table('parkwash_store_item store_item')
             ->join('join parkwash_item item on item.id = store_item.item_id')
-            ->field('item.id,item.name,store_item.price')->where(['store_item.store_id' => $post['store_id']])->select()) {
+            ->field('item.id,item.name,store_item.price')->where([
+                'store_item.store_id' => $post['store_id'],
+                'item.car_type_id'    => $seriesInfo['car_type_id'],
+            ])->select()) {
             return success([]);
         }
 
@@ -1632,7 +1639,7 @@ class ParkWashModel extends Crud {
         }
 
         // 套餐
-        if (!$itemInfo = $this->getDb()->table('parkwash_item')->field('id,name')->where(['id' => $post['items']])->find()) {
+        if (!$itemInfo = $this->getDb()->table('parkwash_item')->field('id,name')->where(['id' => $post['items']])->limit(1)->find()) {
             return error('该套餐不存在');
         }
 

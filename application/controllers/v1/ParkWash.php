@@ -523,8 +523,9 @@ class ParkWash extends ActionPDO {
     }
 
     /**
-     * 获取洗车店洗车套餐
+     * 获取洗车店洗车套餐 <span style="color:red">有改动</span>
      * @param *store_id 门店ID
+     * @param *series_id string 车系ID <span style="color:red">新增</span>
      * @return array
      * {
      * "errNo":0, //错误码 0成功 -1失败
@@ -535,12 +536,13 @@ class ParkWash extends ActionPDO {
      *      "price":1000, //价格 (分)
      * }]}
      */
-    public function getStoreItem () {
+    public function getStoreItem ()
+    {
         return (new ParkWashModel())->getStoreItem($_POST);
     }
 
     /**
-     * 下单 <span style="color:red">有改动</span>
+     * 下单
      * @login
      * @param *store_id 门店ID
      * @param *carport_id 车辆ID
@@ -765,7 +767,7 @@ class ParkWash extends ActionPDO {
     /**
      * 充值 <span style="color:red">有改动</span>
      * @login
-     * @param *type_id 充值卡类型ID
+     * @param *type_id string 充值卡类型ID <span style="color:red">新增</span>
      * @param *payway 支付方式(wxpaywash小程序支付)
      * @return array
      * {
