@@ -10,16 +10,55 @@
 
     <link rel="stylesheet" href="<?=APPLICATION_URL?>/static/X-admin/css/font.css">
 	<link rel="stylesheet" href="<?=APPLICATION_URL?>/static/X-admin/css/xadmin.css">
+    <link rel="stylesheet" href="<?=APPLICATION_URL?>/static/X-admin/css/theme5.css">
     <script type="text/javascript" src="<?=APPLICATION_URL?>/static/js/jquery-1.12.4.min.js"></script>
-    <script type="text/javascript" src="<?=APPLICATION_URL?>/static/js/md5.min.js"></script>
+    <!-- <script type="text/javascript" src="<?=APPLICATION_URL?>/static/js/md5.min.js"></script> -->
     <script type="text/javascript" src="<?=APPLICATION_URL?>/static/X-admin/lib/layui/layui.js" charset="utf-8"></script>
     <script type="text/javascript" src="<?=APPLICATION_URL?>/static/X-admin/js/xadmin.js"></script>
-    <script type="text/javascript" src="<?=APPLICATION_URL?>/static/X-admin/js/cookie.js"></script>
+    <!-- <script type="text/javascript" src="<?=APPLICATION_URL?>/static/X-admin/js/cookie.js"></script> -->
 
     <!-- 让IE8/9支持媒体查询，从而兼容栅格 -->
     <!--[if lt IE 9]>
     <script src="https://cdn.staticfile.org/html5shiv/r29/html5.min.js"></script>
     <script src="https://cdn.staticfile.org/respond.js/1.4.2/respond.min.js"></script>
     <![endif]-->
+
+    <script>
+        // 是否开启刷新记忆tab功能
+        var is_remember = false;
+    </script>
+
+    <style>
+        .left-nav{
+            bottom: 42px;
+        }
+        .page-content{
+            bottom: 42px;
+        }
+        .footer{
+            position: fixed;
+            bottom: 0px;
+            width: 100%;
+            background-color: #333;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            line-height: 41px;
+            color: #fff;
+        }
+        .footer .copyright{
+            margin-left: 10px;
+        }
+        .right-page{
+            float: right;
+            line-height: 40px;
+        }
+        .right-page:after{
+            clear: both;
+        }
+        .card-table{
+            overflow-x: auto;
+            -ms-overflow-x: auto;
+            clear: both
+        }
+    </style>
 </head>
 

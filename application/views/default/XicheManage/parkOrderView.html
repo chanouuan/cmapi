@@ -1,14 +1,15 @@
 <?php include('header.html'); ?>
 
   <body>
-    <div class="x-body">
+    <div class="layui-fluid">
+        <div class="layui-row">
 
         <div class="layui-tab">
             <ul class="layui-tab-title">
                 <li class="layui-this">订单信息</li>
                 <li>订单状态</li>
             </ul>
-            <div class="layui-tab-content"  style="background-color: #F2F2F2;">
+            <div class="layui-tab-content" >
                 <div class="layui-tab-item layui-show" >
                     <div class="layui-card">
                         <div class="layui-card-body">
@@ -80,10 +81,7 @@
                             车位号：<?=$info['place']?>
                         </div>
                         <div class="layui-card-body">
-                            套餐：
-                            <?php foreach($info['items'] as $v){ ?>
-                            <?=$v['name']?>:<?=$v['price']/100?>元
-                            <?php } ?>
+                            套餐：<?=$info['item_name']?>
                         </div>
                         <div class="layui-card-body">
                             预约时间：<?=$info['order_time']?> - <?=$info['abort_time']?>
@@ -137,6 +135,7 @@
             </div>
         </div>
 
+    </div>
     </div>
 <script>
     function entryParkInfo(id) {

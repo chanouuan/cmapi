@@ -1,11 +1,11 @@
 <?php include('header.html'); ?>
 
-<body>
+<body class="index">
     <!-- 顶部开始 -->
     <div class="container">
         <div class="logo"><a href="./index.html">洗车后台管理</a></div>
         <div class="left_open">
-            <i title="展开左侧栏" class="iconfont">&#xe699;</i>
+            <a><i title="展开左侧栏" class="iconfont">&#xe699;</i></a>
         </div>
         <ul class="layui-nav right" lay-filter="">
           <li class="layui-nav-item">
@@ -19,12 +19,12 @@
     </div>
     <!-- 顶部结束 -->
     <!-- 中部开始 -->
-     <!-- 左侧菜单开始 -->
+    <!-- 左侧菜单开始 -->
     <div class="left-nav">
       <div id="side-nav">
         <ul id="nav">
             <li>
-                <a _href="<?=gurl('xicheManage/store')?>">
+                <a onclick="xadmin.add_tab('店铺管理','<?=gurl('xicheManage/store')?>')">
                     <i class="iconfont">&#xe722;</i>
                     <cite>店铺管理</cite>
                     <i class="iconfont nav_right">&#xe6a7;</i>
@@ -38,13 +38,13 @@
                 </a>
                 <ul class="sub-menu">
                     <li>
-                        <a _href="<?=gurl('xicheManage/parkOrder')?>">
+                        <a onclick="xadmin.add_tab('停车场洗车','<?=gurl('xicheManage/parkOrder')?>')">
                             <i class="iconfont">&#xe6a7;</i>
                             <cite>停车场洗车</cite>
                         </a>
                     </li>
                     <li>
-                        <a _href="<?=gurl('xicheManage/xicheOrder')?>">
+                        <a onclick="xadmin.add_tab('自助洗车','<?=gurl('xicheManage/xicheOrder')?>')">
                             <i class="iconfont">&#xe6a7;</i>
                             <cite>自助洗车</cite>
                         </a>
@@ -52,7 +52,7 @@
                 </ul>
             </li>
             <li>
-                <a _href="<?=gurl('xicheManage/user')?>">
+                <a onclick="xadmin.add_tab('用户管理','<?=gurl('xicheManage/user')?>')">
                     <i class="iconfont">&#xe6b8;</i>
                     <cite>用户管理</cite>
                     <i class="iconfont nav_right">&#xe6a7;</i>
@@ -66,13 +66,13 @@
                 </a>
                 <ul class="sub-menu">
                     <li>
-                        <a _href="<?=gurl('xicheManage/cardType')?>">
+                        <a onclick="xadmin.add_tab('套餐设置','<?=gurl('xicheManage/cardType')?>')">
                             <i class="iconfont">&#xe6a7;</i>
                             <cite>套餐设置</cite>
                         </a>
                     </li>
                     <li>
-                        <a _href="<?=gurl('xicheManage/cardRecord')?>">
+                        <a onclick="xadmin.add_tab('洗车卡','<?=gurl('xicheManage/cardRecord')?>')">
                             <i class="iconfont">&#xe6a7;</i>
                             <cite>洗车卡</cite>
                         </a>
@@ -80,7 +80,7 @@
                 </ul>
             </li>
             <li>
-                <a _href="<?=gurl('xicheManage/item')?>">
+                <a onclick="xadmin.add_tab('洗车套餐','<?=gurl('xicheManage/item')?>')">
                     <i class="iconfont">&#xe6f6;</i>
                     <cite>洗车套餐</cite>
                     <i class="iconfont nav_right">&#xe6a7;</i>
@@ -94,13 +94,13 @@
                 </a>
                 <ul class="sub-menu">
                     <li>
-                        <a _href="<?=gurl('xicheManage/area')?>">
+                        <a onclick="xadmin.add_tab('区域','<?=gurl('xicheManage/area')?>')">
                             <i class="iconfont">&#xe6a7;</i>
                             <cite>区域</cite>
                         </a>
                     </li>
                     <li>
-                        <a _href="<?=gurl('xicheManage/parking')?>">
+                        <a onclick="xadmin.add_tab('车位状态','<?=gurl('xicheManage/parking')?>')">
                             <i class="iconfont">&#xe6a7;</i>
                             <cite>车位状态</cite>
                         </a>
@@ -115,13 +115,13 @@
                 </a>
                 <ul class="sub-menu">
                     <li>
-                        <a _href="<?=gurl('xicheManage/device')?>">
+                        <a onclick="xadmin.add_tab('设备列表','<?=gurl('xicheManage/device')?>')">
                             <i class="iconfont">&#xe6a7;</i>
                             <cite>设备列表</cite>
                         </a>
                     </li>
                     <li>
-                        <a _href="<?=gurl('xicheManage/log')?>">
+                        <a onclick="xadmin.add_tab('日志查看','<?=gurl('xicheManage/log')?>')">
                             <i class="iconfont">&#xe6a7;</i>
                             <cite>日志查看</cite>
                         </a>
@@ -136,19 +136,19 @@
                 </a>
                 <ul class="sub-menu">
                     <li>
-                        <a _href="<?=gurl('xicheManage/carBrand')?>">
+                        <a onclick="xadmin.add_tab('品牌列表','<?=gurl('xicheManage/carBrand')?>')">
                             <i class="iconfont">&#xe6a7;</i>
                             <cite>品牌列表</cite>
                         </a>
                     </li>
                     <li>
-                        <a _href="<?=gurl('xicheManage/carSeries')?>">
+                        <a onclick="xadmin.add_tab('车系列表','<?=gurl('xicheManage/carSeries')?>')">
                             <i class="iconfont">&#xe6a7;</i>
                             <cite>车系列表</cite>
                         </a>
                     </li>
                     <li>
-                        <a _href="<?=gurl('xicheManage/carType')?>">
+                        <a onclick="xadmin.add_tab('车型列表','<?=gurl('xicheManage/carType')?>')">
                             <i class="iconfont">&#xe6a7;</i>
                             <cite>车型列表</cite>
                         </a>
@@ -156,7 +156,7 @@
                 </ul>
             </li>
             <li>
-                <a _href="<?=gurl('xicheManage/config')?>">
+                <a onclick="xadmin.add_tab('系统配置','<?=gurl('xicheManage/config')?>')">
                     <i class="iconfont">&#xe6ae;</i>
                     <cite>系统配置</cite>
                     <i class="iconfont nav_right">&#xe6a7;</i>
@@ -171,16 +171,25 @@
     <div class="page-content">
         <div class="layui-tab tab" lay-filter="xbs_tab" lay-allowclose="false">
           <ul class="layui-tab-title">
-            <li class="home"><i class="layui-icon">&#xe68e;</i>首页</li>
+            <li class="home"><i class="layui-icon">&#xe68e;</i>我的桌面</li>
           </ul>
+          <div class="layui-unselect layui-form-select layui-form-selected" id="tab_right">
+            <dl>
+                <dd data-type="this">关闭当前</dd>
+                <dd data-type="other">关闭其它</dd>
+                <dd data-type="all">关闭全部</dd>
+            </dl>
+          </div>
           <div class="layui-tab-content">
             <div class="layui-tab-item layui-show">
                 <iframe id="iframe-main" src="<?=gurl('XicheManage/welcome')?>" frameborder="0" scrolling="yes" class="x-iframe"></iframe>
             </div>
           </div>
+          <div id="tab_show"></div>
         </div>
     </div>
     <div class="page-content-bg"></div>
+    <style id="theme_style"></style>
     <!-- 右侧主体结束 -->
     <!-- 中部结束 -->
     <!-- 底部开始 -->

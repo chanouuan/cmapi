@@ -1,10 +1,18 @@
 <?php include('header.html'); ?>
 
 <body>
-<div class="x-body">
-    <blockquote class="layui-elem-quote">欢迎管理员：
-        <span class="x-red"><?=$user_info['nickname']?></span>！当前时间:<?=date('Y-m-d H:i:s')?>
-    </blockquote>
+<div class="layui-fluid">
+    <div class="layui-row layui-col-space15">
+        <div class="layui-col-md12">
+            <div class="layui-card">
+                <div class="layui-card-body ">
+                    <blockquote class="layui-elem-quote">欢迎管理员：
+                        <span class="x-red"><?=$user_info['nickname']?></span>！当前时间:<?=date('Y-m-d H:i:s')?>
+                    </blockquote>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 </body>
 </html>

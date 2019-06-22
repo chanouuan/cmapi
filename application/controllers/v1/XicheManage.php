@@ -3,6 +3,7 @@
 namespace app\controllers;
 
 use ActionPDO;
+use app\common\ParkWashPayWay;
 use app\models\XicheManageModel;
 use app\models\UserModel;
 
@@ -428,9 +429,6 @@ class XicheManage extends ActionPDO {
 
         $modle = new XicheManageModel();
         $orderInfo = $modle->getInfo('parkwash_order', ['id' => getgpc('id')]);
-        $payway = [
-            'cbpay' => '车币', 'wxpayjs' => '微信', 'wxpayh5' => '微信H5', 'wxpaywash' => '微信', 'vippay' => '洗车VIP', 'firstpay' => '首单免费'
-        ];
         $brandInfo = $modle->getInfo('parkwash_car_brand', ['id' => $orderInfo['brand_id']], 'name');
         $seriesInfo = $modle->getInfo('parkwash_car_series', ['id' => $orderInfo['series_id']], 'name');
         $areaInfo = $modle->getInfo('parkwash_park_area', ['id' => $orderInfo['area_id']], 'floor,name');
@@ -445,8 +443,7 @@ class XicheManage extends ActionPDO {
         $orderInfo['store_address'] = $storeInfo['address'];
         $orderInfo['store_order_count'] = $storeInfo['order_count'];
         $orderInfo['store_money'] = $storeInfo['money'];
-        $orderInfo['items'] = json_decode($orderInfo['items'], true);
-        $orderInfo['payway'] = isset($payway[$orderInfo['payway']]) ? $payway[$orderInfo['payway']] : $orderInfo['payway'];
+        $orderInfo['payway'] = ParkWashPayWay::getMessage($orderInfo['payway']);
         // 获取订单时序表
         $orderInfo['sequence'] = $modle->getlist('parkwash_order_sequence', ['orderid' => $orderInfo['id']], null, 'id desc', 'title,create_time');
         // 判断状态
@@ -525,12 +522,9 @@ class XicheManage extends ActionPDO {
             $count = $modle->getCount('parkwash_order', $condition);
             $pagesize = getPageParams($_GET['page'], $count);
         }
-        $list = $modle->getList('parkwash_order', $condition, $pagesize['limitstr'], 'id desc', 'id,entry_park_id,entry_park_time,store_id,create_time,car_number,brand_id,series_id,user_tel,order_time,area_id,place,items,pay,payway,status,fail_reason');
+        $list = $modle->getList('parkwash_order', $condition, $pagesize['limitstr'], 'id desc', 'id,entry_park_id,entry_park_time,store_id,create_time,car_number,brand_id,series_id,user_tel,order_time,area_id,place,item_name,pay,payway,status,fail_reason');
 
         if ($list) {
-            $payway = [
-                'cbpay' => '车币', 'wxpayjs' => '微信', 'wxpayh5' => '微信H5', 'wxpaywash' => '微信', 'vippay' => '洗车VIP', 'firstpay' => '首单免费'
-            ];
             $brandList = $modle->getList('parkwash_car_brand', ['id' => ['in', array_column($list, 'brand_id')]], null, null, 'id,name');
             $brandList = array_column($brandList, null, 'id');
             $seriesList = $modle->getList('parkwash_car_series', ['id' => ['in', array_column($list, 'series_id')]], null, null, 'id,name');
@@ -549,9 +543,8 @@ class XicheManage extends ActionPDO {
                 $list[$k]['area_floor'] = isset($areaList[$v['area_id']]) ? $areaList[$v['area_id']]['floor'] : '';
                 $list[$k]['area_name'] = isset($areaList[$v['area_id']]) ? $areaList[$v['area_id']]['name'] : '';
                 $list[$k]['store_name'] = $storeList[$v['store_id']]['name'];
-                $list[$k]['items'] = implode(',', array_column(json_decode($v['items'], true), 'name'));
                 $list[$k]['pay'] = round_dollar($v['pay'], false);
-                $list[$k]['payway'] = isset($payway[$v['payway']]) ? $payway[$v['payway']] : $v['payway'];
+                $list[$k]['payway'] = ParkWashPayWay::getMessage($v['payway']);
                 // 判断等待服务状态
                 if ($v['status'] == 1 && $v['entry_park_id']) {
                     $list[$k]['status'] = 13; // 等待服务
@@ -577,7 +570,7 @@ class XicheManage extends ActionPDO {
             ];
             foreach ($list as $k => $v) {
                 $input[] = implode(',', [
-                    $v['id'], $v['store_name'], $v['create_time'], $v['car_number'], $v['car_name'], $v['user_tel'], $v['order_time'], $v['area_name'] . $v['area_floor'], $v['place'], $v['items'], $v['pay'], $v['payway'], $v['status_str'], $v['entry_park_time']
+                    $v['id'], $v['store_name'], $v['create_time'], $v['car_number'], $v['car_name'], $v['user_tel'], $v['order_time'], $v['area_name'] . $v['area_floor'], $v['place'], $v['item_name'], $v['pay'], $v['payway'], $v['status_str'], $v['entry_park_time']
                 ]);
             }
             echo implode("\n", $input);

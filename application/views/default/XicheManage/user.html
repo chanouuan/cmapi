@@ -2,82 +2,102 @@
 
 <body>
 <div class="x-nav">
-      <span class="layui-breadcrumb">
+    <span class="layui-breadcrumb">
         <a><cite>用户管理</cite></a>
-      </span>
-    <a class="layui-btn layui-btn-small" style="line-height:1.6em;margin-top:3px;float:right" href="javascript:location.replace(location.href);" title="刷新"><i class="layui-icon" style="line-height:30px">ဂ</i></a>
+    </span>
+    <a class="layui-btn layui-btn-small" style="line-height:1.6em;margin-top:3px;float:right" onclick="location.reload()" title="刷新">
+        <i class="layui-icon layui-icon-refresh" style="line-height:30px"></i>
+    </a>
 </div>
-<div class="x-body">
-    <div class="layui-row">
-        <form class="layui-form layui-col-md12 x-so" method="get">
-            <div class="layui-input-inline">
-                <select name="status">
-                    <option value="">用户状态</option>
-                    <option <?php if($_GET['status']==1){ ?>selected<?php } ?> value="1">普通用户</option>
-                    <option <?php if($_GET['status']==2){ ?>selected<?php } ?> value="2">会员用户</option>
-                    <option <?php if($_GET['status']==3){ ?>selected<?php } ?> value="3">过期会员</option>
-                </select>
+
+<div class="layui-fluid">
+    <div class="layui-row layui-col-space15">
+        <div class="layui-col-md12">
+            <div class="layui-card">
+                <div class="layui-card-body ">
+                    <form class="layui-form layui-col-space5" method="get">
+                        <div class="layui-input-inline layui-show-xs-block">
+                            <select name="status">
+                                <option value="">用户状态</option>
+                                <option <?php if($_GET['status']==1){ ?>selected<?php } ?> value="1">普通用户</option>
+                                <option <?php if($_GET['status']==2){ ?>selected<?php } ?> value="2">会员用户</option>
+                                <option <?php if($_GET['status']==3){ ?>selected<?php } ?> value="3">过期会员</option>
+                            </select>
+                        </div>
+                        <div class="layui-input-inline layui-show-xs-block">
+                            <input value="<?=$_GET['telephone']?>" maxlength="11" type="tel" name="telephone" placeholder="请输入手机号" autocomplete="off" class="layui-input">
+                        </div>
+                        <div class="layui-input-inline layui-show-xs-block">
+                            <input value="<?=$_GET['start_time']?>" class="layui-input" id="start_time" name="start_time" placeholder="注册开始日期" readonly>
+                        </div>
+                        <div class="layui-input-inline layui-show-xs-block">
+                            <input value="<?=$_GET['end_time']?>" class="layui-input" id="end_time" name="end_time" placeholder="注册截止日期" readonly>
+                        </div>
+                        <div class="layui-input-inline layui-show-xs-block">
+                            <button class="layui-btn" lay-submit="" lay-filter="sreach"><i class="layui-icon">&#xe615;</i></button>
+                        </div>
+                    </form>
+                </div>
+                <div class="layui-card-header">
+                    <span class="right-page">共有数据：<?=$pagesize['totalcount']?> 条</span>
+                </div>
+                <div class="layui-card-body card-table">
+                    <table class="layui-table">
+                        <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>手机号</th>
+                            <th>余额</th>
+                            <th>是否会员</th>
+                            <th>会员期限</th>
+                            <th>停车场洗车次数</th>
+                            <th>停车场洗车消费金额</th>
+                            <th>自助洗车次数</th>
+                            <th>自助洗车消费金额</th>
+                            <th>注册时间</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <?php foreach($list as $k=>$v){ ?>
+                        <tr>
+                            <td><?=$v['uid']?></td>
+                            <td><?=$v['telephone']?></td>
+                            <td><?=$v['money']?></td>
+                            <td><?=$v['isvip']?></td>
+                            <td><?=$v['vip_expire']?></td>
+                            <td><?=$v['parkwash_count']?></td>
+                            <td><?=$v['parkwash_consume']/100?></td>
+                            <td><?=$v['xiche_count']?></td>
+                            <td><?=$v['xiche_consume']/100?></td>
+                            <td><?=$v['create_time']?></td>
+                        </tr>
+                        <?php } ?>
+                        </tbody>
+                    </table>
+                </div>
+                <?php if($pagesize['totalpage']>1){ ?>
+                <div class="layui-card-body ">
+                    <div class="page">
+                        <div>
+                            <?php foreach($pagesize['scrollpage'] as $k=>$v){ ?>
+                            <?php if($pagesize['page']==$k){ ?>
+                            <span class="current"><?=$v?></span>
+                            <?php }else{ ?>
+                            <a class="num" href="?<?=burl('page='.$k)?>"><?=$v?></a>
+                            <?php } ?>
+                            <?php } ?>
+                        </div>
+                    </div>
+                </div>
+                <?php } ?>
             </div>
-            <input value="<?=$_GET['telephone']?>" maxlength="11" type="tel" name="telephone" placeholder="请输入手机号" autocomplete="off" class="layui-input">
-            <input value="<?=$_GET['start_time']?>" class="layui-input" id="start_time" name="start_time" placeholder="注册开始日期" readonly>
-            <input value="<?=$_GET['end_time']?>" class="layui-input" id="end_time" name="end_time" placeholder="注册截止日期" readonly>
-            <button class="layui-btn" lay-submit="" lay-filter="sreach"><i class="layui-icon">&#xe615;</i></button>
-        </form>
-    </div>
-
-    <span class="x-right" style="line-height:40px">共有数据：<?=$pagesize['totalcount']?> 条</span>
-
-    <table class="layui-table">
-        <thead>
-        <tr>
-            <th>ID</th>
-            <th>手机号</th>
-            <th>余额</th>
-            <th>是否会员</th>
-            <th>会员期限</th>
-            <th>停车场洗车次数</th>
-            <th>停车场洗车消费金额</th>
-            <th>自助洗车次数</th>
-            <th>自助洗车消费金额</th>
-            <th>注册时间</th>
-        </tr>
-        </thead>
-        <tbody>
-        <?php foreach($list as $k=>$v){ ?>
-        <tr>
-            <td><?=$v['uid']?></td>
-            <td><?=$v['telephone']?></td>
-            <td><?=$v['money']?></td>
-            <td><?=$v['isvip']?></td>
-            <td><?=$v['vip_expire']?></td>
-            <td><?=$v['parkwash_count']?></td>
-            <td><?=$v['parkwash_consume']/100?></td>
-            <td><?=$v['xiche_count']?></td>
-            <td><?=$v['xiche_consume']/100?></td>
-            <td><?=$v['create_time']?></td>
-        </tr>
-        <?php } ?>
-        </tbody>
-    </table>
-
-    <?php if($pagesize['totalpage']>1){ ?>
-    <div class="page">
-        <div>
-            <?php foreach($pagesize['scrollpage'] as $k=>$v){ ?>
-            <?php if($pagesize['page']==$k){ ?>
-            <span class="current"><?=$v?></span>
-            <?php }else{ ?>
-            <a class="num" href="?<?=burl('page='.$k)?>"><?=$v?></a>
-            <?php } ?>
-            <?php } ?>
         </div>
     </div>
-    <?php } ?>
-
 </div>
+
 <script>
 
-    layui.use(['laydate'], function(){
+    layui.use(['laydate','form'], function(){
         var laydate = layui.laydate;
         laydate.render({
             elem: '#start_time'
