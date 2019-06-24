@@ -1,0 +1,134 @@
+<?php include('header.html'); ?>
+
+<body>
+<div class="layui-fluid">
+    <div class="layui-row">
+        <form id="form" class="layui-form" enctype="multipart/form-data">
+            <div class="layui-form-item">
+                <label class="layui-form-label">
+                    <span class="x-red">*</span>店铺
+                </label>
+                <div class="layui-input-inline">
+                    <select name="store_id" lay-verify="required">
+                        <option value="">请选择</option>
+                        <?php foreach($stores as $k=>$v){ ?>
+                        <option value="<?=$v['id']?>"><?=$v['name']?></option>
+                        <?php } ?>
+                    </select>
+                </div>
+            </div>
+            <div class="layui-form-item layui-form-text">
+                <label class="layui-form-label">
+                    <span class="x-red">*</span>服务项目
+                </label>
+                <div class="layui-input-inline">
+                    <?php foreach($items as $k=>$v){ ?>
+                    <input type="checkbox" name="item_id[]" value="<?=$v['id']?>" title="<?=$v['name']?>">
+                    <?php } ?>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">
+                    <span class="x-red">*</span>姓名
+                </label>
+                <div class="layui-input-inline">
+                    <input placeholder="请填写姓名" type="text" maxlength="20" name="realname" required="" lay-verify="required" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">
+                    头像
+                </label>
+                <div class="layui-input-inline">
+                    <input type="file" name="upfile">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">
+                    <span class="x-red">*</span>手机号
+                </label>
+                <div class="layui-input-inline">
+                    <input placeholder="请填写手机号" type="tel" maxlength="11" name="telephone" required="" lay-verify="required" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">
+                    <span class="x-red">*</span>性别
+                </label>
+                <div class="layui-input-inline">
+                    <input type="radio" name="gender" value="1" title="男" checked>
+                    <input type="radio" name="gender" value="2" title="女">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">
+                    登录密码
+                </label>
+                <div class="layui-input-inline">
+                    <input placeholder="请填写登录密码" type="text" maxlength="32" name="password" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">
+                    <span class="x-red">*</span>状态
+                </label>
+                <div class="layui-input-inline">
+                    <select name="status" lay-verify="required">
+                        <option value="1">正常</option>
+                        <option value="0">禁用</option>
+                    </select>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <input type="hidden" name="formhash" value="<?=encode_formhash()?>">
+                <label class="layui-form-label"></label>
+                <button class="layui-btn" lay-filter="add" lay-submit="">提交</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+    <script>
+        layui.use(['form','layer'], function(){
+            $ = layui.jquery;
+            var form = layui.form, layer = layui.layer;
+
+            //监听提交
+            form.on('submit(add)', function(data){
+                var formData = new FormData($("#form")[0]);
+                $.ajax({
+                    type: 'POST',
+                    url: '<?=gurl("xicheManage/employeeAdd")?>',
+                    data: formData,
+                    async: false,
+                    cache: false,
+                    contentType: false,
+                    processData: false,
+                    dataType: 'json',
+                    timeout: 10000,
+                    success: function(list){
+                       layer.closeAll();
+                       if(list.errorcode != 0) {
+                           return layer.msg(list.message);
+                       }
+                       layer.alert("增加成功", {icon: 6},function () {
+                           parent.location.reload();
+                       });
+                    },
+                    beforeSend: function(xhr){
+                       layer.load();
+                    },
+                    error: function(xhr, type){
+                       layer.closeAll();
+                       layer.msg('网络错误，请重试!');
+                    }
+                });
+                return false;
+          });
+
+        });
+    </script>
+
+</body>
+
+</html>

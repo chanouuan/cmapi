@@ -1,0 +1,109 @@
+<?php include('header.html'); ?>
+
+<body>
+<div class="x-nav">
+      <span class="layui-breadcrumb">
+        <a><cite>员工管理</cite></a>
+      </span>
+      <a class="layui-btn layui-btn-small" style="line-height:1.6em;margin-top:3px;float:right" onclick="location.reload()" title="刷新">
+        <i class="layui-icon layui-icon-refresh" style="line-height:30px"></i>
+      </a>
+</div>
+
+<div class="layui-fluid">
+    <div class="layui-row layui-col-space15">
+        <div class="layui-col-md12">
+            <div class="layui-card">
+                <div class="layui-card-body ">
+                    <form class="layui-form layui-col-space5" method="get">
+                        <div class="layui-input-inline layui-show-xs-block">
+                            <input value="<?=$_GET['store_name']?>" maxlength="30" type="text" name="store_name" placeholder="请输入店铺名称" autocomplete="off" class="layui-input">
+                        </div>
+                        <div class="layui-input-inline layui-show-xs-block">
+                            <input value="<?=$_GET['realname']?>" maxlength="20" type="text" name="realname" placeholder="请输入员工姓名" autocomplete="off" class="layui-input">
+                        </div>
+                        <div class="layui-input-inline layui-show-xs-block">
+                            <input value="<?=$_GET['telephone']?>" maxlength="11" type="text" name="telephone" placeholder="请输入员工手机" autocomplete="off" class="layui-input">
+                        </div>
+                        <div class="layui-input-inline layui-show-xs-block">
+                            <select name="payway">
+                                <option value="">状态</option>
+                                <option <?php if($_GET['payway']=='0'){ ?>selected<?php } ?> value="0">禁用</option>
+                                <option <?php if($_GET['payway']=='1'){ ?>selected<?php } ?> value="1">正常</option>
+                            </select>
+                        </div>
+                        <div class="layui-input-inline layui-show-xs-block">
+                            <button class="layui-btn" lay-submit="" lay-filter="sreach"><i class="layui-icon">&#xe615;</i></button>
+                        </div>
+                    </form>
+                </div>
+                <div class="layui-card-header">
+                    <span class="right-page">共有数据：<?=$pagesize['totalcount']?> 条</span>
+                    <button class="layui-btn" onclick="xadmin.open('添加员工','<?=gurl('xicheManage/employeeAdd')?>')"><i class="layui-icon"></i>添加</button>
+                </div>
+                <div class="layui-card-body card-table">
+                    <table class="layui-table">
+                        <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>店铺</th>
+                            <th>姓名</th>
+                            <th>头像</th>
+                            <th>手机号</th>
+                            <th>性别</th>
+                            <th>服务项目</th>
+                            <th>工作</th>
+                            <th>总收益</th>
+                            <th>状态</th>
+                            <th>操作</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <?php foreach($list as $k=>$v){ ?>
+                        <tr>
+                            <td><?=$v['id']?></td>
+                            <td><?=$v['store_name']?></td>
+                            <td><?=$v['realname']?></td>
+                            <td><?=$v['avatar']?></td>
+                            <td><?=$v['telephone']?></td>
+                            <td><?=$v['gender']==1?'男':'女'?></td>
+                            <td><?=$v['item_id']?></td>
+                            <td><?=$v['state_work']==1?'工作中':'闲置中'?></td>
+                            <td><?=round_dollar($v['money'])?></td>
+                            <td><?=$v['status']==1?'正常':'禁用'?></td>
+                            <td class="td-manage">
+                                <button class="layui-btn layui-btn layui-btn-xs" onclick="xadmin.open('编辑员工','<?=gurl('xicheManage/employeeUpdate',['id'=>$v['id']])?>')"><i class="layui-icon"></i>编辑</button>
+                            </td>
+                        </tr>
+                        <?php } ?>
+                        </tbody>
+                    </table>
+                </div>
+                <?php if($pagesize['totalpage']>1){ ?>
+                <div class="layui-card-body ">
+                    <div class="page">
+                        <div>
+                            <?php foreach($pagesize['scrollpage'] as $k=>$v){ ?>
+                            <?php if($pagesize['page']==$k){ ?>
+                            <span class="current"><?=$v?></span>
+                            <?php }else{ ?>
+                            <a class="num" href="?<?=burl('page='.$k)?>"><?=$v?></a>
+                            <?php } ?>
+                            <?php } ?>
+                        </div>
+                    </div>
+                </div>
+                <?php } ?>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    layui.use(['form'], function(){
+
+    });
+</script>
+</body>
+
+</html>

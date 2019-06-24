@@ -14,16 +14,6 @@
     <div class="layui-row layui-col-space15">
         <div class="layui-col-md12">
             <div class="layui-card">
-                <div class="layui-card-body ">
-                    <form class="layui-form layui-col-space5" method="get">
-                        <div class="layui-input-inline layui-show-xs-block">
-                            <input value="<?=$_GET['name']?>" maxlength="30" type="text" name="name" placeholder="请输入店铺名称" autocomplete="off" class="layui-input">
-                        </div>
-                        <div class="layui-input-inline layui-show-xs-block">
-                            <button class="layui-btn" lay-submit="" lay-filter="sreach"><i class="layui-icon">&#xe615;</i></button>
-                        </div>
-                    </form>
-                </div>
                 <div class="layui-card-header">
                     <button class="layui-btn" onclick="xadmin.open('添加车型','<?=gurl('xicheManage/carTypeAdd')?>')"><i class="layui-icon"></i>添加</button>
                 </div>

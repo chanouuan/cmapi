@@ -52,6 +52,60 @@ class XicheManage extends ActionPDO {
     }
 
     /**
+     * 员工添加
+     */
+    public function employeeAdd ()
+    {
+        $model = new XicheManageModel();
+        if (submitcheck()) {
+            return $model->employeeAdd($_POST);
+        }
+        $stores = $model->getList('parkwash_store', null, null, null, 'id,name');
+        $items  = $model->getList('parkwash_item', null, null, null, 'id,name');
+        return [
+            'stores' => $stores,
+            'items'  => $items
+        ];
+    }
+
+    /**
+     * 员工管理
+     */
+    public function employee ()
+    {
+        $condition = [];
+        if ($_GET['store_name']) {
+            $condition['store_name'] = ['like', '%' . $_GET['store_name'] . '%'];
+        }
+        if ($_GET['realname']) {
+            $condition['realname'] = ['like', '%' . $_GET['realname'] . '%'];
+        }
+        if ($_GET['telephone']) {
+            $condition['telephone'] = ['like', '%' . $_GET['telephone'] . '%'];
+        }
+        if (isset($_GET['status']) && $_GET['status'] !== '') {
+            $condition['status'] = $_GET['status'];
+        }
+
+        $model = new XicheManageModel();
+        $count = $model->getCount('parkwash_employee', $condition);
+        $pagesize = getPageParams($_GET['page'], $count);
+
+        $items = $model->getList('parkwash_item', null, null, null);
+        $items = array_column($items, 'name', 'id');
+        $list = $model->getList('parkwash_employee', $condition, $pagesize['limitstr']);
+        foreach ($list as $k => $v) {
+            $list[$k]['avatar'] = $v['avatar'] ? '<a onclick="xadmin.open(\'IMG\',\'' . httpurl($v['avatar']) . '\')" href="javascript:;" target="_blank"><img height="30" src="' . httpurl($v['avatar']) . '"></a>' : '';
+            $list[$k]['item_id'] = strtr(trim($v['item_id'], ','), $items);
+        }
+
+        return [
+            'pagesize' => $pagesize,
+            'list' => $list
+        ];
+    }
+
+    /**
      * 车型列表
      */
     public function carType ()
@@ -159,7 +213,7 @@ class XicheManage extends ActionPDO {
         $list = $modle->getList('parkwash_store', $condition, $pagesize['limitstr']);
         foreach ($list as $k => $v) {
             $list[$k]['logo'] = $v['logo'] ? json_decode($v['logo'], true) : [];
-            $list[$k]['logo'] = $list[$k]['logo'] ? '<a onclick="x_admin_show(\'IMG\',\'' . httpurl($list[$k]['logo'][0]) . '\')" href="javascript:;" target="_blank"><img height="30" src="' . httpurl($list[$k]['logo'][0]) . '"></a>' : '';
+            $list[$k]['logo'] = $list[$k]['logo'] ? '<a onclick="xadmin.open(\'IMG\',\'' . httpurl($list[$k]['logo'][0]) . '\')" href="javascript:;" target="_blank"><img height="30" src="' . httpurl($list[$k]['logo'][0]) . '"></a>' : '';
             $list[$k]['str_status'] = $v['status'] ? '正常营业' : '建设中';
         }
         return [

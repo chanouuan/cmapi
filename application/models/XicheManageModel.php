@@ -9,6 +9,68 @@ use app\library\LocationUtils;
 class XicheManageModel extends Crud {
 
     /**
+     * 添加员工
+     */
+    public function employeeAdd ($post)
+    {
+        $post['store_id'] = intval($post['store_id']);
+        $post['realname'] = trim_space($post['realname']);
+        $post['item_id']  = implode(',', $post['item_id']);
+        $post['gender']   = $post['gender'] == 1 ? 1 : 2;
+        $post['status']   = $post['status'] == 1 ? 1 : 0;
+        $post['password'] = trim_space($post['password']);
+
+        if (empty($post['store_id'])) {
+            return error('店铺不能为空');
+        }
+        if (empty($post['item_id'])) {
+            return error('服务项目不能为空');
+        }
+        if (empty($post['realname'])) {
+            return error('姓名不能为空');
+        }
+        if (!validate_telephone($post['telephone'])) {
+            return error('手机号不正确');
+        }
+
+        if (!$storeInfo = $this->getInfo('parkwash_store', ['id' => $post['store_id']], 'name')) {
+            return error('该店铺不存在');
+        }
+
+        // 上传图片
+        if (isset($_FILES['upfile']) && $_FILES['upfile']['error'] == 0) {
+            if ($_FILES['upfile']['size'] > 1048576) {
+                return error('最大上传不超过1M');
+            }
+            $result = uploadfile($_FILES['upfile'], 'jpg,jpeg,png', 350, 0);
+            if ($result['errorcode'] !== 0) {
+                return $result;
+            }
+            $result = $result['result'];
+            $post['avatar'] = $result['thumburl'];
+        }
+
+        // 新增员工
+        if (!$this->getDb()->insert('parkwash_employee', [
+            'store_id' => $post['store_id'],
+            'item_id' => ',' . $post['item_id'] . ',',
+            'store_name' => $storeInfo['name'],
+            'realname' => $post['realname'],
+            'avatar' => $post['avatar'],
+            'telephone' => $post['telephone'],
+            'password' => (new UserModel())->hashPassword($post['password']),
+            'gender' => $post['gender'],
+            'status' => $post['status'],
+            'create_time' => date('Y-m-d H:i:s', TIMESTAMP),
+            'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
+        ])) {
+            return error('添加失败');
+        }
+
+        return success('OK');
+    }
+
+    /**
      * 套餐编辑
      */
     public function carTypeUpdate ($post)
