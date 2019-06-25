@@ -941,7 +941,9 @@ class ParkWashModel extends Crud {
         $post['series_id'] = intval($post['series_id']);
 
         // 获取车系的车型
-        $seriesInfo = $this->getDb()->table('parkwash_car_series')->field('car_type_id')->where(['id' => $post['series_id']])->limit(1)->find();
+        if (!$seriesInfo = $this->getDb()->table('parkwash_car_series')->field('car_type_id')->where(['id' => $post['series_id']])->limit(1)->find()) {
+            return success([]);
+        }
 
         if (!$itemList = $this->getDb()
             ->table('parkwash_store_item store_item')
