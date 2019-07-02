@@ -731,14 +731,17 @@ class ParkWashModel extends Crud {
             }
         }
 
+        // 验证车牌号是否已存在
+        if ($this->getDb()->table('parkwash_carport')->where([
+            'id' => ['<>', $post['id']], 'uid' => $uid, 'car_number' => $post['car_number']
+        ])->count()) {
+            return error('该车牌号已存在');
+        }
+
         if (!$carportInfo = $this->getDb()->table('parkwash_carport')->field('car_number,vip_expire')->where([
             'id' => $post['id'], 'uid' => $uid
         ])->find()) {
             return error('该车不存在');
-        }
-
-        if ($carportInfo['car_number'] == $post['car_number']) {
-            return error('该车牌号已存在');
         }
 
         // vip未过期不能编辑
@@ -910,7 +913,7 @@ class ParkWashModel extends Crud {
         }
 
         $brandList = $this->getBrandNameById(array_column($carportList, 'brand_id'));
-        $seriesList = $this->getBrandNameById(array_column($carportList, 'series_id'));
+        $seriesList = $this->getSeriesNameById(array_column($carportList, 'series_id'));
         $areaList = array_filter(array_unique(array_column($carportList, 'area_id')));
         if ($areaList) {
             $areaList = $this->getDb()->table('parkwash_park_area')->field('id,floor,name')->where(['id' => ['in', $areaList]])->select();

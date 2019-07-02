@@ -341,7 +341,7 @@ class ParkWashEmployeeModel extends Crud {
     /**
      * 获取帮手列表
      */
-    public function getHelperList ($orderid)
+    public function getHelperList ($uid, $orderid)
     {
         $orderid = intval($orderid);
 
@@ -354,7 +354,7 @@ class ParkWashEmployeeModel extends Crud {
         }
 
         if (!$employeeList = $this->getDb()->table('parkwash_employee')->field('id,realname,avatar,state_work')->where([
-            'store_id' => $orderInfo['store_id'], 'item_id' => ['like', '%,' . $orderInfo['item_id'] . ',%'], 'state_online' => 1, 'status' => 1
+            'store_id' => $orderInfo['store_id'], 'id' => ['<>', $uid], 'item_id' => ['like', '%,' . $orderInfo['item_id'] . ',%'], 'state_online' => 1, 'status' => 1
         ])->select()) {
             return success([]);
         }

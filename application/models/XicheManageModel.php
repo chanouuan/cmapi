@@ -32,6 +32,12 @@ class XicheManageModel extends Crud {
         if (!validate_telephone($post['telephone'])) {
             return error('手机号不正确');
         }
+        if ($post['password']) {
+            // 密码长度验证
+            if (strlen($post['password']) < 6 || strlen($post['password']) > 32) {
+                return error('请输入6-32位密码');
+            }
+        }
 
         if (!$storeInfo = $this->getInfo('parkwash_store', ['id' => $post['store_id']], 'name')) {
             return error('该店铺不存在');
@@ -58,7 +64,7 @@ class XicheManageModel extends Crud {
             'realname' => $post['realname'],
             'avatar' => $post['avatar'],
             'telephone' => $post['telephone'],
-            'password' => (new UserModel())->hashPassword($post['password']),
+            'password' => $post['password'] ? (new UserModel())->hashPassword(md5($post['password'])) : '', // 先md5密码
             'gender' => $post['gender'],
             'status' => $post['status'],
             'create_time' => date('Y-m-d H:i:s', TIMESTAMP),

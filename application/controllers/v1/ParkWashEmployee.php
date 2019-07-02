@@ -209,7 +209,7 @@ class ParkWashEmployee extends ActionPDO {
      */
     public function getHelperList ()
     {
-        return (new ParkWashEmployeeModel())->getHelperList(getgpc('orderid'));
+        return (new ParkWashEmployeeModel())->getHelperList($this->_G['user']['uid'], getgpc('orderid'));
     }
 
     /**
