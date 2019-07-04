@@ -17,19 +17,19 @@ class ParkWashEmployeeModel extends Crud {
         $post['lastpage']   = intval($post['lastpage']);
         // 搜索时间
         $post['start_time'] = strtotime($post['start_time']);
-        $post['end_time']   = strtotime($post['start_time']);
+        $post['end_time']   = strtotime($post['end_time']);
 
         if ($post['start_time'] > $post['end_time']) {
             return error('开始时间不能大于截止时间');
         }
 
         if (!$post['start_time'] || !$post['end_time']) {
-            $post['start_time'] = TIMESTAMP;
+            $post['start_time'] = strtotime(date('Y-m-d', TIMESTAMP));
             $post['end_time']   = TIMESTAMP;
         }
 
-        $post['start_time'] = date('Y-m-d 00:00:00', $post['start_time']);
-        $post['end_time']   = date('Y-m-d 23:59:59', $post['end_time']);
+        $post['start_time'] = date('Y-m-d H:i:s', $post['start_time']);
+        $post['end_time']   = date('Y-m-d H:i:s', $post['end_time']);
 
         // 结果返回
         $result = [
@@ -322,6 +322,12 @@ class ParkWashEmployeeModel extends Crud {
             'title'       => '商家开始服务',
             'content'     => $employeeInfo['store_name'] . '正在为您服务，请留意完成洗车提醒！'
         ]);
+
+        // 推送APP通知
+        $parkWashModel->pushEmployee($orderInfo['store_id'], $orderInfo['item_id'], $employeeInfo['realname'] . '已开始服务', '车秘未来洗车', [
+            'action'  => 'takeOrderNotification',
+            'orderid' => $orderInfo['id']
+        ], 1);
 
         return success('ok');
     }

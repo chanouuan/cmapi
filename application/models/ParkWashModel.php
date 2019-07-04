@@ -145,10 +145,8 @@ class ParkWashModel extends Crud {
     /**
      * 我的订单
      */
-    public function getOrderList ($uid, $post) {
-
-        // 最后排序字段
-        $post['lastpage'] = intval($post['lastpage']);
+    public function getOrderList ($uid, $post)
+    {
         // 状态为空表示所有
         if ($post['status'] !== '') {
             $post['status'] = get_short_array($post['status']);
@@ -170,8 +168,11 @@ class ParkWashModel extends Crud {
             $condition['status'] = isset($post['status'][1]) ? ['in', $post['status']] : $post['status'][0];
         }
 
-        if ($post['lastpage'] > 0) {
-            $condition['id'] = ['<', $post['lastpage']];
+        if ($post['lastpage']) {
+            // 最后排序字段
+            if (strtotime($post['lastpage'])) {
+                $condition['update_time'] = ['<', $post['lastpage']];
+            }
         }
 
         // 获取订单
@@ -250,7 +251,7 @@ class ParkWashModel extends Crud {
             'store_id', 'brand_id', 'series_id', 'area_id', 'xc_trade_id'
         ]);
 
-        $result['lastpage'] = end($orderList)['id'];
+        $result['lastpage'] = end($orderList)['update_time'];
         $result['list'] = $orderList;
         unset($orderList);
         return success($result);
@@ -408,7 +409,7 @@ class ParkWashModel extends Crud {
 
         if (!$orderInfo = $this->findOrderInfo([
             'id' => $post['orderid'], 'uid' => $uid, 'status' => 1
-        ], 'id,uid,store_id,pool_id,car_number,pay,deduct,order_time')) {
+        ], 'id,uid,store_id,item_id,pool_id,car_number,pay,deduct,order_time')) {
             return error('订单不存在或无效');
         }
 
@@ -520,6 +521,12 @@ class ParkWashModel extends Crud {
         $this->getDb()->delete('parkwash_order_hatch', [
             'orderid' => $orderInfo['id']
         ]);
+
+        // 推送APP通知
+        $this->pushEmployee($orderInfo['store_id'], $orderInfo['item_id'], '用户取消订单', '车秘未来洗车', [
+            'action'  => 'cancelOrderNotification',
+            'orderid' => $orderInfo['id']
+        ], 1);
 
         return success('OK');
     }
@@ -2067,7 +2074,41 @@ class ParkWashModel extends Crud {
             '￥' . round_dollar($tradeInfo['pay'], false), $storeInfo['name'], $tradeInfo['uses'], $orderInfo['create_time'], '温馨提醒，您已成功预约' . $storeInfo['name'] . '的洗车服务，请您提前10分钟进入停车场并完善您的车位信息，感谢您的支持'
         ]);
 
+        // 推送APP通知
+        $this->pushEmployee($orderInfo['store_id'], $orderInfo['item_id'], '您有新的订单', '车秘未来洗车', [
+            'action'  => 'newOrderNotification',
+            'orderid' => $orderInfo['id']
+        ]);
+
         return success('OK');
+    }
+
+    /**
+     * 员工通知推送
+     * @param $store_id 店铺ID
+     * @param $item_id 套餐ID
+     * @return array
+     */
+    public function pushEmployee ($store_id, $item_id, $alert, $title, array $extras = [], $penetrate = 0)
+    {
+        // 查找接单人
+        if (!$employees = $this->getDb()->table('parkwash_employee')->field('id')->where(['store_id' => $store_id, 'item_id' => ['like', '%,' . $item_id . ',%'], 'state_online' => 1, 'status' => 1])->limit(1000)->select()) {
+            return error('没有接收人');
+        }
+
+        $employees = array_column($employees, 'id');
+
+        // 查找推送ID
+        if (!$stoken = $this->getDb()->table('pro_session')->field('stoken')->where(['userid' => ['in', $employees], 'clienttype' => 'yee'])->select()) {
+            return error('未找到接收人设备码');
+        }
+
+        if (!$stoken = array_filter(array_column($stoken, 'stoken'))) {
+            return error('接收人设备码为空');
+        }
+
+        // 推送APP通知
+        return $this->sendJPush($alert, $title, $extras, $stoken, $penetrate);
     }
 
     /**
@@ -2503,6 +2544,85 @@ class ParkWashModel extends Crud {
         }
         $this->getDb()->insert('parkwash_store', $data);
         $this->getDb()->insert('parkwash_store_item', $item);
+    }
+
+    /**
+     * 极光推送
+     * @param $alert 通知内容
+     * @param $title 通知标题
+     * @param $extras 扩展字段 key/value
+     * @param $audience 推送目标
+     * @param $penetrate 透传
+     * @return array
+     */
+    public function sendJPush($alert, $title, $extras = [], $audience = null, $penetrate = 0)
+    {
+        if (!$config = getSysConfig('jpush', 'push')) {
+            return error('未配置推送');
+        }
+
+        // key
+        $appkey = $config['key'];
+        $secret = $config['secret'];
+        $production = boolval($config['production']);
+
+        // header
+        $header = [
+            'Authorization' => 'Basic ' . base64_encode($appkey . ':' . $secret),
+            'Content-Type'  => 'application/json',
+            'Connection'    => 'Keep-Alive'
+        ];
+
+        // body
+        $body = [
+            'platform' => 'all',
+            'audience' => is_array($audience) ? ['registration_id' => $audience] : 'all',
+            'notification' => [
+                'android' => [
+                    'alert' => $alert,
+                    'title' => $title,
+                    'builder_id' => 1,
+                    'extras' => $extras
+                ],
+                'ios' => [
+                    'alert' => $alert,
+                    'sound' => 'default',
+                    'badge' => '+1',
+                    'extras' => $extras
+                ]
+            ],
+            'message' => [
+                'msg_content' => $alert,
+                'content_type' => 'text',
+                'extras' => $extras
+            ],
+            'options' => [
+                'apns_production' => $production
+            ]
+        ];
+
+        if ($penetrate == 1) {
+            // 仅仅透传
+            unset($body['notification']);
+        }else if ($penetrate == 2) {
+            // 仅仅消息
+            unset($body['message']);
+        }
+
+        $body = json_encode($body);
+
+        // https://docs.jiguang.cn/jpush/server/push/rest_api_v3_push/
+        try {
+            $output = https_request('https://api.jpush.cn/v3/push', $body, $header, 2, 'json', 1, $httpCode);
+        } catch (\Exception $e) {
+            return error($e->getMessage());
+        }
+
+        if ($httpCode != 200) {
+            return error($output);
+        }
+
+        return success($output);
     }
 
     /**

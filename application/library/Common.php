@@ -482,7 +482,7 @@ function str_conver ($str, $in_charset = 'GBK', $out_charset = 'UTF-8')
     return iconv($in_charset, $out_charset, $str);
 }
 
-function https_request ($url, $post = null, $headers = null, $timeout = 3, $encode = 'json', $reload = 1, $st = 0)
+function https_request ($url, $post = null, $headers = null, $timeout = 3, $encode = 'json', $reload = 1, &$httpCode = null, $st = 0)
 {
     $st = $st ? $st : microtime(true);
     $curl = curl_init();
@@ -492,7 +492,12 @@ function https_request ($url, $post = null, $headers = null, $timeout = 3, $enco
     curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, FALSE);
     curl_setopt($curl, CURLOPT_RETURNTRANSFER, TRUE);
     if ($headers) {
-        curl_setopt($curl, CURLOPT_HTTPHEADER, explode('&', str_replace('=', ':', urldecode(http_build_query($headers)))));
+        if (!isset($headers[0])) {
+            foreach ($headers as $k => $v) {
+                $headers[$k] = $k . ':' . $v;
+            }
+        }
+        curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
     }
     if ($post) {
         curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'POST');
@@ -502,7 +507,7 @@ function https_request ($url, $post = null, $headers = null, $timeout = 3, $enco
     if (curl_errno($curl)) {
         if ($reload > 0) {
             curl_close($curl);
-            return https_request($url, $post, $headers, $timeout, $encode, $reload - 1, $st);
+            return https_request($url, $post, $headers, $timeout, $encode, $reload - 1, $httpCode, $st);
         }
         $error = curl_error($curl);
         \DebugLog::_log([
@@ -514,6 +519,7 @@ function https_request ($url, $post = null, $headers = null, $timeout = 3, $enco
         curl_close($curl);
         throw new \Exception($error);
     }
+    $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
     curl_close($curl);
     \DebugLog::_curl($url, $headers, $post, round(microtime(true) - $st, 3), $reponse);
     if ($encode == 'json') {
@@ -832,7 +838,7 @@ function check_car_license($license)
     //1，第一位为汉字省份缩写
     //2，第二位为大写字母城市编码
     //3，后面是5位仅含字母和数字的组合
-    $regular = "/[京津冀晋蒙辽吉黑沪苏浙皖闽赣鲁豫鄂湘粤桂琼川贵云渝藏陕甘青宁新使]{1}[A-Z]{1}[0-9a-zA-Z]{5,6}$/u";
+    $regular = "/[京津冀晋蒙辽吉黑沪苏浙皖闽赣鲁豫鄂湘粤桂琼川贵云渝藏陕甘青宁新使]{1}[0|A-Z]{1}[0-9a-zA-Z]{5,6}$/u";
     preg_match($regular, $license, $match);
     if (isset($match[0])) {
         return true;
