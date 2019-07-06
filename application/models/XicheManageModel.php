@@ -268,35 +268,48 @@ class XicheManageModel extends Crud {
     /**
      * 套餐删除
      */
-    public function itemDelete ($id) {
+    public function itemDelete ($id)
+    {
         $id = intval($id);
+
+        // ID为1的套餐不能删
         if ($id == 1) {
             return error('该套餐项目已锁定，不能删除');
         }
+
         if (!$this->getDb()->delete('parkwash_item', ['id' => $id])) {
             return error('删除失败');
         }
+
         // 关联删除所有门店套餐
         $this->getDb()->delete('parkwash_store_item', ['item_id' => $id]);
+        // 关联删除首单消费记录
+        $this->getDb()->delete('parkwash_item_firstorder', ['item_id' => $id]);
+
         return success('OK');
     }
 
     /**
      * 套餐编辑
      */
-    public function itemUpdate ($post) {
-        $post['name'] = trim_space($post['name']);
-        $post['price'] = floatval($post['price']);
-        $post['price'] = $post['price'] < 0 ? 0 : $post['price'];
-        $post['price'] = intval($post['price'] * 100);
+    public function itemUpdate ($post)
+    {
+        $post['name']        = trim_space($post['name']);
+        $post['price']       = floatval($post['price']);
+        $post['price']       = $post['price'] < 0 ? 0 : $post['price'];
+        $post['price']       = intval($post['price'] * 100);
         $post['car_type_id'] = intval($post['car_type_id']);
+        $post['firstorder']  = $post['firstorder'] ? 1 : 0;
 
         if (empty($post['name'])) {
             return error('项目名不能为空');
         }
 
         if (false === $this->getDb()->update('parkwash_item', [
-            'name' => $post['name'], 'price' => $post['price'], 'car_type_id' => $post['car_type_id']
+            'name'        => $post['name'],
+            'price'       => $post['price'],
+            'car_type_id' => $post['car_type_id'],
+            'firstorder'  => $post['firstorder']
         ], ['id' => $post['id']])) {
             return error('修改失败');
         }
@@ -307,19 +320,24 @@ class XicheManageModel extends Crud {
     /**
      * 套餐添加
      */
-    public function itemAdd ($post) {
-        $post['name'] = trim_space($post['name']);
-        $post['price'] = floatval($post['price']);
-        $post['price'] = $post['price'] < 0 ? 0 : $post['price'];
-        $post['price'] = intval($post['price'] * 100);
+    public function itemAdd ($post)
+    {
+        $post['name']        = trim_space($post['name']);
+        $post['price']       = floatval($post['price']);
+        $post['price']       = $post['price'] < 0 ? 0 : $post['price'];
+        $post['price']       = intval($post['price'] * 100);
         $post['car_type_id'] = intval($post['car_type_id']);
+        $post['firstorder']  = $post['firstorder'] ? 1 : 0;
 
         if (empty($post['name'])) {
             return error('项目名不能为空');
         }
 
         if (!$this->getDb()->insert('parkwash_item', [
-            'name' => $post['name'], 'price' => $post['price'], 'car_type_id' => $post['car_type_id']
+            'name'        => $post['name'],
+            'price'       => $post['price'],
+            'car_type_id' => $post['car_type_id'],
+            'firstorder'  => $post['firstorder']
         ])) {
             return error('添加失败');
         }
@@ -415,30 +433,38 @@ class XicheManageModel extends Crud {
     /**
      * 编辑门店
      */
-    public function storeUpdate ($post) {
-        $post['adcode'] = intval($post['adcode']);
-        $post['name'] = trim_space($post['name']);
-        $post['market'] = trim_space($post['market']);
-        $post['location'] = trim_space($post['location']);
-        $post['location'] = str_replace('，', ',', $post['location']); // 将中文逗号换成英文
-        $post['location'] = LocationUtils::checkLocation($post['location']);
+    public function storeUpdate ($post)
+    {
+        $post['adcode']             = intval($post['adcode']);
+        $post['name']               = trim_space($post['name']);
+        $post['market']             = trim_space($post['market']);
+        $post['location']           = trim_space($post['location']);
+        $post['location']           = str_replace('，', ',', $post['location']); // 将中文逗号换成英文
+        $post['location']           = LocationUtils::checkLocation($post['location']);
         $post['daily_cancel_limit'] = intval($post['daily_cancel_limit']);
         $post['daily_cancel_limit'] = $post['daily_cancel_limit'] < 0 ? 0 : $post['daily_cancel_limit'];
-        $post['order_count_ratio'] = intval($post['order_count_ratio']);
-        $post['order_count_ratio'] = $post['order_count_ratio'] < 0 ? 0 : $post['order_count_ratio'];
-        $post['status'] = $post['status'] ? 1 : 0;
-        $post['time_interval'] = intval($post['time_interval']);
-        $post['time_amount'] = intval($post['time_amount']);
-        $post['time_day'] = array_filter($post['time_day']);
+        $post['order_count_ratio']  = intval($post['order_count_ratio']);
+        $post['order_count_ratio']  = $post['order_count_ratio'] < 0 ? 0 : $post['order_count_ratio'];
+        $post['status']             = $post['status'] ? 1 : 0;
+        $post['time_interval']      = intval($post['time_interval']);
+        $post['time_amount']        = intval($post['time_amount']);
+        $post['time_day']           = array_filter($post['time_day']);
         sort($post['time_day']);
-        $post['time_day'] = intval(implode('', $post['time_day']));
+        $post['time_day']           = intval(implode('', $post['time_day']));
 
         // 套餐
         $post['item'] = $post['item'] ? $post['item'] : [];
         foreach ($post['item'] as $k => $v) {
-            $post['item'][$k] = $v > 0 ? $v : 0;
+            if ($v['price'] > 0) {
+                $post['item'][$k]['price'] = $v['price'] > 0 ? $v['price'] : 0;
+                $post['item'][$k]['employee_salary'] = $v['employee_salary'] > 0 ? $v['employee_salary'] : 0;
+                if ($post['item'][$k]['employee_salary'] > $post['item'][$k]['price']) {
+                    return error('员工提成不能大于套餐价格');
+                }
+            } else {
+                unset($post['item'][$k]);
+            }
         }
-        $post['item'] = array_filter($post['item']);
 
         if (strlen($post['adcode']) != 6) {
             return error('区域代码不正确');
@@ -477,22 +503,22 @@ class XicheManageModel extends Crud {
         }
 
         $param = [
-            'adcode' => $post['adcode'],
-            'name' => $post['name'],
-            'tel' => $post['tel'],
-            'address' => $post['address'],
-            'location' => $post['location'],
-            'geohash' => (new Geohash())->encode($lat, $lon),
-            'business_hours' => $post['business_hours'],
-            'market' => $post['market'],
-            'status' => $post['status'],
-            'price' => intval(min($post['item']) * 100),
+            'adcode'             => $post['adcode'],
+            'name'               => $post['name'],
+            'tel'                => $post['tel'],
+            'address'            => $post['address'],
+            'location'           => $post['location'],
+            'geohash'            => (new Geohash())->encode($lat, $lon),
+            'business_hours'     => $post['business_hours'],
+            'market'             => $post['market'],
+            'status'             => $post['status'],
+            'price'              => intval(min(array_column($post['item'], 'price')) * 100),
             'daily_cancel_limit' => $post['daily_cancel_limit'],
-            'order_count_ratio' => $post['order_count_ratio'],
-            'time_interval' => $post['time_interval'],
-            'time_amount' => $post['time_amount'],
-            'time_day' => $post['time_day'],
-            'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
+            'order_count_ratio'  => $post['order_count_ratio'],
+            'time_interval'      => $post['time_interval'],
+            'time_amount'        => $post['time_amount'],
+            'time_day'           => $post['time_day'],
+            'update_time'        => date('Y-m-d H:i:s', TIMESTAMP)
         ];
 
         // 上传图片
@@ -517,7 +543,7 @@ class XicheManageModel extends Crud {
         $item = [];
         foreach ($post['item'] as $k => $v) {
             $item[] = [
-                'store_id' => $post['id'], 'item_id' => $k, 'price' => intval($v * 100)
+                'store_id' => $post['id'], 'item_id' => $k, 'price' => intval($v['price'] * 100), 'employee_salary' => intval($v['employee_salary'] * 100)
             ];
         }
         $this->getDb()->delete('parkwash_store_item', ['store_id' => $post['id']]);
@@ -637,30 +663,38 @@ class XicheManageModel extends Crud {
     /**
      * 添加门店
      */
-    public function storeAdd ($post) {
-        $post['adcode'] = intval($post['adcode']);
-        $post['name'] = trim_space($post['name']);
-        $post['market'] = trim_space($post['market']);
-        $post['location'] = trim_space($post['location']);
-        $post['location'] = str_replace('，', ',', $post['location']); // 将中文逗号换成英文
-        $post['location'] = LocationUtils::checkLocation($post['location']);
+    public function storeAdd ($post)
+    {
+        $post['adcode']             = intval($post['adcode']);
+        $post['name']               = trim_space($post['name']);
+        $post['market']             = trim_space($post['market']);
+        $post['location']           = trim_space($post['location']);
+        $post['location']           = str_replace('，', ',', $post['location']); // 将中文逗号换成英文
+        $post['location']           = LocationUtils::checkLocation($post['location']);
         $post['daily_cancel_limit'] = intval($post['daily_cancel_limit']);
         $post['daily_cancel_limit'] = $post['daily_cancel_limit'] < 0 ? 0 : $post['daily_cancel_limit'];
-        $post['order_count_ratio'] = intval($post['order_count_ratio']);
-        $post['order_count_ratio'] = $post['order_count_ratio'] < 0 ? 0 : $post['order_count_ratio'];
-        $post['status'] = $post['status'] ? 1 : 0;
-        $post['time_interval'] = intval($post['time_interval']);
-        $post['time_amount'] = intval($post['time_amount']);
-        $post['time_day'] = array_filter($post['time_day']);
+        $post['order_count_ratio']  = intval($post['order_count_ratio']);
+        $post['order_count_ratio']  = $post['order_count_ratio'] < 0 ? 0 : $post['order_count_ratio'];
+        $post['status']             = $post['status'] ? 1 : 0;
+        $post['time_interval']      = intval($post['time_interval']);
+        $post['time_amount']        = intval($post['time_amount']);
+        $post['time_day']           = array_filter($post['time_day']);
         sort($post['time_day']);
-        $post['time_day'] = intval(implode('', $post['time_day']));
+        $post['time_day']           = intval(implode('', $post['time_day']));
 
         // 套餐
         $post['item'] = $post['item'] ? $post['item'] : [];
         foreach ($post['item'] as $k => $v) {
-            $post['item'][$k] = $v > 0 ? $v : 0;
+            if ($v['price'] > 0) {
+                $post['item'][$k]['price'] = $v['price'] > 0 ? $v['price'] : 0;
+                $post['item'][$k]['employee_salary'] = $v['employee_salary'] > 0 ? $v['employee_salary'] : 0;
+                if ($post['item'][$k]['employee_salary'] > $post['item'][$k]['price']) {
+                    return error('员工提成不能大于套餐价格');
+                }
+            } else {
+                unset($post['item'][$k]);
+            }
         }
-        $post['item'] = array_filter($post['item']);
 
         if (strlen($post['adcode']) != 6) {
             return error('区域代码不正确');
@@ -713,24 +747,24 @@ class XicheManageModel extends Crud {
 
         // 新增门店
         if (!$this->getDb()->insert('parkwash_store', [
-            'adcode' => $post['adcode'],
-            'name' => $post['name'],
-            'logo' => $post['logo'],
-            'tel' => $post['tel'],
-            'address' => $post['address'],
-            'location' => $post['location'],
-            'geohash' => (new Geohash())->encode($lat, $lon),
-            'business_hours' => $post['business_hours'],
-            'market' => $post['market'],
-            'status' => $post['status'],
-            'price' => intval(min($post['item']) * 100),
+            'adcode'             => $post['adcode'],
+            'name'               => $post['name'],
+            'logo'               => $post['logo'],
+            'tel'                => $post['tel'],
+            'address'            => $post['address'],
+            'location'           => $post['location'],
+            'geohash'            => (new Geohash())->encode($lat, $lon),
+            'business_hours'     => $post['business_hours'],
+            'market'             => $post['market'],
+            'status'             => $post['status'],
+            'price'              => intval(min(array_column($post['item'], 'price')) * 100),
             'daily_cancel_limit' => $post['daily_cancel_limit'],
-            'order_count_ratio' => $post['order_count_ratio'],
-            'time_interval' => $post['time_interval'],
-            'time_amount' => $post['time_amount'],
-            'time_day' => $post['time_day'],
-            'create_time' => date('Y-m-d H:i:s', TIMESTAMP),
-            'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
+            'order_count_ratio'  => $post['order_count_ratio'],
+            'time_interval'      => $post['time_interval'],
+            'time_amount'        => $post['time_amount'],
+            'time_day'           => $post['time_day'],
+            'create_time'        => date('Y-m-d H:i:s', TIMESTAMP),
+            'update_time'        => date('Y-m-d H:i:s', TIMESTAMP)
         ])) {
             return error('添加失败');
         }
@@ -741,7 +775,7 @@ class XicheManageModel extends Crud {
         $item = [];
         foreach ($post['item'] as $k => $v) {
             $item[] = [
-                'store_id' => $store_id, 'item_id' => $k, 'price' => intval($v * 100)
+                'store_id' => $store_id, 'item_id' => $k, 'price' => intval($v['price'] * 100), 'employee_salary' => intval($v['employee_salary'] * 100)
             ];
         }
         $this->getDb()->insert('parkwash_store_item', $item);
@@ -905,7 +939,7 @@ class XicheManageModel extends Crud {
     /**
      * 获取设备列表
      */
-    public function getList ($table, $condition = null, $limit = null, $order = 'id desc', $field = null) {
+    public function getList ($table, $condition = null, $limit = null, $order = 'id desc', $field = null, $group = null) {
         if (0 !== strpos($table, 'parkwash_')) {
             $table = '__tablepre__' . $table;
         }
@@ -915,6 +949,7 @@ class XicheManageModel extends Crud {
             ->where($condition)
             ->order($order)
             ->limit($limit)
+            ->group($group)
             ->select();
     }
 

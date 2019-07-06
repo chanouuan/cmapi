@@ -172,7 +172,7 @@ class ParkWashEmployeeModel extends Crud {
             'money' => ['money+' . $itemInfo['employee_salary']], 'state_work' => 0
         ], ['id' => $uid]);
 
-        // 更新员工工作状态
+        // 更新帮手工作状态
         $helperList = $this->getDb()->table('parkwash_order_helper')->field('helper_id')->where(['orderid' => $post['orderid']])->select();
         if ($helperList) {
             $helperList = array_column($helperList, 'helper_id');
@@ -231,14 +231,14 @@ class ParkWashEmployeeModel extends Crud {
     public function takeOrder ($uid, $post)
     {
         $post['orderid'] = intval($post['orderid']);
-        $post['helper'] = get_short_array($post['helper']);
+        $post['helper'] = $post['helper'] ? get_short_array($post['helper']) : null;
 
         $result = $this->checkTakeOrder($uid);
         if ($result['errorcode'] !== 0) {
             return $result;
         }
 
-        if (!$employeeInfo = $this->getDb()->field('realname,store_name')->table('parkwash_employee')->where(['id' => $uid, 'status' => 1])->limit(1)->find()) {
+        if (!$employeeInfo = $this->getDb()->field('realname,store_name,state_work')->table('parkwash_employee')->where(['id' => $uid, 'status' => 1])->limit(1)->find()) {
             return error('员工不存在或已禁用');
         }
 
@@ -337,10 +337,23 @@ class ParkWashEmployeeModel extends Crud {
      */
     public function checkTakeOrder ($uid)
     {
+        if (!$employeeInfo = $this->getDb()->field('state_work')->table('parkwash_employee')->where(['id' => $uid, 'status' => 1])->limit(1)->find()) {
+            return error('您已被禁用');
+        }
+
         $employeeOrderLimitConfig = getConfig('xc', 'employee_order_limit'); // 最大接单数
+
+        if ($employeeOrderLimitConfig == 1) {
+            // 接单数为1,要判断是否工作中
+            if ($employeeInfo['state_work']) {
+                return error('请先完成已接订单');
+            }
+        }
+
         if ($this->getDb()->table('parkwash_order')->where(['employee_id' => $uid, 'status' => ParkWashOrderStatus::IN_SERVICE])->count() >= $employeeOrderLimitConfig) {
             return error('您有服务中订单未完成，您当前最多可同时接' . $employeeOrderLimitConfig . '单。');
         }
+
         return success('ok');
     }
 
@@ -361,7 +374,7 @@ class ParkWashEmployeeModel extends Crud {
 
         if (!$employeeList = $this->getDb()->table('parkwash_employee')->field('id,realname,avatar,state_work')->where([
             'store_id' => $orderInfo['store_id'], 'id' => ['<>', $uid], 'item_id' => ['like', '%,' . $orderInfo['item_id'] . ',%'], 'state_online' => 1, 'status' => 1
-        ])->select()) {
+        ])->order('state_work')->select()) {
             return success([]);
         }
 
@@ -457,8 +470,6 @@ class ParkWashEmployeeModel extends Crud {
      */
     public function getOrderList ($uid, $post)
     {
-        // 最后排序字段
-        $post['lastpage'] = intval($post['lastpage']);
         // 状态
         $post['status'] = $post['status'] ? intval($post['status']) : ParkWashOrderStatus::PAY;
 
@@ -470,8 +481,7 @@ class ParkWashEmployeeModel extends Crud {
         ];
 
         $condition = [
-            'status'      => $post['status'],
-            'xc_trade_id' => 0
+            'xc_trade_id = 0'
         ];
 
         if ($post['status'] == ParkWashOrderStatus::PAY) {
@@ -483,21 +493,27 @@ class ParkWashEmployeeModel extends Crud {
             if (!$hatchList = $this->getDb()->table('parkwash_order_hatch')->field('orderid')->where($employeeInfo)->select()) {
                 return success($result);
             }
-            $condition['id'] = ['in (' . implode(',' , array_column($hatchList, 'orderid')) . ')'];
+            $condition[] = 'status = ' . $post['status'];
+            $condition[] = 'id in (' . implode(',' , array_column($hatchList, 'orderid')) . ')';
             unset($hatchList);
         } else {
             if ($post['status'] == ParkWashOrderStatus::COMPLETE) {
-                $condition['status'] = ['in', [ParkWashOrderStatus::COMPLETE, ParkWashOrderStatus::CONFIRM]];
+                $condition[] = 'status in (' . ParkWashOrderStatus::COMPLETE . ',' . ParkWashOrderStatus::CONFIRM . ')';
+            } else {
+                $condition[] = 'status = ' . $post['status'];
             }
-            $condition['employee_id'] = $uid;
+            $condition[] = 'employee_id = ' . $uid;
         }
 
-        if ($post['lastpage'] > 0) {
-            $condition['id'] = ['<', $post['lastpage']];
+        if ($post['lastpage']) {
+            // 最后排序字段
+            if (strtotime($post['lastpage'])) {
+                $condition[] = 'update_time < "' . $post['lastpage'] . '"';
+            }
         }
 
         // 获取订单
-        if (!$orderList = $this->getDb()->table('parkwash_order')->field('id,car_number,brand_id,series_id,area_id,place,item_name,order_time,create_time,status')->where($condition)->order('id desc')->limit($result['limit'])->select()) {
+        if (!$orderList = $this->getDb()->table('parkwash_order')->field('id,car_number,brand_id,series_id,area_id,place,item_name,order_time,create_time,status,update_time')->where($condition)->order('update_time desc')->limit($result['limit'])->select()) {
             return success($result);
         }
 
@@ -510,7 +526,8 @@ class ParkWashEmployeeModel extends Crud {
             $areaList = array_column($areaList, null, 'id');
         }
         foreach ($orderList as $k => $v) {
-            $result['lastpage'] = $v['id'];
+            $result['lastpage'] = $v['update_time'];
+            $orderList[$k]['place']       = strval($v['place']);
             $orderList[$k]['brand_name']  = $brandList[$v['brand_id']];
             $orderList[$k]['series_name'] = $seriesList[$v['series_id']];
             $orderList[$k]['area_floor']  = isset($areaList[$v['area_id']]) ? $areaList[$v['area_id']]['floor'] : '';

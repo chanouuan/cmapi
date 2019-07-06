@@ -134,7 +134,7 @@ class ParkWash extends ActionPDO {
     }
 
     /**
-     * 获取用户信息 <span style="color:red">有改动</span>
+     * 获取用户信息
      * @login
      * @return array
      * {
@@ -146,12 +146,11 @@ class ParkWash extends ActionPDO {
      *     "avatar":"", //头像地址
      *     "nickname":"", //昵称
      *     "gender":1, //性别 0未知 1男 2女
-     *     "money":0, //余额 (分) <span style="color:red">*已包含赠送金额</span>
-     *     "give":0, //充值赠送金额 (分) <span style="color:red">新增</span>
+     *     "money":0, //余额 (分)
+     *     "give":0, //充值赠送金额 (分)
      *     "ispw":0, //是否已设置密码
      *     "vip_status"1, //vip状态 0不是vip 1未过期 -1已过期
      *     "vip_expire","", //vip截止时间
-     *     "firstorder":0, //首单免费状态 0未启用或已使用过 1首单免费已激活(当次下单免费)
      * }}
      */
     public function getUserInfo ()
@@ -333,10 +332,10 @@ class ParkWash extends ActionPDO {
 //        $_POST['lat'] = '26.663843';
         $model = new ParkWashModel();
         $stores = $model->getNearbyStore($_POST);
-        $xiches = $model->getNearbyXicheDevice($_POST);
+        //$xiches = $model->getNearbyXicheDevice($_POST);
         return success([
-            'stores' => $stores['result'],
-            'xiches' => $xiches['result']
+            'stores' => $stores['result']
+            //'xiches' => $xiches['result']
         ]);
     }
 
@@ -523,9 +522,10 @@ class ParkWash extends ActionPDO {
     }
 
     /**
-     * 获取洗车店洗车套餐 <span style="color:red">有改动</span>
+     * 获取洗车店洗车套餐
+     * @login
      * @param *store_id 门店ID
-     * @param *series_id string 车系ID <span style="color:red">新增</span>
+     * @param *series_id string 车系ID
      * @return array
      * {
      * "errNo":0, //错误码 0成功 -1失败
@@ -533,12 +533,13 @@ class ParkWash extends ActionPDO {
      * "result":[{
      *      "id":1, //套餐项目ID
      *      "name":"车辆外观", //项目名称
-     *      "price":1000, //价格 (分)
+     *      "price":0, //价格 (分)
+     *      "firstorder":0, //首单免费 1是 0否
      * }]}
      */
     public function getStoreItem ()
     {
-        return (new ParkWashModel())->getStoreItem($_POST);
+        return (new ParkWashModel())->getStoreItem($this->_G['user']['uid'], $_POST);
     }
 
     /**
@@ -748,7 +749,7 @@ class ParkWash extends ActionPDO {
     }
 
     /**
-     * 获取充值卡类型 <span style="color:red">New</span>
+     * 获取充值卡类型
      * @return array
      * {
      * "errNo":0, // 错误码 0成功 -1失败
@@ -765,9 +766,9 @@ class ParkWash extends ActionPDO {
     }
 
     /**
-     * 充值 <span style="color:red">有改动</span>
+     * 充值
      * @login
-     * @param *type_id string 充值卡类型ID <span style="color:red">新增</span>
+     * @param *type_id string 充值卡类型ID
      * @param *payway 支付方式(wxpaywash小程序支付)
      * @return array
      * {

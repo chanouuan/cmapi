@@ -35,13 +35,12 @@
                             <th>ID</th>
                             <th>区域代码</th>
                             <th>店名</th>
-                            <th>缩略图</th>
                             <th>电话</th>
                             <th>地址</th>
                             <th>营业时间</th>
-                            <th>最低套餐价</th>
                             <th>下单数</th>
                             <th>总收益</th>
+                            <th>员工数</th>
                             <th>状态</th>
                             <th>操作</th>
                         </tr>
@@ -52,13 +51,12 @@
                             <td><?=$v['id']?></td>
                             <td><?=$v['adcode']?></td>
                             <td><?=$v['name']?></td>
-                            <td><?=$v['logo']?></td>
                             <td><?=$v['tel']?></td>
                             <td><?=$v['address']?></td>
                             <td><?=$v['business_hours']?></td>
-                            <td><?=round_dollar($v['price'],false)?></td>
                             <td><?=$v['order_count']?></td>
-                            <td><?=round_dollar($v['money'],false)?></td>
+                            <td><?=round_dollar($v['money'])?></td>
+                            <td><?=$v['employee_count']?></td>
                             <td><?=$v['str_status']?></td>
                             <td class="td-manage">
                                 <button class="layui-btn layui-btn layui-btn-xs" onclick="xadmin.open('编辑店铺','<?=gurl('xicheManage/storeUpdate',['id'=>$v['id']])?>')"><i class="layui-icon"></i>编辑</button>

@@ -585,14 +585,14 @@ class ParkWashModel extends Crud {
     /**
      * 获取用户信息
      */
-    public function getUserInfo ($uid) {
-
+    public function getUserInfo ($uid)
+    {
         // 用户车秘用户信息
         $userInfo = (new UserModel())->getUserInfo($uid);
         if ($userInfo['errorcode'] !== 0) {
             return $userInfo;
         }
-        $userCount = $this->getDb()->table('parkwash_usercount')->field('money,parkwash_firstorder,vip_expire')->where(['uid' => $uid])->limit(1)->find();
+        $userCount = $this->getUserCountInfo($uid, 'money,vip_expire');
         $userInfo['result']['money'] += $userCount['money']; // 余额 = 车币余额 + 充值赠送
         $userInfo['result']['give']  =  $userCount['money'];
         $userInfo['result']['vip_status'] = 0; // vip状态 0不是vip 1未过期 -1已过期
@@ -601,14 +601,31 @@ class ParkWashModel extends Crud {
             $userInfo['result']['vip_expire'] = $userCount['vip_expire'];
             $userInfo['result']['vip_status'] = strtotime($userCount['vip_expire']) > TIMESTAMP ? 1 : -1;
         }
-        // 获取首单免费权限
-        $userInfo['result']['firstorder'] = 0; // 首单免费状态 0未启用或已使用过 1首单免费
-        $firstFreeConfig = getConfig('xc', 'wash_order_first_free');
-        if ($firstFreeConfig) {
-            $userInfo['result']['firstorder'] = $userCount['parkwash_firstorder'] ? 1 : 0;
-        }
         unset($userCount);
         return $userInfo;
+    }
+
+    /**
+     * 获取用户记录字段
+     * @param $uid
+     * @param $field
+     * @return array
+     */
+    public function getUserCountInfo ($uid, $field = '*')
+    {
+        return $this->getDb()->table('parkwash_usercount')->field($field)->where(['uid' => $uid])->limit(1)->find();
+    }
+
+    /**
+     * 检查用户是否首单免费
+     * @param $uid 用户ID
+     * @param $item_id 套餐ID
+     * @return bool
+     */
+    public function checkFirstorder ($uid, $item_id)
+    {
+        $result = $this->getDb()->table('parkwash_item_firstorder')->where(['uid' => $uid, 'item_id' => $item_id])->count();
+        return 0 === $result ? true : false;
     }
 
     /**
@@ -945,7 +962,7 @@ class ParkWashModel extends Crud {
     /**
      * 获取洗车店洗车套餐
      */
-    public function getStoreItem ($post)
+    public function getStoreItem ($uid, $post)
     {
         $post['store_id']  = intval($post['store_id']);
         $post['series_id'] = intval($post['series_id']);
@@ -958,11 +975,34 @@ class ParkWashModel extends Crud {
         if (!$itemList = $this->getDb()
             ->table('parkwash_store_item store_item')
             ->join('join parkwash_item item on item.id = store_item.item_id')
-            ->field('item.id,item.name,store_item.price')->where([
+            ->field('item.id,item.name,item.firstorder,store_item.price')->where([
                 'store_item.store_id' => $post['store_id'],
                 'item.car_type_id'    => ['in (0, ' . $seriesInfo['car_type_id'] . ')'],
             ])->select()) {
             return success([]);
+        }
+
+        // 判断用户首单免费
+        $firstorderItem = [];
+        foreach ($itemList as $k => $v) {
+            if ($v['firstorder']) {
+                $firstorderItem[] = $v['id'];
+            }
+        }
+        if ($firstorderItem) {
+            if ($firstorderList = $this->getDb()->table('parkwash_item_firstorder')->field('item_id')->where(['uid' => $uid, 'item_id' => ['in', $firstorderItem]])->select()) {
+                $firstorderList = array_column($firstorderList, 'item_id', 'item_id');
+                foreach ($itemList as $k => $v) {
+                    if (isset($firstorderList[$v['id']])) {
+                        $itemList[$k]['firstorder'] = 0;
+                    }
+                }
+            }
+        }
+        foreach ($itemList as $k => $v) {
+            if ($v['firstorder']) {
+                $itemList[$k]['price'] = '首单免费';
+            }
         }
 
         return success($itemList);
@@ -1651,13 +1691,13 @@ class ParkWashModel extends Crud {
         }
 
         // 套餐
-        if (!$itemInfo = $this->getDb()->table('parkwash_item')->field('id,name')->where(['id' => $post['items']])->limit(1)->find()) {
+        if (!$itemInfo = $this->findItemInfo(['id' => $post['items']], 'id,name,firstorder')) {
             return error('该套餐不存在');
         }
 
         // 判断套餐
         if (!$items = $this->getDb()->table('parkwash_store_item')->field('price')->where([
-            'store_id' => $post['store_id'], 'item_id' => $post['items']
+            'store_id' => $post['store_id'], 'item_id' => $itemInfo['id']
             ])->limit(1)->find()) {
             return error('当前门店未设置该套餐');
         }
@@ -1675,22 +1715,19 @@ class ParkWashModel extends Crud {
         }
         $userInfo = $userInfo['result'];
         // 余额 = 车币余额 + 赠送余额
-        if (!$userCount = $this->getDb()->table('parkwash_usercount')->field('money')->where(['uid' => $uid])->limit(1)->find()) {
+        if (!$userCount = $this->getUserCountInfo($uid, 'money')) {
             return error('账户余额异常');
         }
         $userInfo['money'] += $userCount['money'];
 
-        // 是否开启首单免费
-        $firstFreeConfig = getConfig('xc', 'wash_order_first_free');
-        if ($firstFreeConfig) {
+        // 套餐是否首单免费
+        if ($itemInfo['firstorder']) {
             // 查询是否首单
-            if ($userCount = $this->getDb()->table('parkwash_usercount')->field('parkwash_firstorder')->where(['uid' => $uid])->limit(1)->find()) {
-                if ($userCount['parkwash_firstorder']) {
-                    $post['payway'] = 'firstpay';
-                    // 首单免费，所以支付金额为0，抵扣金额为总价
-                    $deductPrice = $totalPrice;
-                    $totalPrice = 0;
-                }
+            if ($this->checkFirstorder($uid, $itemInfo['id'])) {
+                $post['payway'] = 'firstpay';
+                // 首单免费，所以支付金额为0，抵扣金额为总价
+                $deductPrice = $totalPrice;
+                $totalPrice = 0;
             }
         }
 
@@ -1872,7 +1909,7 @@ class ParkWashModel extends Crud {
     protected function localPay ($uid, $orderCode, $totalPrice, $cardId)
     {
         // 获取赠送金额
-        if (!$userCount = $this->getDb()->table('parkwash_usercount')->field('money')->where(['uid' => $uid])->limit(1)->find()) {
+        if (!$userCount = $this->getUserCountInfo($uid, 'money')) {
             return error('账户余额异常');
         }
         $give = $userCount['money'];
@@ -1887,7 +1924,7 @@ class ParkWashModel extends Crud {
         }
 
         // 扣除赠送金额
-        if (!$this->getDb()->update('parkwash_usercount', [
+        if (false === $this->getDb()->update('parkwash_usercount', [
             'money' => ['money-' . $localMoney]
         ], [
             'uid' => $uid, 'money' => $give
@@ -2017,7 +2054,6 @@ class ParkWashModel extends Crud {
             'coupon_consume'      => ['coupon_consume+' . ($tradeInfo['money'] - $tradeInfo['pay'])],
             'parkwash_count'      => ['parkwash_count+1'],
             'parkwash_consume'    => ['parkwash_consume+' . $tradeInfo['pay']],
-            'parkwash_firstorder' => 0
         ], [
             'uid' => $tradeInfo['trade_id']
         ]);
@@ -2027,6 +2063,18 @@ class ParkWashModel extends Crud {
 
         // 获取门店信息
         $storeInfo = $this->findStoreInfo(['id' => $orderInfo['store_id']], 'id,name,tel');
+
+        // 套餐
+        $itemInfo = $this->findItemInfo(['id' => $orderInfo['item_id']], 'id,firstorder');
+
+        // 消费首单免费
+        if ($itemInfo['firstorder']) {
+            if ($this->checkFirstorder($orderInfo['uid'], $orderInfo['item_id'])) {
+                $this->getDb()->insert('parkwash_item_firstorder', [
+                    'uid' => $orderInfo['uid'], 'item_id' => $orderInfo['item_id'], 'create_time' => date('Y-m-d H:i:s', TIMESTAMP)
+                ]);
+            }
+        }
 
         // 更新门店下单数、收益
         $this->getDb()->update('parkwash_store', [
@@ -2361,6 +2409,17 @@ class ParkWashModel extends Crud {
     }
 
     /**
+     * 查询套餐信息
+     * @param $condition 查询条件
+     * @param $field 查询字段
+     * @return array
+     */
+    protected function findItemInfo ($condition, $field = null)
+    {
+        return $this->getDb()->table('parkwash_item')->field($field)->where($condition)->limit(1)->find();
+    }
+
+    /**
      * 检查车位状态是否支持洗车服务
      * @param $area_id 区域ID
      * @param $place 车位号
@@ -2576,7 +2635,7 @@ class ParkWashModel extends Crud {
         // body
         $body = [
             'platform' => 'all',
-            'audience' => is_array($audience) ? ['registration_id' => $audience] : 'all',
+            'audience' => is_array($audience) ? ['registration_id' => array_values($audience)] : 'all',
             'notification' => [
                 'android' => [
                     'alert' => $alert,
@@ -2604,7 +2663,7 @@ class ParkWashModel extends Crud {
         if ($penetrate == 1) {
             // 仅仅透传
             unset($body['notification']);
-        }else if ($penetrate == 2) {
+        } else if ($penetrate == 2) {
             // 仅仅消息
             unset($body['message']);
         }

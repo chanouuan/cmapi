@@ -22,6 +22,14 @@
             </div>
             <div class="layui-form-item">
                 <label class="layui-form-label">
+                    首单免费
+                </label>
+                <div class="layui-form-radio">
+                    <input type="checkbox" name="firstorder" lay-skin="switch" lay-text="开启|关闭" value="1" <?php if($info['firstorder']){ ?>checked<?php } ?>>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">
                     服务车型
                 </label>
                 <div class="layui-input-inline">
@@ -51,7 +59,7 @@
             form.on('submit(add)', function(data){
                 $.ajax({
                     type: 'POST',
-                    url: '<?=gurl('xicheManage/itemUpdate')?>',
+                    url: "<?=gurl('xicheManage/itemUpdate')?>",
                     data: data.field,
                     dataType: 'json',
                     timeout: 10000,

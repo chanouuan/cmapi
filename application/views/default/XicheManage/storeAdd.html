@@ -109,19 +109,22 @@
                     <table class="layui-table">
                         <colgroup>
                             <col width="200">
+                            <col width="220">
                             <col>
                         </colgroup>
                         <thead>
                         <tr>
                             <th>套餐名称</th>
                             <th>价格(元)，若关闭套餐，请设置0元</th>
+                            <th>员工提成(元)</th>
                         </tr>
                         </thead>
                         <tbody>
                         <?php foreach($items as $v){ ?>
                         <tr>
                             <td><?=$v['name']?></td>
-                            <td><input name="item[<?=$v['id']?>]" style="width: 50px" type="tel" maxlength="5" value="<?=$v['price']/100?>" autocomplete="off" class="layui-input"/></td>
+                            <td><input name="item[<?=$v['id']?>][price]" style="width: 50px" type="tel" maxlength="5" value="<?=$v['price']/100?>" autocomplete="off" class="layui-input"/></td>
+                            <td><input name="item[<?=$v['id']?>][employee_salary]" style="width: 50px" type="tel" maxlength="5" value="<?=$v['employee_salary']/100?>" autocomplete="off" class="layui-input"/></td>
                         </tr>
                         <?php } ?>
                         </tbody>
