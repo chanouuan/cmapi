@@ -5,6 +5,7 @@ namespace app\models;
 use Crud;
 use app\common\ParkWashOrderStatus;
 use app\common\ParkWashPayWay;
+use app\common\ParkWashCache;
 
 class ParkWashEmployeeModel extends Crud {
 
@@ -68,7 +69,9 @@ class ParkWashEmployeeModel extends Crud {
             $result['lastpage'] = $v['id'];
             $orderList[$k]['employee_salary'] = round_dollar($v['employee_salary']);
             $orderList[$k]['brand_name']      = $brandList[$v['brand_id']];
-            $orderList[$k]['series_name']     = $seriesList[$v['series_id']];
+            $orderList[$k]['series_name']     = $seriesList[$v['series_id']]['name'];
+            $orderList[$k]['car_type_name']   = $seriesList[$v['series_id']]['car_type_name'];
+
             unset($orderList[$k]['brand_id'], $orderList[$k]['series_id']);
         }
         unset($brandList, $seriesList);
@@ -399,9 +402,12 @@ class ParkWashEmployeeModel extends Crud {
         if ($orderInfo['area_id']) {
             $areaInfo = $this->getDb()->table('parkwash_park_area')->field('floor,name')->where(['id' => $orderInfo['area_id']])->find();
         }
+
+        $carTypeInfo = $this->getSeriesNameById($orderInfo['series_id']);
         $orderInfo['order_code']    = str_replace(['-', ' ', ':'], '', $orderInfo['create_time']) . $orderInfo['id']; // 组合订单号
         $orderInfo['brand_name']    = $this->getBrandNameById($orderInfo['brand_id']);
-        $orderInfo['series_name']   = $this->getSeriesNameById($orderInfo['series_id']);
+        $orderInfo['series_name']   = $carTypeInfo['name'];
+        $orderList['car_type_name'] = $carTypeInfo['car_type_name'];
         $orderInfo['area_floor']    = strval($areaInfo['floor']);
         $orderInfo['area_name']     = strval($areaInfo['name']);
         $orderInfo['payway']        = ParkWashPayWay::getMessage($orderInfo['payway']);
@@ -527,11 +533,12 @@ class ParkWashEmployeeModel extends Crud {
         }
         foreach ($orderList as $k => $v) {
             $result['lastpage'] = $v['update_time'];
-            $orderList[$k]['place']       = strval($v['place']);
-            $orderList[$k]['brand_name']  = $brandList[$v['brand_id']];
-            $orderList[$k]['series_name'] = $seriesList[$v['series_id']];
-            $orderList[$k]['area_floor']  = isset($areaList[$v['area_id']]) ? $areaList[$v['area_id']]['floor'] : '';
-            $orderList[$k]['area_name']   = isset($areaList[$v['area_id']]) ? $areaList[$v['area_id']]['name'] : '';
+            $orderList[$k]['place']         = strval($v['place']);
+            $orderList[$k]['brand_name']    = $brandList[$v['brand_id']];
+            $orderList[$k]['series_name']   = $seriesList[$v['series_id']]['name'];
+            $orderList[$k]['car_type_name'] = $seriesList[$v['series_id']]['car_type_name'];
+            $orderList[$k]['area_floor']    = isset($areaList[$v['area_id']]) ? $areaList[$v['area_id']]['floor'] : '';
+            $orderList[$k]['area_name']     = isset($areaList[$v['area_id']]) ? $areaList[$v['area_id']]['name'] : '';
             unset($orderList[$k]['brand_id'], $orderList[$k]['series_id'], $orderList[$k]['area_id']);
         }
         unset($brandList, $seriesList, $areaList);
@@ -599,8 +606,8 @@ class ParkWashEmployeeModel extends Crud {
     public function login ($post, $extra = [])
     {
         $post['telephone'] = trim($post['telephone']);
-        $post['msgcode'] = trim($post['msgcode']);
-        $post['password'] = trim($post['password']);
+        $post['msgcode']   = trim($post['msgcode']);
+        $post['password']  = trim($post['password']);
 
         if (!validate_telephone($post['telephone'])) {
             return error('手机号为空或格式不正确！');
@@ -660,19 +667,26 @@ class ParkWashEmployeeModel extends Crud {
         if (empty($id)) {
             return [];
         }
-        if (false === F('CarSeriesById')) {
-            $list = $this->getDb()->table('parkwash_car_series')->field('id,name')->select();
-            $list = array_column($list, 'name', 'id');
-            F('CarSeriesById', $list);
-        }
-        $list = F('CarSeriesById');
+
+        $list    = ParkWashCache::getSeries();
+        $carType = ParkWashCache::getCarType();
+
         if (!is_array($id)) {
-            return isset($list[$id]) ? $list[$id] : '';
+            $data = isset($list[$id]) ? $list[$id] : [];
+            if ($data) {
+                $data['car_type_name'] = isset($carType[$data['car_type_id']]) ? $carType[$data['car_type_id']] : '';
+            }
+            unset($list, $carType);
+            return $data;
         }
         $data = [];
         foreach ($id as $v) {
-            $data[$v] = isset($list[$v]) ? $list[$v] : '';
+            $data[$v] = isset($list[$v]) ? $list[$v] : [];
+            if ($data[$v]) {
+                $data[$v]['car_type_name'] = isset($carType[$data[$v]['car_type_id']]) ? $carType[$data[$v]['car_type_id']] : '';
+            }
         }
+        unset($list, $carType);
         return $data;
     }
 
@@ -684,12 +698,10 @@ class ParkWashEmployeeModel extends Crud {
         if (empty($id)) {
             return [];
         }
-        if (false === F('CarBrandById')) {
-            $list = $this->getDb()->table('parkwash_car_brand')->field('id,name')->select();
-            $list = array_column($list, 'name', 'id');
-            F('CarBrandById', $list);
-        }
-        $list = F('CarBrandById');
+
+        $list = ParkWashCache::getBrand();
+        $list = array_column($list, 'name', 'id');
+
         if (!is_array($id)) {
             return isset($list[$id]) ? $list[$id] : '';
         }

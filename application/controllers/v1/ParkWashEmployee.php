@@ -104,7 +104,7 @@ class ParkWashEmployee extends ActionPDO {
     }
 
     /**
-     * 获取订单列表
+     * 获取订单列表 <span style="color:red">有改动</span>
      * @login
      * @param status 订单状态(1新订单3服务中4已完成-1已取消)，默认为1
      * @param lastpage 分页参数
@@ -124,6 +124,7 @@ class ParkWashEmployee extends ActionPDO {
      *          "create_time":"", //下单时间
      *          "brand_name":"斯柯达", //汽车品牌名
      *          "series_name":"昊锐", //汽车款型
+     *          "car_type_name":"", //车型 <span style="color:red">新加</span>
      *          "area_floor":"负一楼", //楼层
      *          "area_name":"A区", //区域
      *          "status":1, //订单状态 (-1已取消 1已支付 3服务中 4已完成服务 5顾客已确认完成)
@@ -155,7 +156,7 @@ class ParkWashEmployee extends ActionPDO {
     }
 
     /**
-     * 获取订单详情
+     * 获取订单详情 <span style="color:red">有改动</span>
      * @login
      * @param *orderid 订单ID
      * @return array
@@ -177,6 +178,7 @@ class ParkWashEmployee extends ActionPDO {
      *      "cancel_time":"", //取消订单时间
      *      "brand_name":"斯柯达", //汽车品牌名
      *      "series_name":"昊锐", //汽车款型
+     *      "car_type_name":"", //车型 <span style="color:red">新加</span>
      *      "area_floor":"负一楼", //楼层
      *      "area_name":"A区", //区域
      *      "remark":"", //备注
@@ -311,7 +313,7 @@ class ParkWashEmployee extends ActionPDO {
     }
 
     /**
-     * 统计
+     * 统计 <span style="color:red">有改动</span>
      * @login
      * @param start_time 开始时间（格式：2019-01-01，默认今日）
      * @param end_time 截止时间（格式：2019-01-01，默认今日）
@@ -332,6 +334,7 @@ class ParkWashEmployee extends ActionPDO {
      *          "complete_time":"", //完成时间
      *          "brand_name":"斯柯达", //汽车品牌名
      *          "series_name":"昊锐", //汽车款型
+     *          "car_type_name":"", //车型 <span style="color:red">新加</span>
      *          "employee_salary":0, //收益（元）
      *      }]
      * }}

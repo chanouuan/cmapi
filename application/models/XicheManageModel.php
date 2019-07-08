@@ -77,7 +77,7 @@ class XicheManageModel extends Crud {
     }
 
     /**
-     * 套餐编辑
+     * 车型编辑
      */
     public function carTypeUpdate ($post)
     {
@@ -90,11 +90,12 @@ class XicheManageModel extends Crud {
             ], ['id' => $post['id']])) {
             return error('修改失败');
         }
+        F('CarType', null);
         return success('OK');
     }
 
     /**
-     * 套餐添加
+     * 车型添加
      */
     public function carTypeAdd ($post)
     {
@@ -107,6 +108,7 @@ class XicheManageModel extends Crud {
         ])) {
             return error('添加失败');
         }
+        F('CarType', null);
         return success('OK');
     }
 

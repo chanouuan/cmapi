@@ -6,6 +6,7 @@ use Crud;
 use app\library\LocationUtils;
 use app\library\Geohash;
 use app\common\ParkWashPayWay;
+use app\common\ParkWashCache;
 
 class ParkWashModel extends Crud {
 
@@ -14,30 +15,12 @@ class ParkWashModel extends Crud {
      */
     public function getRechargeCardType ()
     {
-        $list = $this->getRechargeCardTypeCache();
+        $list = ParkWashCache::getRechargeCardType();
         foreach ($list as $k => $v) {
             $list[$k]['price'] = round_dollar($v['price']);
             $list[$k]['give']  = round_dollar($v['give']);
         }
         return success($list);
-    }
-
-    /**
-     * 获取充值卡类型
-     */
-    protected function getRechargeCardTypeCache ()
-    {
-        if (false === F('RechargeCardType')) {
-            $list = $this->getDb()
-                ->table('parkwash_recharge_type')
-                ->where(['status' => 1])
-                ->field('id,price,give')
-                ->order('sort desc')
-                ->select();
-            F('RechargeCardType', $list);
-            return $list;
-        }
-        return F('RechargeCardType');
     }
 
     /**
@@ -631,27 +614,9 @@ class ParkWashModel extends Crud {
     /**
      * 获取会员卡类型
      */
-    public function getCardTypeCache () {
-
-        if (false === F('CardType')) {
-            $list = $this->getDb()
-                ->table('parkwash_card_type')
-                ->where(['status' => 1])
-                ->field('id,name,price,months,days')
-                ->order('sort desc')
-                ->select();
-            F('CardType', $list);
-            return $list;
-        }
-        return F('CardType');
-    }
-
-    /**
-     * 获取会员卡类型
-     */
     public function getCardTypeList () {
 
-        $list = $this->getCardTypeCache();
+        $list = ParkWashCache::getCardType();
         foreach ($list as $k => $v) {
             $list[$k]['duration'] = ($v['months'] ? $v['months'] . '个月' : '') . ($v['days'] ? $v['days'] . '天' : '');
             unset($list[$k]['months'], $list[$k]['days']);
@@ -1071,43 +1036,6 @@ class ParkWashModel extends Crud {
     public function checkParkingState ($area_id, $place) {
 
         return $this->getDb()->table('parkwash_parking')->where(['area_id' => $area_id, 'place' => $place, 'status' => 1])->count();
-    }
-
-    /**
-     * 获取汽车车系
-     */
-    public function getSeriesList ($post) {
-
-        if (false === F('CarSeries')) {
-            $list = $this->getDb()->table('parkwash_car_series')->field('id,brand_id,name')->select();
-            $data = [];
-            foreach ($list as $k => $v) {
-                $data[$v['brand_id']][] = [
-                    'id' => $v['id'], 'name' => $v['name']
-                ];
-            }
-            unset($list);
-            F('CarSeries', $data);
-        }
-        $data = F('CarSeries');
-
-        return success(var_exists($data, $post['brand_id'], []));
-    }
-
-    /**
-     * 获取汽车品牌
-     */
-    public function getBrandList () {
-
-        if (false === F('CarBrand')) {
-            $list = $this->getDb()->table('parkwash_car_brand')->field('id,name,logo,pinyin,ishot')->select();
-            foreach ($list as $k => $v) {
-                $list[$k]['logo'] = httpurl($v['logo']);
-            }
-            F('CarBrand', $list);
-        }
-
-        return success(F('CarBrand'));
     }
 
     /**
@@ -1565,7 +1493,7 @@ class ParkWashModel extends Crud {
         }
 
         // 卡类型
-        $typeInfo = $this->getRechargeCardTypeCache();
+        $typeInfo = ParkWashCache::getRechargeCardType();
         $typeInfo = array_column($typeInfo, null, 'id');
         if (!isset($typeInfo[$post['type_id']])) {
             return error('该卡不存在或未启动');
@@ -2126,7 +2054,7 @@ class ParkWashModel extends Crud {
         $this->pushEmployee($orderInfo['store_id'], $orderInfo['item_id'], '您有新的订单', '车秘未来洗车', [
             'action'  => 'newOrderNotification',
             'orderid' => $orderInfo['id']
-        ]);
+        ], 2);
 
         return success('OK');
     }
@@ -3023,18 +2951,15 @@ class ParkWashModel extends Crud {
         if (empty($id)) {
             return [];
         }
-        if (false === F('CarSeriesById')) {
-            $list = $this->getDb()->table('parkwash_car_series')->field('id,name')->select();
-            $list = array_column($list, 'name', 'id');
-            F('CarSeriesById', $list);
-        }
-        $list = F('CarSeriesById');
+
+        $list = ParkWashCache::getSeries();
+
         if (!is_array($id)) {
-            return isset($list[$id]) ? $list[$id] : '';
+            return isset($list[$id]) ? $list[$id]['name'] : '';
         }
         $data = [];
         foreach ($id as $v) {
-            $data[$v] = isset($list[$v]) ? $list[$v] : '';
+            $data[$v] = isset($list[$v]) ? $list[$v]['name'] : '';
         }
         return $data;
     }
@@ -3047,12 +2972,10 @@ class ParkWashModel extends Crud {
         if (empty($id)) {
             return [];
         }
-        if (false === F('CarBrandById')) {
-            $list = $this->getDb()->table('parkwash_car_brand')->field('id,name')->select();
-            $list = array_column($list, 'name', 'id');
-            F('CarBrandById', $list);
-        }
-        $list = F('CarBrandById');
+
+        $list = ParkWashCache::getBrand();
+        $list = array_column($list, 'name', 'id');
+
         if (!is_array($id)) {
             return isset($list[$id]) ? $list[$id] : '';
         }
@@ -3061,6 +2984,34 @@ class ParkWashModel extends Crud {
             $data[$v] = isset($list[$v]) ? $list[$v] : '';
         }
         return $data;
+    }
+
+
+
+    /**
+     * 获取汽车车系
+     */
+    public function getSeriesList ($post)
+    {
+        $list = ParkWashCache::getSeries();
+
+        $data = [];
+        foreach ($list as $k => $v) {
+            $data[$v['brand_id']][] = [
+                'id' => $k, 'name' => $v['name']
+            ];
+        }
+        unset($list);
+
+        return success(var_exists($data, $post['brand_id'], []));
+    }
+
+    /**
+     * 获取汽车品牌
+     */
+    public function getBrandList ()
+    {
+        return success(ParkWashCache::getBrand());
     }
 
 }
