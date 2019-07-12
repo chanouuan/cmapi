@@ -58,7 +58,7 @@
                 </div>
                 <div class="layui-card-header">
                     <a href="?<?=burl('start_time='.$dateTime['today_start'].'&end_time='.$dateTime['today_end'])?>" class="layui-btn <?php if($dateTime['today_start']==$_GET['start_time']&&$dateTime['today_end']==$_GET['end_time']){ ?>layui-btn-primary<?php } ?>">今日</a>
-                    <a href="?<?=burl('start_time='.$dateTime['tomorrow_start'].'&end_time='.$dateTime['tomorrow_end'])?>" class="layui-btn <?php if($dateTime['tomorrow_start']==$_GET['start_time']&&$dateTime['tomorrow_end']==$_GET['end_time']){ ?>layui-btn-primary<?php } ?>">明日</a>
+                    <a href="?<?=burl('start_time='.$dateTime['yesterday_start'].'&end_time='.$dateTime['yesterday_end'])?>" class="layui-btn <?php if($dateTime['yesterday_start']==$_GET['start_time']&&$dateTime['yesterday_end']==$_GET['end_time']){ ?>layui-btn-primary<?php } ?>">昨日</a>
                     <a href="?<?=burl('start_time='.$dateTime['week_start'].'&end_time='.$dateTime['week_end'])?>" class="layui-btn <?php if($dateTime['week_start']==$_GET['start_time']&&$dateTime['week_end']==$_GET['end_time']){ ?>layui-btn-primary<?php } ?>">本周</a>
                     <a href="?<?=burl('start_time='.$dateTime['month_start'].'&end_time='.$dateTime['month_end'])?>" class="layui-btn <?php if($dateTime['month_start']==$_GET['start_time']&&$dateTime['month_end']==$_GET['end_time']){ ?>layui-btn-primary<?php } ?>">本月</a>
                     <a href="?<?=burl('start_time='.$dateTime['lastmonth_start'].'&end_time='.$dateTime['lastmonth_end'])?>" class="layui-btn <?php if($dateTime['lastmonth_start']==$_GET['start_time']&&$dateTime['lastmonth_end']==$_GET['end_time']){ ?>layui-btn-primary<?php } ?>">上月</a>
@@ -74,14 +74,15 @@
                             <th>编号</th>
                             <th>店铺</th>
                             <th>下单时间</th>
+                            <th>取车时间</th>
                             <th>车牌</th>
                             <th>车系</th>
                             <th>用户手机</th>
-                            <th>预约时间</th>
                             <th>区域</th>
                             <th>车位号</th>
                             <th>套餐</th>
-                            <th>支付金额</th>
+                            <th>价格</th>
+                            <th>已支付</th>
                             <th>支付方式</th>
                             <th>状态</th>
                             <th>入场时间</th>
@@ -94,13 +95,14 @@
                             <td><?=$v['id']?></td>
                             <td><?=$v['store_name']?></td>
                             <td><?=$v['create_time']?></td>
+                            <td><?=$v['order_time']?></td>
                             <td><?=$v['car_number']?></td>
                             <td><?=$v['car_name']?></td>
                             <td><?=$v['user_tel']?></td>
-                            <td><?=$v['order_time']?></td>
                             <td><?=$v['area_name']?> <?=$v['area_floor']?></td>
                             <td><?=$v['place']?></td>
                             <td><?=$v['item_name']?></td>
+                            <td><?=$v['pay']+$v['deduct']?></td>
                             <td><?=$v['pay']?></td>
                             <td><?=$v['payway']?></td>
                             <td><?=$v['status_str']?></td>

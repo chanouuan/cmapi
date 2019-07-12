@@ -205,24 +205,20 @@ class ParkWashModel extends Crud {
         if (isset($orderCategory[1])) {
             $brandList  = $this->getBrandNameById(array_column($orderCategory[1], 'brand_id'));
             $seriesList = $this->getSeriesNameById(array_column($orderCategory[1], 'series_id'));
-            $areaList = array_filter(array_column($orderCategory[1], 'area_id'));
-            if ($areaList) {
-                $areaList = $this->getDb()->table('parkwash_park_area')->field('id,floor,name')->where(['id' => ['in', $areaList]])->select();
-                $areaList = array_column($areaList, null, 'id');
-            }
-            $storeList = $this->getDb()->table('parkwash_store')->field('id,name')->where(['id' => ['in', array_column($orderCategory[1], 'store_id')]])->select();
-            $storeList = array_column($storeList, null, 'id');
+            $areaList   = ParkWashCache::getParkArea();
+            $storeList = $this->getDb()->table('parkwash_store')->field('id,name')->where(['id' => ['in', array_unique(array_column($orderCategory[1], 'store_id'))]])->select();
+            $storeList = array_column($storeList, 'name', 'id');
             foreach ($orderList as $k => $v) {
                 if ($v['xc_trade_id'] == 0) {
-                    $orderList[$k]['order_type'] = 'parkwash';
-                    $orderList[$k]['order_code'] = str_replace(['-', ' ', ':'], '', $v['create_time']) . $v['id']; // 组合订单号
-                    $orderList[$k]['brand_name'] = $brandList[$v['brand_id']];
+                    $orderList[$k]['order_type']  = 'parkwash';
+                    $orderList[$k]['order_code']  = str_replace(['-', ' ', ':'], '', $v['create_time']) . $v['id']; // 组合订单号
+                    $orderList[$k]['brand_name']  = $brandList[$v['brand_id']];
                     $orderList[$k]['series_name'] = $seriesList[$v['series_id']];
-                    $orderList[$k]['area_floor'] = isset($areaList[$v['area_id']]) ? $areaList[$v['area_id']]['floor'] : '';
-                    $orderList[$k]['area_name'] = isset($areaList[$v['area_id']]) ? $areaList[$v['area_id']]['name'] : '';
-                    $orderList[$k]['store_name'] = $storeList[$v['store_id']]['name'];
-                    $orderList[$k]['payway'] = ParkWashPayWay::getMessage($v['payway']);
-                    $orderList[$k]['items'] = [['name' => $v['item_name']]];
+                    $orderList[$k]['area_floor']  = isset($areaList[$v['area_id']]) ? $areaList[$v['area_id']]['floor'] : '';
+                    $orderList[$k]['area_name']   = isset($areaList[$v['area_id']]) ? $areaList[$v['area_id']]['name'] : '';
+                    $orderList[$k]['store_name']  = strval($storeList[$v['store_id']]);
+                    $orderList[$k]['payway']      = ParkWashPayWay::getMessage($v['payway']);
+                    $orderList[$k]['items']       = [['name' => $v['item_name']]];
                 }
             }
             unset($brandList, $seriesList, $areaList, $storeList);
@@ -243,8 +239,8 @@ class ParkWashModel extends Crud {
     /**
      * 获取订单详情
      */
-    public function getOrderInfo ($uid, $post) {
-
+    public function getOrderInfo ($uid, $post)
+    {
         $post['orderid'] = intval($post['orderid']);
 
         if (!$orderInfo = $this->findOrderInfo([
@@ -269,23 +265,21 @@ class ParkWashModel extends Crud {
 
         } else {
 
-            if ($orderInfo['area_id']) {
-                $areaInfo = $this->getDb()->table('parkwash_park_area')->field('floor,name')->where(['id' => $orderInfo['area_id']])->find();
-            }
+            $areaList  = ParkWashCache::getParkArea();
             $storeInfo = $this->getDb()->table('parkwash_store')->field('name,location')->where(['id' => $orderInfo['store_id']])->find();
             $orderInfo['order_type']  = 'parkwash';
             $orderInfo['order_code']  = str_replace(['-', ' ', ':'], '', $orderInfo['create_time']) . $orderInfo['id']; // 组合订单号
             $orderInfo['brand_name']  = $this->getBrandNameById($orderInfo['brand_id']);
             $orderInfo['series_name'] = $this->getSeriesNameById($orderInfo['series_id']);
-            $orderInfo['area_floor']  = strval($areaInfo['floor']);
-            $orderInfo['area_name']   = strval($areaInfo['name']);
+            $orderInfo['area_floor']  = isset($areaList[$orderInfo['area_id']]) ? $areaList[$orderInfo['area_id']]['floor'] : '';
+            $orderInfo['area_name']   = isset($areaList[$orderInfo['area_id']]) ? $areaList[$orderInfo['area_id']]['name'] : '';
             $orderInfo['store_name']  = $storeInfo['name'];
             $orderInfo['location']    = $storeInfo['location'];
             $orderInfo['items']       = [['name' => $orderInfo['item_name']]];
             $orderInfo['payway']      = ParkWashPayWay::getMessage($orderInfo['payway']);
             // 获取订单时序表
             // $orderInfo['sequence'] = $this->getDb()->table('parkwash_order_sequence')->field('title,create_time')->where(['orderid' => $orderInfo['id']])->select();
-
+            unset($areaList);
         }
 
         unset($orderInfo['xc_trade_id']);
@@ -296,8 +290,8 @@ class ParkWashModel extends Crud {
     /**
      * 修改订单车位，订单状态服务中之前
      */
-    public function updatePlace ($uid, $post) {
-
+    public function updatePlace ($uid, $post)
+    {
         $post['orderid'] = intval($post['orderid']);
         $post['area_id'] = intval($post['area_id']);
         $post['place'] = trim_space($post['place']);
@@ -386,8 +380,8 @@ class ParkWashModel extends Crud {
     /**
      * 用户取消订单
      */
-    public function cancelOrder ($uid, $post) {
-
+    public function cancelOrder ($uid, $post)
+    {
         $post['orderid'] = intval($post['orderid']);
 
         if (!$orderInfo = $this->findOrderInfo([
@@ -467,14 +461,13 @@ class ParkWashModel extends Crud {
 
         // 更新门店下单数、收益
         $this->getDb()->update('parkwash_store', [
-            'order_count' => ['order_count-1'], 'money' => ['money-' . $orderInfo['pay']]
+            'order_count' => ['order_count-1'], 'money' => ['money-' . ($orderInfo['pay'] + $orderInfo['deduct'])]
         ], [
             'id' => $orderInfo['store_id']
         ]);
 
         // 更新用户下单数、消费
         $this->getDb()->update('parkwash_usercount', [
-            'coupon_consume' => ['coupon_consume-' . $orderInfo['deduct']],
             'parkwash_count' => ['parkwash_count-1'],
             'parkwash_consume' => ['parkwash_consume-' . $orderInfo['pay']]
         ], [
@@ -694,12 +687,12 @@ class ParkWashModel extends Crud {
     /**
      * 编辑车辆
      */
-    public function updateCarport ($uid, $post) {
-
-        $post['brand_id'] = intval($post['brand_id']);
+    public function updateCarport ($uid, $post)
+    {
+        $post['brand_id']  = intval($post['brand_id']);
         $post['series_id'] = intval($post['series_id']);
-        $post['area_id'] = trim_space($post['area_id']);
-        $post['place'] = trim_space($post['place']);
+        $post['area_id']   = trim_space($post['area_id']);
+        $post['place']     = trim_space($post['place']);
         $post['isdefault'] = $post['isdefault'] == 1 ? 1 : 0;
 
         if (!check_car_license($post['car_number'])) {
@@ -894,26 +887,22 @@ class ParkWashModel extends Crud {
     /**
      * 获取我的车辆
      */
-    public function getCarport ($uid) {
-
+    public function getCarport ($uid)
+    {
         if (!$carportList = $this->getDb()->table('parkwash_carport')
             ->field('id,car_number,brand_id,series_id,area_id,place,name,isdefault,vip_expire')->where(['uid' => $uid])->order('id desc')->select()) {
             return success([]);
         }
 
-        $brandList = $this->getBrandNameById(array_column($carportList, 'brand_id'));
+        $brandList  = $this->getBrandNameById(array_column($carportList, 'brand_id'));
         $seriesList = $this->getSeriesNameById(array_column($carportList, 'series_id'));
-        $areaList = array_filter(array_unique(array_column($carportList, 'area_id')));
-        if ($areaList) {
-            $areaList = $this->getDb()->table('parkwash_park_area')->field('id,floor,name')->where(['id' => ['in', $areaList]])->select();
-            $areaList = array_column($areaList, null, 'id');
-        }
+        $areaList   = ParkWashCache::getParkArea();
 
         foreach ($carportList as $k => $v) {
-            $carportList[$k]['brand_name'] = $brandList[$v['brand_id']];
+            $carportList[$k]['brand_name']  = $brandList[$v['brand_id']];
             $carportList[$k]['series_name'] = $seriesList[$v['series_id']];
-            $carportList[$k]['area_floor'] = isset($areaList[$v['area_id']]) ? $areaList[$v['area_id']]['floor'] : '';
-            $carportList[$k]['area_name'] = isset($areaList[$v['area_id']]) ? $areaList[$v['area_id']]['name'] : '';
+            $carportList[$k]['area_floor']  = isset($areaList[$v['area_id']]) ? $areaList[$v['area_id']]['floor'] : '';
+            $carportList[$k]['area_name']   = isset($areaList[$v['area_id']]) ? $areaList[$v['area_id']]['name'] : '';
             // vip
             $carportList[$k]['isvip'] = $v['vip_expire'] ? (strtotime($v['vip_expire']) < TIMESTAMP ? 0 : 1) : 0;
             unset($carportList[$k]['vip_expire']);
@@ -1018,8 +1007,8 @@ class ParkWashModel extends Crud {
     /**
      * 获取停车场区域
      */
-    public function getParkArea ($post) {
-
+    public function getParkArea ($post)
+    {
         $post['park_id'] = get_real_val($post['park_id'], 1);
 
         $list = $this->getDb()->table('parkwash_park_area')->field('id,floor,name')->where(['park_id' => $post['park_id'], 'status' => 1])->select();
@@ -1642,11 +1631,6 @@ class ParkWashModel extends Crud {
             return $userInfo;
         }
         $userInfo = $userInfo['result'];
-        // 余额 = 车币余额 + 赠送余额
-        if (!$userCount = $this->getUserCountInfo($uid, 'money')) {
-            return error('账户余额异常');
-        }
-        $userInfo['money'] += $userCount['money'];
 
         // 套餐是否首单免费
         if ($itemInfo['firstorder']) {
@@ -1671,16 +1655,25 @@ class ParkWashModel extends Crud {
             }
         }
 
+        // 车币支付余额验证
+        if ($post['payway'] == 'cbpay') {
+            $result = $this->partMoney($uid, $totalPrice);
+            if ($result['errorcode'] !== 0) {
+                return $result;
+            }
+            $result = $result['result'];
+            // 余额 = 车币余额 + 赠送余额
+            if ($totalPrice > $userInfo['money'] + $result['give']) {
+                return error('余额不足');
+            }
+            // 车币支付要分开算车币费用和个人余额费用
+            $totalPrice  = $result['cb'];
+            $deductPrice = $result['local'];
+        }
+
         // 支付方式不能为空
         if (!$post['payway']) {
             return error('请选择支付方式');
-        }
-
-        // 车币支付余额验证
-        if ($post['payway'] == 'cbpay') {
-            if ($totalPrice > $userInfo['money']) {
-                return error('余额不足');
-            }
         }
 
         // 限制vip车一天只能洗一次
@@ -1837,23 +1830,17 @@ class ParkWashModel extends Crud {
     protected function localPay ($uid, $orderCode, $totalPrice, $cardId)
     {
         // 获取赠送金额
-        if (!$userCount = $this->getUserCountInfo($uid, 'money')) {
-            return error('账户余额异常');
+        $result = $this->partMoney($uid, $totalPrice);
+        if ($result['errorcode'] !== 0) {
+            return $result;
         }
-        $give = $userCount['money'];
-
-        // 优先扣除赠送金额
-        $cbMoney = 0;
-        if ($give >= $totalPrice) {
-            $localMoney = $totalPrice;
-        } else {
-            $localMoney = $give;
-            $cbMoney    = $totalPrice - $give;
-        }
+        $cb    = $result['result']['cb'];
+        $local = $result['result']['local'];
+        $give  = $result['result']['give'];
 
         // 扣除赠送金额
         if (false === $this->getDb()->update('parkwash_usercount', [
-            'money' => ['money-' . $localMoney]
+            'money' => ['money-' . $local]
         ], [
             'uid' => $uid, 'money' => $give
         ])) {
@@ -1861,18 +1848,18 @@ class ParkWashModel extends Crud {
         }
 
         // 扣除车币
-        if ($cbMoney > 0) {
+        if ($cb > 0) {
             $result = (new UserModel())->consume([
                 'platform' => 3,
                 'authcode' => $uid,
                 'trade_no' => $orderCode,
-                'money'    => $cbMoney,
+                'money'    => $cb,
                 'remark'   => '支付停车场洗车费'
             ]);
             if ($result['errorcode'] !== 0) {
                 // 回滚
                 $this->getDb()->update('parkwash_usercount', [
-                    'money' => ['money+' . $localMoney]
+                    'money' => ['money+' . $local]
                 ], [
                     'uid' => $uid
                 ]);
@@ -1885,10 +1872,58 @@ class ParkWashModel extends Crud {
     }
 
     /**
+     * 根据总价计算车币与余额各付多少
+     * @param $uid 用户ID
+     * @param $totalPrice 总价
+     * @return array
+     */
+    protected function partMoney ($uid, $totalPrice)
+    {
+        // 获取赠送金额
+        $give = $this->giveMoney($uid);
+        if ($give['errorcode'] !== 0) {
+            return $give;
+        }
+        $give = $give['result']['money'];
+
+        // 优先扣除赠送金额
+        $cbMoney = 0;
+        if ($give >= $totalPrice) {
+            $localMoney = $totalPrice;
+        } else {
+            $localMoney = $give;
+            $cbMoney    = $totalPrice - $give;
+        }
+
+        return success([
+            'give'  => $give,
+            'cb'    => $cbMoney,
+            'local' => $localMoney
+        ]);
+    }
+
+    /**
+     * 获取用户赠送金额
+     * @param $uid 用户ID
+     * @return array
+     */
+    protected function giveMoney ($uid)
+    {
+        static $data = [];
+        if (!isset($data[$uid])) {
+            // 获取赠送金额
+            if (!$data[$uid] = $this->getUserCountInfo($uid, 'money')) {
+                return error('账户余额异常');
+            }
+        }
+        return success($data[$uid]);
+    }
+
+    /**
      * 查询支付是否成功
      */
-    public function payQuery ($uid, $post) {
-
+    public function payQuery ($uid, $post)
+    {
         $tradeModel = new TradeModel();
         $result = $tradeModel->payQuery($uid, $post['tradeid']);
         if ($result['errorcode'] !== 0) {
@@ -1906,8 +1941,8 @@ class ParkWashModel extends Crud {
      * 交易创建失败
      * @return array
      */
-    public function handleCardFail ($cardId) {
-
+    public function handleCardFail ($cardId)
+    {
         if (!$tradeInfo = $this->getDb()->table('__tablepre__payments')
             ->field('id,type,order_id')
             ->where(['id' => $cardId])
@@ -1933,8 +1968,8 @@ class ParkWashModel extends Crud {
      * @param $tradeParam 交易单更新数据
      * @return array
      */
-    public function handleCardSuc ($cardId, $tradeParam = []) {
-
+    public function handleCardSuc ($cardId, $tradeParam = [])
+    {
         if (!$tradeInfo = $this->getDb()->table('__tablepre__payments')
             ->field('id,type,trade_id,order_id,param_id,param_a,form_id,voucher_id,pay,money,ordercode,payway,uses,mark')
             ->where(['id' => $cardId])
@@ -1979,7 +2014,6 @@ class ParkWashModel extends Crud {
 
         // 更新用户下单数、消费
         $this->getDb()->update('parkwash_usercount', [
-            'coupon_consume'      => ['coupon_consume+' . ($tradeInfo['money'] - $tradeInfo['pay'])],
             'parkwash_count'      => ['parkwash_count+1'],
             'parkwash_consume'    => ['parkwash_consume+' . $tradeInfo['pay']],
         ], [
@@ -2007,7 +2041,7 @@ class ParkWashModel extends Crud {
         // 更新门店下单数、收益
         $this->getDb()->update('parkwash_store', [
             'order_count' => ['order_count+1'],
-            'money'       => ['money+' . $tradeInfo['pay']]
+            'money'       => ['money+' . $tradeInfo['money']]
         ], [
             'id' => $orderInfo['store_id']
         ]);
@@ -2301,7 +2335,6 @@ class ParkWashModel extends Crud {
         $order_id = $this->getDb()->getlastid();
         // 更新用户下单数、消费
         $this->getDb()->update('parkwash_usercount', [
-            'coupon_consume' => ['coupon_consume+' . $param['deduct']],
             'xiche_count' => ['xiche_count+1'],
             'xiche_consume' => ['xiche_consume+' . $param['pay']]
         ], [
@@ -2563,7 +2596,7 @@ class ParkWashModel extends Crud {
         // body
         $body = [
             'platform' => 'all',
-            'audience' => is_array($audience) ? ['registration_id' => array_values($audience)] : 'all',
+            'audience' => is_array($audience) ? ['registration_id' => array_values(array_unique($audience))] : 'all',
             'notification' => [
                 'android' => [
                     'alert' => $alert,

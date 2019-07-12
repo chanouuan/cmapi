@@ -19,6 +19,9 @@ class XicheManageModel extends Crud {
         $post['gender']   = $post['gender'] == 1 ? 1 : 2;
         $post['status']   = $post['status'] == 1 ? 1 : 0;
         $post['password'] = trim_space($post['password']);
+        $post['idcard']   = trim_space($post['idcard']);
+
+        $userModel = new UserModel();
 
         if (empty($post['store_id'])) {
             return error('店铺不能为空');
@@ -31,6 +34,11 @@ class XicheManageModel extends Crud {
         }
         if (!validate_telephone($post['telephone'])) {
             return error('手机号不正确');
+        }
+        if ($post['idcard']) {
+            if (!$userModel->check_id($post['idcard'])) {
+                return error('身份证号不正确');
+            }
         }
         if ($post['password']) {
             // 密码长度验证
@@ -57,21 +65,25 @@ class XicheManageModel extends Crud {
         }
 
         // 新增员工
-        if (!$this->getDb()->insert('parkwash_employee', [
-            'store_id' => $post['store_id'],
-            'item_id' => ',' . $post['item_id'] . ',',
-            'store_name' => $storeInfo['name'],
-            'realname' => $post['realname'],
-            'avatar' => $post['avatar'],
-            'telephone' => $post['telephone'],
-            'password' => $post['password'] ? (new UserModel())->hashPassword(md5($post['password'])) : '', // 先md5密码
-            'gender' => $post['gender'],
-            'status' => $post['status'],
+        if (!$id = $this->getDb()->insert('parkwash_employee', [
+            'store_id'    => $post['store_id'],
+            'item_id'     => ',' . $post['item_id'] . ',',
+            'store_name'  => $storeInfo['name'],
+            'realname'    => $post['realname'],
+            'avatar'      => $post['avatar'],
+            'telephone'   => $post['telephone'],
+            'idcard'      => $post['idcard'],
+            'password'    => $post['password'] ? $userModel->hashPassword(md5($post['password'])) : '', // 先md5密码
+            'gender'      => $post['gender'],
+            'status'      => $post['status'],
             'create_time' => date('Y-m-d H:i:s', TIMESTAMP),
             'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
-        ])) {
+        ], null, null, true)) {
             return error('添加失败');
         }
+
+        // 添加订单计数
+        $this->getDb()->insert('parkwash_employee_order_count', ['id' => $id]);
 
         return success('OK');
     }
@@ -859,19 +871,17 @@ class XicheManageModel extends Crud {
         if (!$post['floor']) {
             return error('楼层不能为空');
         }
-        if (!$post['name']) {
-            return error('区域名称不能为空');
-        }
 
         if (!$this->getDb()->insert('parkwash_park_area', [
             'park_id' => 1,
-            'floor' => $post['floor'],
-            'name' => $post['name'],
-            'status' => $post['status']
+            'floor'   => $post['floor'],
+            'name'    => $post['name'],
+            'status'  => $post['status']
         ])) {
             return error('添加失败');
         }
 
+        F('ParkArea', null);
         return success('OK');
     }
 
@@ -886,18 +896,16 @@ class XicheManageModel extends Crud {
         if (!$post['floor']) {
             return error('楼层不能为空');
         }
-        if (!$post['name']) {
-            return error('区域名称不能为空');
-        }
 
         if (false === $this->getDb()->update('parkwash_park_area', [
-            'floor' => $post['floor'],
-            'name' => $post['name'],
+            'floor'  => $post['floor'],
+            'name'   => $post['name'],
             'status' => $post['status']
         ], ['id' => $post['id']])) {
             return error('编辑失败');
         }
 
+        F('ParkArea', null);
         return success('OK');
     }
 
@@ -1303,6 +1311,8 @@ class XicheManageModel extends Crud {
         $today_endtime = $today_starttime;
         $tomorrow_starttime = date('Y-m-d', TIMESTAMP + 86400);
         $tomorrow_endtime = $tomorrow_starttime;
+        $yesterday_starttime = date('Y-m-d', TIMESTAMP - 86400);
+        $yesterday_endtime = $yesterday_starttime;
         $week_starttime = mktime(0, 0, 0, date('m'), date('d') - (date('w') ? (date('w') - 1) : 6), date('Y'));
         $week_starttime = date('Y-m-d', $week_starttime);
         $week_endtime = date('Y-m-d', strtotime($week_starttime) + 6 * 86400);
@@ -1321,6 +1331,8 @@ class XicheManageModel extends Crud {
             'today_end' => $today_endtime,
             'tomorrow_start' => $tomorrow_starttime,
             'tomorrow_end' => $tomorrow_endtime,
+            'yesterday_start' => $yesterday_starttime,
+            'yesterday_end' => $yesterday_endtime,
             'week_start' => $week_starttime,
             'week_end' => $week_endtime,
             'lastmonth_start' => $lastmonth_starttime,
@@ -1343,6 +1355,41 @@ class XicheManageModel extends Crud {
             return $arr;
         }
         return isset($arr[$status]) ? $arr[$status] : '未知';
+    }
+
+    /**
+     * 导出csv
+     * @param $fileName 文件名
+     * @param $header 头部逗号分隔
+     * @param $list 数据列表
+     * @return fixed
+     */
+    public function exportCsv ($fileName, $header, array $list)
+    {
+        $fileName = $fileName . '_' . date('Ymd', TIMESTAMP);
+        $fileName = preg_match('/(Chrome|Firefox)/i', $_SERVER['HTTP_USER_AGENT']) && !preg_match('/edge/i', $_SERVER['HTTP_USER_AGENT']) ? $fileName : urlencode($fileName);
+
+        header('Content-type: text/html; charset=utf-8');
+        header('cache-control:public');
+        header('content-type:application/octet-stream');
+        header('content-disposition:attachment; filename=' . $fileName . '.csv');
+
+        echo chr(0xEF) . chr(0xBB) . chr(0xBF); // 输出BOM
+        echo $header;
+        echo "\n";
+
+        foreach ($list as $k => $v) {
+            foreach ($v as $kk => $vv) {
+                if (false !== strpos($vv, ',')) {
+                    $v[$kk] = '"' . $vv . '"';
+                }
+            }
+            echo implode(',', $v);
+            echo "\n";
+            unset($list[$k]);
+        }
+
+        exit(0);
     }
 
 }

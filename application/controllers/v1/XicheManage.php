@@ -367,7 +367,7 @@ class XicheManage extends ActionPDO {
     }
 
     /**
-     * 车位区域添加
+     * 车位区域编辑
      */
     public function areaUpdate () {
         if (submitcheck()) {
@@ -488,8 +488,8 @@ class XicheManage extends ActionPDO {
     /**
      * 查看停车场洗车订单详情
      */
-    public function parkOrderView (){
-
+    public function parkOrderView ()
+    {
         $modle = new XicheManageModel();
         $orderInfo = $modle->getInfo('parkwash_order', ['id' => getgpc('id')]);
         $brandInfo = $modle->getInfo('parkwash_car_brand', ['id' => $orderInfo['brand_id']], 'name');
@@ -508,7 +508,7 @@ class XicheManage extends ActionPDO {
         $orderInfo['store_money'] = $storeInfo['money'];
         $orderInfo['payway'] = ParkWashPayWay::getMessage($orderInfo['payway']);
         // 获取订单时序表
-        $orderInfo['sequence'] = $modle->getlist('parkwash_order_sequence', ['orderid' => $orderInfo['id']], null, 'id desc', 'title,create_time');
+        $orderInfo['sequence'] = $modle->getlist('parkwash_order_sequence', ['orderid' => $orderInfo['id']], null, 'id asc', 'title,create_time');
         // 判断状态
         if ($orderInfo['status'] == 1 && $orderInfo['entry_park_id']) {
             // 等待服务
@@ -528,6 +528,13 @@ class XicheManage extends ActionPDO {
             $outParkTime = $outPark ? $outPark[0]['outpark_time'] : 0;
             $orderInfo['out_park_time'] = $outParkTime ? date('Y-m-d H:i:s', $outParkTime) : '未出场/无出场信息';
         }
+        // 员工与帮手
+        $helper = $modle->getList('parkwash_order_helper', ['orderid' => $orderInfo['id']]);
+        $helper = array_column($helper, 'helper_id');
+        $employee = $modle->getlist('parkwash_employee', ['id' => ['in', array_merge([$orderInfo['employee_id']], $helper)]], null, 'id asc', 'id,realname');
+        $employee = array_column($employee, 'realname', 'id');
+        $orderInfo['employee_name'] = $employee[$orderInfo['employee_id']];
+        $orderInfo['helper'] = strtr(implode(',', $helper), $employee);
         return [
             'info' => $orderInfo
         ];
@@ -536,8 +543,8 @@ class XicheManage extends ActionPDO {
     /**
      * 停车场洗车订单管理
      */
-    public function parkOrder () {
-
+    public function parkOrder ()
+    {
         $modle = new XicheManageModel();
         $condition = [
             'xc_trade_id' => 0
@@ -585,7 +592,7 @@ class XicheManage extends ActionPDO {
             $count = $modle->getCount('parkwash_order', $condition);
             $pagesize = getPageParams($_GET['page'], $count);
         }
-        $list = $modle->getList('parkwash_order', $condition, $pagesize['limitstr'], 'id desc', 'id,entry_park_id,entry_park_time,store_id,create_time,car_number,brand_id,series_id,user_tel,order_time,area_id,place,item_name,pay,payway,status,fail_reason');
+        $list = $modle->getList('parkwash_order', $condition, $pagesize['limitstr'], 'id desc', 'id,entry_park_id,entry_park_time,store_id,create_time,car_number,brand_id,series_id,user_tel,order_time,area_id,place,item_name,pay,deduct,payway,status,fail_reason');
 
         if ($list) {
             $brandList = $modle->getList('parkwash_car_brand', ['id' => ['in', array_column($list, 'brand_id')]], null, null, 'id,name');
@@ -606,7 +613,8 @@ class XicheManage extends ActionPDO {
                 $list[$k]['area_floor'] = isset($areaList[$v['area_id']]) ? $areaList[$v['area_id']]['floor'] : '';
                 $list[$k]['area_name'] = isset($areaList[$v['area_id']]) ? $areaList[$v['area_id']]['name'] : '';
                 $list[$k]['store_name'] = $storeList[$v['store_id']]['name'];
-                $list[$k]['pay'] = round_dollar($v['pay'], false);
+                $list[$k]['pay'] = round_dollar($v['pay']);
+                $list[$k]['deduct'] = round_dollar($v['deduct']);
                 $list[$k]['payway'] = ParkWashPayWay::getMessage($v['payway']);
                 // 判断等待服务状态
                 if ($v['status'] == 1 && $v['entry_park_id']) {
@@ -622,22 +630,11 @@ class XicheManage extends ActionPDO {
 
         // 导出
         if ($_GET['export']) {
-            $fileName = '停车场洗车'. '_' . date('Ymd', TIMESTAMP);
-            $fileName = preg_match('/(Chrome|Firefox)/i', $_SERVER['HTTP_USER_AGENT']) && !preg_match('/edge/i', $_SERVER['HTTP_USER_AGENT']) ? $fileName : urlencode($fileName);
-            header('Content-type: text/html; charset=utf-8');
-            header('cache-control:public');
-            header('content-type:application/octet-stream');
-            header('content-disposition:attachment; filename=' . $fileName . '.csv');
-            $input = [
-                '编号,店铺,下单时间,车牌,车系,用户手机,预约时间,区域,车位号,套餐,支付金额,支付方式,状态,入场时间'
-            ];
+            $input = [];
             foreach ($list as $k => $v) {
-                $input[] = implode(',', [
-                    $v['id'], $v['store_name'], $v['create_time'], $v['car_number'], $v['car_name'], $v['user_tel'], $v['order_time'], $v['area_name'] . $v['area_floor'], $v['place'], $v['item_name'], $v['pay'], $v['payway'], $v['status_str'], $v['entry_park_time']
-                ]);
+                $input[] = [$v['id'], $v['store_name'], $v['create_time'], $v['order_time'], $v['car_number'], $v['car_name'], $v['user_tel'], $v['area_name'] . $v['area_floor'], $v['place'], $v['item_name'], $v['pay'] + $v['deduct'], $v['pay'], $v['payway'], $v['status_str'], $v['entry_park_time']];
             }
-            echo implode("\n", $input);
-            exit(0);
+            $modle->exportCsv('停车场洗车', '编号,店铺,下单时间,取车时间,车牌,车系,用户手机,区域,车位号,套餐,价格,已支付,支付方式,状态,入场时间', $input);
         }
 
         return [
@@ -812,22 +809,11 @@ class XicheManage extends ActionPDO {
 
         // 导出
         if ($_GET['export']) {
-            $fileName = '洗车卡'. '_' . date('Ymd', TIMESTAMP);
-            $fileName = preg_match('/(Chrome|Firefox)/i', $_SERVER['HTTP_USER_AGENT']) && !preg_match('/edge/i', $_SERVER['HTTP_USER_AGENT']) ? $fileName : urlencode($fileName);
-            header('Content-type: text/html; charset=utf-8');
-            header('cache-control:public');
-            header('content-type:application/octet-stream');
-            header('content-disposition:attachment; filename=' . $fileName . '.csv');
-            $input = [
-                '编号,用户,车牌号,卡类型,缴费(元),截止时间,时长,缴费时间'
-            ];
+            $input = [];
             foreach ($list as $k => $v) {
-                $input[] = implode(',', [
-                    $v['id'], $v['user_tel'], $v['car_number'], $v['card_type_name'], $v['money'], $v['end_time'], $v['duration'], $v['create_time']
-                ]);
+                $input[] = [$v['id'], $v['user_tel'], $v['car_number'], $v['card_type_name'], $v['money'], $v['end_time'], $v['duration'], $v['create_time']];
             }
-            echo implode("\n", $input);
-            exit(0);
+            $modle->exportCsv('洗车卡', '编号,用户,车牌号,卡类型,缴费(元),截止时间,时长,缴费时间', $input);
         }
 
         return [
@@ -879,7 +865,8 @@ class XicheManage extends ActionPDO {
     /**
      * 会员管理
      */
-    public function user () {
+    public function user ()
+    {
         $modle = new XicheManageModel();
         $userModel = new UserModel();
 
@@ -914,8 +901,9 @@ class XicheManage extends ActionPDO {
             $cmUserList = array_column($cmUserList, null, 'member_id');
             foreach ($list as $k => $v) {
                 $list[$k]['telephone'] = isset($cmUserList[$v['uid']]) ? $cmUserList[$v['uid']]['member_name'] : '已删';
-                $list[$k]['money'] = isset($cmUserList[$v['uid']]) ? $cmUserList[$v['uid']]['available_predeposit'] : '已删';
+                $list[$k]['cb'] = isset($cmUserList[$v['uid']]) ? $cmUserList[$v['uid']]['available_predeposit'] : '已删'; // 车币
                 $list[$k]['isvip'] = $v['vip_expire'] ? (strtotime($v['vip_expire']) > TIMESTAMP ? '是' : '已过期') : '否';
+                $list[$k]['money'] = round_dollar($v['money']);
             }
             unset($cmUserList);
         }

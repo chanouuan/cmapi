@@ -91,4 +91,18 @@ class ParkWashCache
         return F('CarType');
     }
 
+    /**
+     * 获取区域缓存
+     */
+    public static function getParkArea ()
+    {
+        if (false === F('ParkArea')) {
+            $list = DB::getInstance()->table('parkwash_park_area')->field('id,floor,name')->select();
+            $list = array_column($list, null, 'id');
+            F('ParkArea', $list);
+            return $list;
+        }
+        return F('ParkArea');
+    }
+
 }

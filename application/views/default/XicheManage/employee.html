@@ -50,9 +50,10 @@
                             <th>姓名</th>
                             <th>头像</th>
                             <th>手机号</th>
-                            <th>性别</th>
+                            <th>身份证</th>
                             <th>服务项目</th>
                             <th>工作</th>
+                            <th>在线</th>
                             <th>总收益</th>
                             <th>状态</th>
                             <th>操作</th>
@@ -66,10 +67,11 @@
                             <td><?=$v['realname']?></td>
                             <td><?=$v['avatar']?></td>
                             <td><?=$v['telephone']?></td>
-                            <td><?=$v['gender']==1?'男':'女'?></td>
+                            <td><?=$v['idcard']?></td>
                             <td><?=$v['item_id']?></td>
                             <td><?=$v['state_work']==1?'工作中':'闲置中'?></td>
-                            <td><?=round_dollar($v['money'])?></td>
+                            <td><?=$v['state_online']==1?'在线':'离线'?></td>
+                            <td><?=$v['money']/100?></td>
                             <td><?=$v['status']==1?'正常':'禁用'?></td>
                             <td class="td-manage">
                                 <button class="layui-btn layui-btn layui-btn-xs" onclick="xadmin.open('编辑员工','<?=gurl('xicheManage/employeeUpdate',['id'=>$v['id']])?>')"><i class="layui-icon"></i>编辑</button>

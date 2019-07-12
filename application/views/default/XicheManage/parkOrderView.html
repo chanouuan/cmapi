@@ -7,7 +7,7 @@
         <div class="layui-tab">
             <ul class="layui-tab-title">
                 <li class="layui-this">订单信息</li>
-                <li>订单状态</li>
+                <li>服务信息</li>
             </ul>
             <div class="layui-tab-content" >
                 <div class="layui-tab-item layui-show" >
@@ -87,6 +87,20 @@
                             预约时间：<?=$info['order_time']?> - <?=$info['abort_time']?>
                         </div>
                     </div>
+                    <?php if ($info['employee_id']) { ?>
+                    <div class="layui-card">
+                        <div class="layui-card-header">员工信息</div>
+                        <div class="layui-card-body">
+                            姓名：<?=$info['employee_name']?>
+                        </div>
+                        <div class="layui-card-body">
+                            帮手：<?=$info['helper']?>
+                        </div>
+                        <div class="layui-card-body">
+                            员工收益：<?=$info['employee_salary']/100?> 元
+                        </div>
+                    </div>
+                    <?php } ?>
                     <?php if ($info['entry_park_id']) { ?>
                     <div class="layui-card">
                         <div class="layui-card-header">车辆出入场信息</div>
@@ -124,12 +138,6 @@
                             </div>
                         </li>
                         <?php } ?>
-                        <li class="layui-timeline-item">
-                            <i class="layui-icon layui-timeline-axis">&#xe63f;</i>
-                            <div class="layui-timeline-content layui-text">
-                                <div class="layui-timeline-title">开始</div>
-                            </div>
-                        </li>
                     </ul>
                 </div>
             </div>
