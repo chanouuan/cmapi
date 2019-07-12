@@ -191,10 +191,14 @@ class ParkWashEmployeeModel extends Crud {
         // 更新员工收益，如果有帮手，就平均分钱
         $helperList = array_combine($helperList, $this->precisionMoney($itemInfo['employee_salary'], count($helperList)));
 
+        // 工作状态
+        $orderCount = $this->getDb()->table('parkwash_employee_order_count')->field('id,s1')->where(['id' => ['in', array_keys($helperList)]])->select();
+        $orderCount = array_column($orderCount, 's1', 'id');
+
         // 更新帮手工作状态，累计金额
-        if (!$this->getDb()->transaction(function ($db) use($orderInfo, $helperList) {
+        if (!$this->getDb()->transaction(function ($db) use($orderInfo, $helperList, $orderCount) {
             foreach ($helperList as $k => $v) {
-                if (false === $db->update('parkwash_employee', ['money' => ['money+' . $v], 'state_work' => 0], ['id' => $k])) {
+                if (false === $db->update('parkwash_employee', ['money' => ['money+' . $v], 'state_work' => $orderCount[$k] > 1 ? 1 : 0], ['id' => $k])) {
                     return false;
                 }
                 if ($v) {
@@ -277,7 +281,7 @@ class ParkWashEmployeeModel extends Crud {
             return $result;
         }
 
-        if (!$employeeInfo = $this->getDb()->field('realname,store_name,state_work')->table('parkwash_employee')->where(['id' => $uid, 'status' => 1])->limit(1)->find()) {
+        if (!$employeeInfo = $this->getDb()->field('realname,store_name')->table('parkwash_employee')->where(['id' => $uid, 'status' => 1])->limit(1)->find()) {
             return error('员工不存在或已禁用');
         }
 
@@ -294,9 +298,7 @@ class ParkWashEmployeeModel extends Crud {
             if (in_array($uid, $post['helper'])) {
                 return error('不能选择自己为帮手');
             }
-            $helperCount = $this->getDb()->table('parkwash_employee')->where([
-                'id' => ['in', $post['helper']], 'store_id' => $orderInfo['store_id'], 'item_id' => ['like', '%,' . $orderInfo['item_id'] . ',%'], 'state_work' => 0, 'state_online' => 1, 'status' => 1
-            ])->count();
+            $helperCount = $this->getDb()->table('parkwash_employee')->where(['id' => ['in', $post['helper']], 'store_id' => $orderInfo['store_id'], 'item_id' => ['like', '%,' . $orderInfo['item_id'] . ',%'], 'state_work' => 0, 'state_online' => 1, 'status' => 1])->count();
             if ($helperCount != count($post['helper'])) {
                 return error('请检查所选帮手是否正在服务或已离线');
             }
@@ -555,6 +557,13 @@ class ParkWashEmployeeModel extends Crud {
                 $post['lastpage'] = array_map('intval', explode(',', $post['lastpage']));
                 $condition[] = 'latetime >= ' . $post['lastpage'][0] . ' and order_table.id > ' . $post['lastpage'][1];
             }
+
+            // 获取订单
+            if (!$orderList = $this->getDb()
+                ->table('parkwash_order order_table')
+                ->field($field)->where($condition)->order($order)->limit($result['limit'])->select()) {
+                return success($result);
+            }
         } else {
             // 员工订单
             if ($post['status'] == ParkWashOrderStatus::COMPLETE) {
@@ -575,14 +584,13 @@ class ParkWashEmployeeModel extends Crud {
             }
             // 员工与帮手
             $condition[] = 'helper_table.employee_id = ' . $uid;
-        }
-
-        // 获取订单
-        if (!$orderList = $this->getDb()
+            // 获取订单
+            if (!$orderList = $this->getDb()
                 ->table('parkwash_order_helper helper_table')
                 ->join('left join parkwash_order order_table on order_table.id = helper_table.orderid')
                 ->field($field)->where($condition)->order($order)->limit($result['limit'])->select()) {
-            return success($result);
+                return success($result);
+            }
         }
 
         $brandList  = $this->getBrandNameById(array_column($orderList, 'brand_id'));

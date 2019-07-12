@@ -159,7 +159,7 @@ class ParkWashModel extends Crud {
         }
 
         // 获取订单
-        if (!$orderList = $this->getDb()->table('parkwash_order')->field('id,xc_trade_id,store_id,car_number,brand_id,series_id,area_id,place,pay,payway,item_name,order_time,create_time,status,update_time')->where($condition)->order('update_time desc')->limit($result['limit'])->select()) {
+        if (!$orderList = $this->getDb()->table('parkwash_order')->field('id,xc_trade_id,store_id,car_number,brand_id,series_id,area_id,place,pay+deduct as pay,payway,item_name,order_time,create_time,status,update_time')->where($condition)->order('update_time desc')->limit($result['limit'])->select()) {
             return success($result);
         }
 
@@ -219,6 +219,7 @@ class ParkWashModel extends Crud {
                     $orderList[$k]['store_name']  = strval($storeList[$v['store_id']]);
                     $orderList[$k]['payway']      = ParkWashPayWay::getMessage($v['payway']);
                     $orderList[$k]['items']       = [['name' => $v['item_name']]];
+                    $orderList[$k]['place']       = strval($v['place']);
                 }
             }
             unset($brandList, $seriesList, $areaList, $storeList);
@@ -245,7 +246,7 @@ class ParkWashModel extends Crud {
 
         if (!$orderInfo = $this->findOrderInfo([
             'id' => $post['orderid'], 'uid' => $uid
-        ], 'id,xc_trade_id,store_id,car_number,brand_id,series_id,area_id,place,pay,payway,item_name,order_time,create_time,status,update_time')) {
+        ], 'id,xc_trade_id,store_id,car_number,brand_id,series_id,area_id,place,pay+deduct as pay,payway,item_name,order_time,create_time,status,update_time')) {
             return error('订单不存在或无效');
         }
 
@@ -277,6 +278,7 @@ class ParkWashModel extends Crud {
             $orderInfo['location']    = $storeInfo['location'];
             $orderInfo['items']       = [['name' => $orderInfo['item_name']]];
             $orderInfo['payway']      = ParkWashPayWay::getMessage($orderInfo['payway']);
+            $orderInfo['place']       = strval($orderInfo['place']);
             // 获取订单时序表
             // $orderInfo['sequence'] = $this->getDb()->table('parkwash_order_sequence')->field('title,create_time')->where(['orderid' => $orderInfo['id']])->select();
             unset($areaList);
@@ -384,9 +386,7 @@ class ParkWashModel extends Crud {
     {
         $post['orderid'] = intval($post['orderid']);
 
-        if (!$orderInfo = $this->findOrderInfo([
-            'id' => $post['orderid'], 'uid' => $uid, 'status' => 1
-        ], 'id,uid,store_id,item_id,pool_id,car_number,pay,deduct,order_time')) {
+        if (!$orderInfo = $this->findOrderInfo(['id' => $post['orderid'], 'uid' => $uid, 'status' => 1], 'id,uid,store_id,item_id,pool_id,car_number,pay,deduct,payway,order_time')) {
             return error('订单不存在或无效');
         }
 
@@ -428,30 +428,46 @@ class ParkWashModel extends Crud {
             'type' => 'parkwash', 'trade_id' => $orderInfo['uid'], 'order_id' => $orderInfo['id'], 'status' => 1
         ]);
 
-        // 退费为车币
-        if ($tradeParam['refundpay'] > 0) {
-            // 用户充值
-            $result = (new UserModel())->recharge([
-                'platform' => 3,
-                'authcode' => $orderInfo['uid'],
-                'trade_no' => $tradeParam['refundcode'],
-                'money' => $tradeParam['refundpay'],
-                'remark' => '洗车服务退款'
-            ]);
-            if ($result['errorcode'] !== 0) {
-                // 回滚订单状态
-                $this->getDb()->update('parkwash_order', [
-                    'status' => 1, 'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
-                ], [
-                    'id' => $post['orderid'], 'status' => -1
-                ]);
-                $tradeModel->update([
-                    'status' => 1
-                ], [
-                    'type' => 'parkwash', 'trade_id' => $orderInfo['uid'], 'order_id' => $orderInfo['id'], 'status' => -1
-                ]);
-                return $result;
+        // 退款车币与余额
+        if (!$this->getDb()->transaction(function ($db) use($orderInfo, $tradeParam) {
+            // 如果为车币支付，要退款用户余额
+            $param = [
+                'parkwash_count'   => ['parkwash_count-1'],
+                'parkwash_consume' => ['parkwash_consume-' . $orderInfo['pay']]
+            ];
+            if ($orderInfo['payway'] == 'cbpay') {
+                $param['money'] = ['money+' . $orderInfo['deduct']]; // 退款余额
             }
+            if (!$db->update('parkwash_usercount', $param, ['uid' => $orderInfo['uid']])) {
+                return false;
+            }
+            // 退费为车币
+            if ($tradeParam['refundpay'] > 0) {
+                $result = (new UserModel())->recharge([
+                    'platform' => 3,
+                    'authcode' => $orderInfo['uid'],
+                    'trade_no' => $tradeParam['refundcode'],
+                    'money' => $tradeParam['refundpay'],
+                    'remark' => '洗车服务退款'
+                ]);
+                if ($result['errorcode'] !== 0) {
+                    return false;
+                }
+            }
+            return true;
+        })) {
+            // 回滚订单状态
+            $this->getDb()->update('parkwash_order', [
+                'status' => 1, 'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
+            ], [
+                'id' => $post['orderid'], 'status' => -1
+            ]);
+            $tradeModel->update([
+                'status' => 1
+            ], [
+                'type' => 'parkwash', 'trade_id' => $orderInfo['uid'], 'order_id' => $orderInfo['id'], 'status' => -1
+            ]);
+            return error('退款失败');
         }
 
         // 预约号加 1
@@ -464,14 +480,6 @@ class ParkWashModel extends Crud {
             'order_count' => ['order_count-1'], 'money' => ['money-' . ($orderInfo['pay'] + $orderInfo['deduct'])]
         ], [
             'id' => $orderInfo['store_id']
-        ]);
-
-        // 更新用户下单数、消费
-        $this->getDb()->update('parkwash_usercount', [
-            'parkwash_count' => ['parkwash_count-1'],
-            'parkwash_consume' => ['parkwash_consume-' . $orderInfo['pay']]
-        ], [
-            'uid' => $orderInfo['uid']
         ]);
 
         // 记录资金变动
@@ -1734,20 +1742,20 @@ class ParkWashModel extends Crud {
                 'create_time' => $param['createtime'], 'update_time' => $param['createtime'],
             ], 'id = ' . $lastTradeInfo['order_id']);
 
-            if ($totalPrice === 0) {
-                // 免支付金额 (首单免费/vip支付)
+            // 线下支付
+            if ($post['payway'] == 'cbpay') {
+                // 车币支付
+                $result = $this->localPay($uid, $orderCode, $totalPrice + $deductPrice, $lastTradeInfo['id']);
+                if ($result['errorcode'] !== 0) {
+                    return $result;
+                }
                 $result = $this->handleCardSuc($lastTradeInfo['id']);
                 if ($result['errorcode'] !== 0) {
                     return $result;
                 }
             } else {
-                // 线下支付
-                if ($post['payway'] == 'cbpay') {
-                    // 车币支付
-                    $result = $this->localPay($uid, $orderCode, $totalPrice, $lastTradeInfo['id']);
-                    if ($result['errorcode'] !== 0) {
-                        return $result;
-                    }
+                if ($totalPrice === 0) {
+                    // 免支付金额 (首单免费/vip支付)
                     $result = $this->handleCardSuc($lastTradeInfo['id']);
                     if ($result['errorcode'] !== 0) {
                         return $result;
@@ -1793,20 +1801,20 @@ class ParkWashModel extends Crud {
             return error('订单生成失败');
         }
 
-        if ($totalPrice === 0) {
-            // 免支付金额 (首单免费/vip支付)
+        // 线下支付
+        if ($post['payway'] == 'cbpay') {
+            // 车币支付
+            $result = $this->localPay($uid, $orderCode, $totalPrice + $deductPrice, $cardId);
+            if ($result['errorcode'] !== 0) {
+                return $result;
+            }
             $result = $this->handleCardSuc($cardId);
             if ($result['errorcode'] !== 0) {
                 return $result;
             }
         } else {
-            // 线下支付
-            if ($post['payway'] == 'cbpay') {
-                // 车币支付
-                $result = $this->localPay($uid, $orderCode, $totalPrice, $cardId);
-                if ($result['errorcode'] !== 0) {
-                    return $result;
-                }
+            if ($totalPrice === 0) {
+                // 免支付金额 (首单免费/vip支付)
                 $result = $this->handleCardSuc($cardId);
                 if ($result['errorcode'] !== 0) {
                     return $result;

@@ -17,7 +17,7 @@ class ParkWashEmployee extends ActionPDO {
             'login'           => ['interval' => 1000],
             'setpw'           => ['interval' => 1000],
             'getEmployeeInfo' => ['interval' => 1000],
-            'getOrderList'    => ['interval' => 1000],
+            'getOrderList'    => [],
             'getOrderCount'   => ['interval' => 1000],
             'getOrderInfo'    => ['interval' => 1000],
             'getHelperList'   => ['interval' => 1000],
