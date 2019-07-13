@@ -90,6 +90,7 @@
                         </tr>
                         </thead>
                         <tbody>
+                        <?php if($list){ ?>
                         <?php foreach($list as $k=>$v){ ?>
                         <tr>
                             <td><?=$v['id']?></td>
@@ -120,6 +121,9 @@
                                 <?php } ?>
                             </td>
                         </tr>
+                        <?php } ?>
+                        <?php }else{ ?>
+                        <tr><td colspan="16">暂无数据</td></tr>
                         <?php } ?>
                         </tbody>
                     </table>

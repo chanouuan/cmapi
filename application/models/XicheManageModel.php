@@ -5,6 +5,7 @@ namespace app\models;
 use Crud;
 use app\library\Geohash;
 use app\library\LocationUtils;
+use app\common\ParkWashOrderStatus;
 
 class XicheManageModel extends Crud {
 
@@ -171,10 +172,11 @@ class XicheManageModel extends Crud {
     /**
      * 更新停车场洗车订单状态
      */
-    public function parkOrderStatusUpdate ($post) {
-        $post['id'] = intval($post['id']);
-        $post['status'] = intval($post['status']);
-        $is_fail_reason = isset($post['fail_reason']);
+    public function parkOrderStatusUpdate ($post)
+    {
+        $post['id']          = intval($post['id']);
+        $post['status']      = intval($post['status']);
+        $is_fail_reason      = isset($post['fail_reason']);
         $post['fail_reason'] = msubstr(trim_space($post['fail_reason']));
         if ($is_fail_reason && !$post['fail_reason']) {
             return error('异常原因不能为空');
@@ -183,59 +185,76 @@ class XicheManageModel extends Crud {
         if (!$orderInfo = $this->getInfo('parkwash_order', ['id' => $post['id']], 'id,uid,status,user_tel,car_number,store_id,create_time,order_time')) {
             return error('该订单不存在');
         }
-        $userModel = new UserModel();
+        $userModel     = new UserModel();
         $parkWashModel = new ParkWashModel();
-        $storeInfo = $this->getInfo('parkwash_store', ['id' => $orderInfo['store_id']], 'name');
-        $tradeInfo = (new TradeModel())->get(null, ['trade_id' => $orderInfo['uid'], 'order_id' => $orderInfo['id']], 'form_id,uses');
+        $storeInfo     = $this->getInfo('parkwash_store', ['id' => $orderInfo['store_id']], 'name');
+        $tradeInfo     = (new TradeModel())->get(null, ['trade_id' => $orderInfo['uid'], 'order_id' => $orderInfo['id']], 'form_id,uses');
 
-        if ($post['status'] == 3) {
+        if ($post['status'] == ParkWashOrderStatus::IN_SERVICE) {
+
             // 开始服务
-            if ($orderInfo['status'] != 1) {
+            if ($orderInfo['status'] != ParkWashOrderStatus::PAY) {
                 return error('该订单无效');
             }
+
             if (!$this->getDb()->update('parkwash_order', [
-                'service_time' => date('Y-m-d H:i:s', TIMESTAMP), 'status' => 3, 'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
+                'status'       => ParkWashOrderStatus::IN_SERVICE,
+                'service_time' => date('Y-m-d H:i:s', TIMESTAMP),
+                'update_time'  => date('Y-m-d H:i:s', TIMESTAMP)
             ], [
-                'id' => $post['id'], 'status' => 1
+                'id'     => $post['id'],
+                'status' => ParkWashOrderStatus::PAY
             ])) {
                 return error('操作失败');
             }
+
             // 删除入场车查询队列任务
             $this->getDb()->delete('parkwash_order_queue', [
                 'type' => 1, 'orderid' => $orderInfo['id']
             ]);
+            // 删除订单未开始服务缓存
+            $this->getDb()->delete('parkwash_order_hatch', [
+                'orderid' => $orderInfo['id']
+            ]);
             // 记录订单状态改变
             $parkWashModel->pushSequence([
                 'orderid' => $orderInfo['id'],
-                'uid' => $orderInfo['uid'],
-                'title' => '商家开始服务'
+                'uid'     => $orderInfo['uid'],
+                'title'   => '商家开始服务'
             ]);
             // 通知用户
             $parkWashModel->pushNotice([
-                'receiver' => 1,
+                'receiver'    => 1,
                 'notice_type' => 0,
-                'orderid' => $orderInfo['id'],
-                'store_id' => $orderInfo['store_id'],
-                'uid' => $orderInfo['uid'],
-                'tel' => $orderInfo['user_tel'],
-                'title' => '商家开始服务',
-                'content' => $storeInfo['name'] . '正在为您服务，请留意完成洗车提醒！'
+                'orderid'     => $orderInfo['id'],
+                'store_id'    => $orderInfo['store_id'],
+                'uid'         => $orderInfo['uid'],
+                'tel'         => $orderInfo['user_tel'],
+                'title'       => '商家开始服务',
+                'content'     => $storeInfo['name'] . '正在为您服务，请留意完成洗车提醒！'
             ]);
             // 发送短信
             $userModel->sendSmsServer($orderInfo['user_tel'], $storeInfo['name'] . '正在为您服务，请留意完成洗车提醒！');
 
-        } else if ($post['status'] == 4) {
+        } else if ($post['status'] == ParkWashOrderStatus::COMPLETE) {
+
             // 完成洗车
-            if ($orderInfo['status'] <= 0) {
+            if ($orderInfo['status'] <= ParkWashOrderStatus::WAIT_PAY) {
                 return error('该订单无效');
             }
+
             if (!$this->getDb()->update('parkwash_order', [
-                'complete_time' => date('Y-m-d H:i:s', TIMESTAMP), 'status' => 4, 'update_time' => date('Y-m-d H:i:s', TIMESTAMP), 'fail_reason' => strval($post['fail_reason'])
+                'status'        => ParkWashOrderStatus::COMPLETE,
+                'complete_time' => date('Y-m-d H:i:s', TIMESTAMP),
+                'update_time'   => date('Y-m-d H:i:s', TIMESTAMP),
+                'fail_reason'   => strval($post['fail_reason'])
             ], [
-                'id' => $post['id'], 'status' => ['in', [1,2,3]]
+                'id'     => $post['id'],
+                'status' => ['in', [ParkWashOrderStatus::PAY, ParkWashOrderStatus::IN_SERVICE]]
             ])) {
                 return error('操作失败');
             }
+
             // 删除入场车查询队列任务
             $this->getDb()->delete('parkwash_order_queue', [
                 'type' => 1, 'orderid' => $orderInfo['id']
@@ -247,20 +266,21 @@ class XicheManageModel extends Crud {
             // 记录订单状态改变
             $parkWashModel->pushSequence([
                 'orderid' => $orderInfo['id'],
-                'uid' => $orderInfo['uid'],
-                'title' => '商家完成洗车'
+                'uid'     => $orderInfo['uid'],
+                'title'   => '商家完成洗车'
             ]);
             // 通知用户
             $parkWashModel->pushNotice([
-                'receiver' => 1,
+                'receiver'    => 1,
                 'notice_type' => 0,
-                'orderid' => $orderInfo['id'],
-                'store_id' => $orderInfo['store_id'],
-                'uid' => $orderInfo['uid'],
-                'tel' => $orderInfo['user_tel'],
-                'title' => '商家完成洗车',
-                'content' => $post['fail_reason'] ? ('您的订单处理为异常订单，异常原因“' . $post['fail_reason'] . '”，若有疑问请联系商家，感谢您的支持') : ($storeInfo['name'] . '已经完成洗车，请您确认订单完成，感谢您的支持')
+                'orderid'     => $orderInfo['id'],
+                'store_id'    => $orderInfo['store_id'],
+                'uid'         => $orderInfo['uid'],
+                'tel'         => $orderInfo['user_tel'],
+                'title'       => '商家完成洗车',
+                'content'     => $post['fail_reason'] ? ('您的订单处理为异常订单，异常原因“' . $post['fail_reason'] . '”，若有疑问请联系商家，感谢您的支持') : ($storeInfo['name'] . '已经完成洗车，请您确认订单完成，感谢您的支持')
             ]);
+
             if (!$post['fail_reason']) {
                 // 微信模板消息通知用户
                 $result = $parkWashModel->sendTemplateMessage($orderInfo['uid'], 'complete_order', $tradeInfo['form_id'], '/pages/orderprofile/orderprofile?order_id=' . $orderInfo['id'], [
@@ -362,17 +382,18 @@ class XicheManageModel extends Crud {
     /**
      * 卡类型添加
      */
-    public function cardTypeAdd ($post) {
-        $post['name'] = trim_space($post['name']);
-        $post['price'] = floatval($post['price']);
-        $post['price'] = $post['price'] < 0 ? 0 : $post['price'];
-        $post['price'] = intval($post['price'] * 100);
+    public function cardTypeAdd ($post)
+    {
+        $post['name']   = trim_space($post['name']);
+        $post['price']  = floatval($post['price']);
+        $post['price']  = $post['price'] < 0 ? 0 : $post['price'];
+        $post['price']  = intval($post['price'] * 100);
         $post['months'] = intval($post['months']);
         $post['months'] = $post['months'] < 0 ? 0 : $post['months'];
-        $post['days'] = intval($post['days']);
-        $post['days'] = $post['days'] < 0 ? 0 : $post['days'];
+        $post['days']   = intval($post['days']);
+        $post['days']   = $post['days'] < 0 ? 0 : $post['days'];
         $post['status'] = $post['status'] ? 1 : 0;
-        $post['sort'] = intval($post['sort']);
+        $post['sort']   = intval($post['sort']);
 
         if (empty($post['name'])) {
             return error('卡名不能为空');
@@ -385,14 +406,14 @@ class XicheManageModel extends Crud {
         }
 
         if (!$this->getDb()->insert('parkwash_card_type', [
-            'name' => $post['name'],
-            'price' => $post['price'],
-            'months' => $post['months'],
-            'days' => $post['days'],
+            'name'        => $post['name'],
+            'price'       => $post['price'],
+            'months'      => $post['months'],
+            'days'        => $post['days'],
             'update_time' => date('Y-m-d H:i:s', TIMESTAMP),
             'create_time' => date('Y-m-d H:i:s', TIMESTAMP),
-            'sort' => $post['sort'],
-            'status' => $post['status']
+            'sort'        => $post['sort'],
+            'status'      => $post['status']
         ])) {
             return error('添加失败');
         }
@@ -405,17 +426,18 @@ class XicheManageModel extends Crud {
     /**
      * 卡类型编辑
      */
-    public function cardTypeUpdate ($post) {
-        $post['name'] = trim_space($post['name']);
-        $post['price'] = floatval($post['price']);
-        $post['price'] = $post['price'] < 0 ? 0 : $post['price'];
-        $post['price'] = intval($post['price'] * 100);
+    public function cardTypeUpdate ($post)
+    {
+        $post['name']   = trim_space($post['name']);
+        $post['price']  = floatval($post['price']);
+        $post['price']  = $post['price'] < 0 ? 0 : $post['price'];
+        $post['price']  = intval($post['price'] * 100);
         $post['months'] = intval($post['months']);
         $post['months'] = $post['months'] < 0 ? 0 : $post['months'];
-        $post['days'] = intval($post['days']);
-        $post['days'] = $post['days'] < 0 ? 0 : $post['days'];
+        $post['days']   = intval($post['days']);
+        $post['days']   = $post['days'] < 0 ? 0 : $post['days'];
         $post['status'] = $post['status'] ? 1 : 0;
-        $post['sort'] = intval($post['sort']);
+        $post['sort']   = intval($post['sort']);
 
         if (empty($post['name'])) {
             return error('卡名不能为空');
@@ -428,18 +450,99 @@ class XicheManageModel extends Crud {
         }
 
         if (false === $this->getDb()->update('parkwash_card_type', [
-                'name' => $post['name'],
-                'price' => $post['price'],
-                'months' => $post['months'],
-                'days' => $post['days'],
+                'name'        => $post['name'],
+                'price'       => $post['price'],
+                'months'      => $post['months'],
+                'days'        => $post['days'],
                 'update_time' => date('Y-m-d H:i:s', TIMESTAMP),
-                'sort' => $post['sort'],
-                'status' => $post['status']
-            ], ['id' => $post['id']])) {
+                'sort'        => $post['sort'],
+                'status'      => $post['status']
+            ], [
+                'id' => $post['id']
+            ])) {
             return error('修改失败');
         }
 
         F('CardType', null); // 删除缓存
+
+        return success('OK');
+    }
+
+    /**
+     * 充值卡类型添加
+     */
+    public function rechargeTypeAdd ($post)
+    {
+        $post['name']   = trim_space($post['name']);
+        $post['price']  = floatval($post['price']);
+        $post['price']  = $post['price'] < 0 ? 0 : $post['price'];
+        $post['price']  = intval($post['price'] * 100);
+        $post['give']   = floatval($post['give']);
+        $post['give']   = $post['give'] < 0 ? 0 : $post['give'];
+        $post['give']   = intval($post['give'] * 100);
+        $post['status'] = $post['status'] ? 1 : 0;
+        $post['sort']   = intval($post['sort']);
+
+        if (empty($post['name'])) {
+            return error('卡名不能为空');
+        }
+        if (!$post['price']) {
+            return error('价格不能为空');
+        }
+
+        if (!$this->getDb()->insert('parkwash_recharge_type', [
+            'name'        => $post['name'],
+            'price'       => $post['price'],
+            'give'        => $post['give'],
+            'sort'        => $post['sort'],
+            'status'      => $post['status'],
+            'update_time' => date('Y-m-d H:i:s', TIMESTAMP),
+            'create_time' => date('Y-m-d H:i:s', TIMESTAMP)
+        ])) {
+            return error('添加失败');
+        }
+
+        F('RechargeCardType', null); // 删除缓存
+
+        return success('OK');
+    }
+
+    /**
+     * 卡类型编辑
+     */
+    public function rechargeTypeUpdate ($post)
+    {
+        $post['name']   = trim_space($post['name']);
+        $post['price']  = floatval($post['price']);
+        $post['price']  = $post['price'] < 0 ? 0 : $post['price'];
+        $post['price']  = intval($post['price'] * 100);
+        $post['give']   = floatval($post['give']);
+        $post['give']   = $post['give'] < 0 ? 0 : $post['give'];
+        $post['give']   = intval($post['give'] * 100);
+        $post['status'] = $post['status'] ? 1 : 0;
+        $post['sort']   = intval($post['sort']);
+
+        if (empty($post['name'])) {
+            return error('卡名不能为空');
+        }
+        if (!$post['price']) {
+            return error('价格不能为空');
+        }
+
+        if (false === $this->getDb()->update('parkwash_recharge_type', [
+                'name'        => $post['name'],
+                'price'       => $post['price'],
+                'give'        => $post['give'],
+                'sort'        => $post['sort'],
+                'status'      => $post['status'],
+                'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
+            ], [
+                'id' => $post['id']
+            ])) {
+            return error('修改失败');
+        }
+
+        F('RechargeCardType', null); // 删除缓存
 
         return success('OK');
     }

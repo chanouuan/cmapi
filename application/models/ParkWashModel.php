@@ -7,6 +7,7 @@ use app\library\LocationUtils;
 use app\library\Geohash;
 use app\common\ParkWashPayWay;
 use app\common\ParkWashCache;
+use app\common\ParkWashOrderStatus;
 
 class ParkWashModel extends Crud {
 
@@ -26,8 +27,8 @@ class ParkWashModel extends Crud {
     /**
      * 小程序登录
      */
-    public function miniprogramLogin ($post) {
-
+    public function miniprogramLogin ($post)
+    {
         if (!validate_telephone($post['telephone'])) {
             return error('手机号为空或格式不正确！');
         }
@@ -94,8 +95,8 @@ class ParkWashModel extends Crud {
     /**
      * 获取个人交易记录
      */
-    public function getTradeList ($uid, $post) {
-
+    public function getTradeList ($uid, $post)
+    {
         // 最后排序字段
         $post['lastpage'] = intval($post['lastpage']);
 
@@ -279,9 +280,8 @@ class ParkWashModel extends Crud {
             $orderInfo['items']       = [['name' => $orderInfo['item_name']]];
             $orderInfo['payway']      = ParkWashPayWay::getMessage($orderInfo['payway']);
             $orderInfo['place']       = strval($orderInfo['place']);
-            // 获取订单时序表
-            // $orderInfo['sequence'] = $this->getDb()->table('parkwash_order_sequence')->field('title,create_time')->where(['orderid' => $orderInfo['id']])->select();
             unset($areaList);
+
         }
 
         unset($orderInfo['xc_trade_id']);
@@ -307,7 +307,7 @@ class ParkWashModel extends Crud {
         }
 
         if (!$orderInfo = $this->findOrderInfo([
-            'id' => $post['orderid'], 'uid' => $uid, 'status' => ['in', [1, 2]], 'xc_trade_id' => 0
+            'id' => $post['orderid'], 'uid' => $uid, 'status' => ParkWashOrderStatus::PAY, 'xc_trade_id' => 0
         ], 'id,store_id,car_number,place,area_id')) {
             return error('订单不存在或无效');
         }
@@ -344,22 +344,20 @@ class ParkWashModel extends Crud {
     /**
      * 用户确认完成订单
      */
-    public function confirmOrder ($uid, $post) {
-
+    public function confirmOrder ($uid, $post)
+    {
         $post['orderid'] = intval($post['orderid']);
 
         // 获取订单信息
-        if (!$orderInfo = $this->findOrderInfo([
-            'id' => $post['orderid'], 'uid' => $uid, 'status' => 4
-        ], 'id,uid')) {
+        if (!$orderInfo = $this->findOrderInfo(['id' => $post['orderid'], 'uid' => $uid, 'status' => ParkWashOrderStatus::COMPLETE], 'id,uid')) {
             return error('订单不存在或无效');
         }
 
         // 更新订单状态
         if (!$this->getDb()->update('parkwash_order', [
-            'status' => 5, 'confirm_time' => date('Y-m-d H:i:s', TIMESTAMP), 'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
+            'status' => ParkWashOrderStatus::CONFIRM, 'confirm_time' => date('Y-m-d H:i:s', TIMESTAMP), 'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
         ], [
-            'id' => $post['orderid'], 'status' => 4
+            'id' => $post['orderid'], 'status' => ParkWashOrderStatus::COMPLETE
         ])) {
             return error('确认完成订单失败');
         }
@@ -386,7 +384,7 @@ class ParkWashModel extends Crud {
     {
         $post['orderid'] = intval($post['orderid']);
 
-        if (!$orderInfo = $this->findOrderInfo(['id' => $post['orderid'], 'uid' => $uid, 'status' => 1], 'id,uid,store_id,item_id,pool_id,car_number,pay,deduct,payway,order_time')) {
+        if (!$orderInfo = $this->findOrderInfo(['id' => $post['orderid'], 'uid' => $uid, 'status' => ParkWashOrderStatus::PAY], 'id,uid,store_id,item_id,pool_id,car_number,pay,deduct,payway,order_time')) {
             return error('订单不存在或无效');
         }
 
@@ -403,7 +401,7 @@ class ParkWashModel extends Crud {
         // 每日限制取消次数
         if ($storeInfo['daily_cancel_limit'] > 0) {
             $cancel_count = $this->getDb()->table('parkwash_order')->where([
-                'uid' => $uid, 'store_id' => $orderInfo['store_id'], 'status' => -1, 'cancel_time' => ['between', [date('Y-m-d 00:00:00', TIMESTAMP), date('Y-m-d 23:59:59', TIMESTAMP)]]
+                'uid' => $uid, 'store_id' => $orderInfo['store_id'], 'status' => ParkWashOrderStatus::CANCEL, 'cancel_time' => ['between', [date('Y-m-d 00:00:00', TIMESTAMP), date('Y-m-d 23:59:59', TIMESTAMP)]]
             ])->count();
             if ($storeInfo['daily_cancel_limit'] <= $cancel_count) {
                 return error('每日最多取消 ' . $storeInfo['daily_cancel_limit'] . ' 次订单');
@@ -412,9 +410,9 @@ class ParkWashModel extends Crud {
 
         // 更新订单状态
         if (!$this->getDb()->update('parkwash_order', [
-            'status' => -1, 'cancel_time' => date('Y-m-d H:i:s', TIMESTAMP), 'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
+            'status' => ParkWashOrderStatus::CANCEL, 'cancel_time' => date('Y-m-d H:i:s', TIMESTAMP), 'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
         ], [
-            'id' => $post['orderid'], 'status' => 1
+            'id' => $post['orderid'], 'status' => ParkWashOrderStatus::PAY
         ])) {
             return error('取消订单失败');
         }
@@ -457,16 +455,12 @@ class ParkWashModel extends Crud {
             return true;
         })) {
             // 回滚订单状态
-            $this->getDb()->update('parkwash_order', [
-                'status' => 1, 'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
-            ], [
-                'id' => $post['orderid'], 'status' => -1
-            ]);
-            $tradeModel->update([
-                'status' => 1
-            ], [
-                'type' => 'parkwash', 'trade_id' => $orderInfo['uid'], 'order_id' => $orderInfo['id'], 'status' => -1
-            ]);
+            $this->getDb()->update('parkwash_order',
+                ['status' => ParkWashOrderStatus::PAY, 'update_time' => date('Y-m-d H:i:s', TIMESTAMP)],
+                ['id' => $post['orderid'], 'status' => ParkWashOrderStatus::CANCEL]);
+            $tradeModel->update(
+                ['status' => 1],
+                ['type' => 'parkwash', 'trade_id' => $orderInfo['uid'], 'order_id' => $orderInfo['id'], 'status' => -1]);
             return error('退款失败');
         }
 
@@ -518,8 +512,8 @@ class ParkWashModel extends Crud {
     /**
      * 获取通知列表
      */
-    public function getNoticeList ($uid, $post) {
-
+    public function getNoticeList ($uid, $post)
+    {
         // 最后排序字段
         $post['lastpage'] = intval($post['lastpage']);
 
@@ -615,8 +609,8 @@ class ParkWashModel extends Crud {
     /**
      * 获取会员卡类型
      */
-    public function getCardTypeList () {
-
+    public function getCardTypeList ()
+    {
         $list = ParkWashCache::getCardType();
         foreach ($list as $k => $v) {
             $list[$k]['duration'] = ($v['months'] ? $v['months'] . '个月' : '') . ($v['days'] ? $v['days'] . '天' : '');
@@ -628,8 +622,8 @@ class ParkWashModel extends Crud {
     /**
      * 删除会员卡
      */
-    public function deleteMemberCard ($uid, $post) {
-
+    public function deleteMemberCard ($uid, $post)
+    {
         $post['id'] = intval($post['id']);
         if (!$info = $this->getDb()->table('parkwash_card')->field('car_number')->where(['uid' => $uid, 'id' => $post['id']])->find()) {
             return error('该会员卡不存在');
@@ -651,8 +645,8 @@ class ParkWashModel extends Crud {
     /**
      * 获取我的会员卡
      */
-    public function getCardList ($uid) {
-
+    public function getCardList ($uid)
+    {
         $list = $this->getDb()->table('parkwash_card')->field('id,car_number,end_time,update_time,status')->where(['uid' => $uid])->select();
         if ($list) {
             foreach ($list as $k => $v) {
@@ -670,18 +664,17 @@ class ParkWashModel extends Crud {
     /**
      * 获取最近一个订单的状态
      */
-    public function getLastOrderInfo ($uid) {
-
-        $orderInfo = $this->findOrderInfo([
-            'uid' => $uid, 'status' => ['<>', 0], 'xc_trade_id' => 0
-        ], 'id,status,create_time', 'id desc');
+    public function getLastOrderInfo ($uid)
+    {
+        $orderInfo = $this->findOrderInfo(['uid' => $uid, 'status' => ['<>', ParkWashOrderStatus::WAIT_PAY], 'xc_trade_id' => 0], 'id,status,create_time', 'id desc');
         return success($orderInfo);
     }
 
     /**
      * 保存 userCount
      */
-    public function saveUserCount ($uid) {
+    public function saveUserCount ($uid)
+    {
         if ($uid) {
             if (!$this->getDb()->table('parkwash_usercount')->where(['uid' => $uid])->count()) {
                 return $this->getDb()->insert('parkwash_usercount', [
@@ -761,8 +754,8 @@ class ParkWashModel extends Crud {
     /**
      * 更新车辆
      */
-    public function saveCarport ($uid, $post) {
-
+    public function saveCarport ($uid, $post)
+    {
         if (!$post['id']) {
             return false;
         }
@@ -811,8 +804,8 @@ class ParkWashModel extends Crud {
     /**
      * 删除车辆
      */
-    public function deleteCarport ($uid, $post) {
-
+    public function deleteCarport ($uid, $post)
+    {
         if (!$carportInfo = $this->getDb()->table('parkwash_carport')->field('car_number,vip_expire')->where([
             'id' => $post['id'], 'uid' => $uid
         ])->find()) {
@@ -828,16 +821,12 @@ class ParkWashModel extends Crud {
 
         // 判断车辆下是否有订单
         if ($carportInfo['car_number']) {
-            if ($this->findOrderInfo([
-                'uid' => $uid, 'car_number' => $carportInfo['car_number'], 'status' => ['in', [1,2,3]]
-            ], 'id')) {
+            if ($this->findOrderInfo(['uid' => $uid, 'car_number' => $carportInfo['car_number'], 'status' => ['in', [ParkWashOrderStatus::PAY, ParkWashOrderStatus::IN_SERVICE]]], 'id')) {
                 return error('该车辆有洗车订单，删除失败');
             }
         }
 
-        if (!$this->getDb()->delete('parkwash_carport', [
-            'id' => $post['id'], 'uid' => $uid
-        ])) {
+        if (!$this->getDb()->delete('parkwash_carport', ['id' => $post['id'], 'uid' => $uid])) {
             return error('删除车辆失败');
         }
 
@@ -856,9 +845,9 @@ class ParkWashModel extends Crud {
     /**
      * 添加车辆
      */
-    public function addCarport ($uid, $post) {
-
-        $post['brand_id'] = intval($post['brand_id']);
+    public function addCarport ($uid, $post)
+    {
+        $post['brand_id']  = intval($post['brand_id']);
         $post['series_id'] = intval($post['series_id']);
 
         if (!check_car_license($post['car_number'])) {
@@ -973,8 +962,8 @@ class ParkWashModel extends Crud {
     /**
      * 获取预约排班
      */
-    public function getPoolList ($post) {
-
+    public function getPoolList ($post)
+    {
         $post['store_id'] = intval($post['store_id']);
 
         // 排班天数
@@ -1030,18 +1019,18 @@ class ParkWashModel extends Crud {
      * @param $place 车位号
      * @return bool
      */
-    public function checkParkingState ($area_id, $place) {
-
+    public function checkParkingState ($area_id, $place)
+    {
         return $this->getDb()->table('parkwash_parking')->where(['area_id' => $area_id, 'place' => $place, 'status' => 1])->count();
     }
 
     /**
      * 获取附近的洗车店
      */
-    public function getNearbyStore ($post) {
-
+    public function getNearbyStore ($post)
+    {
         // 城市
-        $post['adcode'] = intval($post['adcode']);
+        $post['adcode']   = intval($post['adcode']);
         // 距离
         $post['distance'] = intval($post['distance']);
         $post['distance'] = $post['distance'] < 1 ? 1 : $post['distance'];
@@ -1104,10 +1093,10 @@ class ParkWashModel extends Crud {
     /**
      * 获取附近洗车机
      */
-    public function getNearbyXicheDevice ($post) {
-
+    public function getNearbyXicheDevice ($post)
+    {
         // 城市
-        $post['adcode'] = intval($post['adcode']);
+        $post['adcode']   = intval($post['adcode']);
         // 距离
         $post['distance'] = intval($post['distance']);
         $post['distance'] = $post['distance'] < 1 ? 1 : $post['distance'];
@@ -1350,11 +1339,11 @@ class ParkWashModel extends Crud {
     /**
      * 会员卡开卡/续费
      */
-    public function renewalsCard ($uid, $post) {
-
-        $post['car_number'] = trim_space($post['car_number']);
+    public function renewalsCard ($uid, $post)
+    {
+        $post['car_number']   = trim_space($post['car_number']);
         $post['card_type_id'] = intval($post['card_type_id']);
-        $post['payway'] = trim_space($post['payway']);
+        $post['payway']       = trim_space($post['payway']);
 
         if (!check_car_license($post['car_number'])) {
             return error('请添加车辆');
@@ -1525,6 +1514,7 @@ class ParkWashModel extends Crud {
             'type'       => 'pwadd',
             'uses'       => '余额充值',
             'trade_id'   => $uid,
+            'param_id'   => $post['type_id'],
             'pay'        => $typeInfo['price'],
             'money'      => $typeInfo['price'] + $typeInfo['give'],
             'payway'     => $post['payway'],
@@ -1691,7 +1681,7 @@ class ParkWashModel extends Crud {
                 ->where([
                     'uid' => $uid,
                     'car_number' => $carportInfo['car_number'],
-                    'status' => ['>', 0],
+                    'status' => ['>', ParkWashOrderStatus::WAIT_PAY],
                     'order_time' => ['between', [date('Y-m-d 00:00:00', strtotime($poolInfo['today'])), date('Y-m-d 23:59:59', strtotime($poolInfo['today']))]]
                 ])
                 ->limit(1)
@@ -1960,11 +1950,11 @@ class ParkWashModel extends Crud {
         }
 
         // 删除交易单
-        $this->getDb()->delete('__tablepre__payments', 'status = 0 and id = ' . $cardId);
+        $this->getDb()->delete('__tablepre__payments', ['id' => $cardId, 'status' => 0]);
 
         if ($tradeInfo['type'] == 'parkwash') {
             // 删除洗车订单
-            $this->getDb()->delete('parkwash_order', 'status = 0 and id = ' . $tradeInfo['order_id']);
+            $this->getDb()->delete('parkwash_order', ['id' => $tradeInfo['order_id'], 'status' => ParkWashOrderStatus::WAIT_PAY]);
         }
 
         return success('OK');
@@ -2009,9 +1999,9 @@ class ParkWashModel extends Crud {
                 return false;
             }
             if (!$db->update('parkwash_order', [
-                'status' => 1, 'payway' => $tradeInfo['payway'], 'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
+                'status' => ParkWashOrderStatus::PAY, 'payway' => $tradeInfo['payway'], 'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
             ], [
-                'id' => $tradeInfo['order_id'], 'status' => 0
+                'id' => $tradeInfo['order_id'], 'status' => ParkWashOrderStatus::WAIT_PAY
             ])) {
                 return false;
             }
@@ -2022,8 +2012,8 @@ class ParkWashModel extends Crud {
 
         // 更新用户下单数、消费
         $this->getDb()->update('parkwash_usercount', [
-            'parkwash_count'      => ['parkwash_count+1'],
-            'parkwash_consume'    => ['parkwash_consume+' . $tradeInfo['pay']],
+            'parkwash_count'   => ['parkwash_count+1'],
+            'parkwash_consume' => ['parkwash_consume+' . $tradeInfo['pay']],
         ], [
             'uid' => $tradeInfo['trade_id']
         ]);
@@ -2132,8 +2122,8 @@ class ParkWashModel extends Crud {
     /**
      * vip缴费成功
      */
-    protected function vipcardSuc ($tradeInfo, $tradeParam) {
-
+    protected function vipcardSuc ($tradeInfo, $tradeParam)
+    {
         // 卡类型
         if (!$cardTypeInfo = $this->getDb()->table('parkwash_card_type')->field('id,name,months,days')->where(['id' => $tradeInfo['param_id']])->find()) {
             return error('卡类型不存在');
@@ -2276,6 +2266,18 @@ class ParkWashModel extends Crud {
             ]);
         }
 
+        // 记录缴费记录
+        $userInfo = (new UserModel())->getUserInfo($tradeInfo['trade_id']);
+        $this->getDb()->insert('parkwash_recharge_record', [
+            'uid'         => $tradeInfo['trade_id'],
+            'user_tel'    => strval($userInfo['result']['telephone']),
+            'type_id'     => $tradeInfo['param_id'],
+            'money'       => $tradeInfo['pay'],
+            'give'        => $giveMoney,
+            'create_time' => date('Y-m-d H:i:s', TIMESTAMP)
+        ]);
+        unset($userInfo);
+
         // 记录资金变动
         $this->pushTrades([
             'uid'   => $tradeInfo['trade_id'],
@@ -2299,8 +2301,8 @@ class ParkWashModel extends Crud {
     /**
      * 发送微信模板消息
      */
-    public function sendTemplateMessage ($uid, $template_name, $form_id, $page, array $value = []) {
-
+    public function sendTemplateMessage ($uid, $template_name, $form_id, $page, array $value = [])
+    {
         if (!$form_id) {
             return error('form_id不能为空');
         }
@@ -2331,26 +2333,29 @@ class ParkWashModel extends Crud {
     /**
      * 自助洗车成功后，加入到停车场洗车订单中
      */
-    public function handleXichePaySuc ($param) {
-
+    public function handleXichePaySuc ($param)
+    {
         if (!$this->getDb()->insert('parkwash_order', array_merge($param, [
             'create_time' => date('Y-m-d H:i:s', TIMESTAMP),
             'update_time' => date('Y-m-d H:i:s', TIMESTAMP),
-            'status' => 5
+            'status'      => ParkWashOrderStatus::CONFIRM
         ]))) {
             return false;
         }
         $order_id = $this->getDb()->getlastid();
         // 更新用户下单数、消费
         $this->getDb()->update('parkwash_usercount', [
-            'xiche_count' => ['xiche_count+1'],
+            'xiche_count'   => ['xiche_count+1'],
             'xiche_consume' => ['xiche_consume+' . $param['pay']]
         ], [
             'uid' => $param['uid']
         ]);
         // 记录资金变动
         $this->pushTrades([
-            'uid' => $param['uid'], 'mark' => '-', 'money' => $param['pay'], 'title' => '支付自助洗车费'
+            'uid'   => $param['uid'],
+            'mark'  => '-',
+            'money' => $param['pay'],
+            'title' => '支付自助洗车费'
         ]);
         return $order_id;
     }
@@ -2361,8 +2366,8 @@ class ParkWashModel extends Crud {
      * @param $field 查询字段
      * @return array
      */
-    protected function findOrderInfo ($condition, $field = null, $order = null) {
-
+    protected function findOrderInfo ($condition, $field = null, $order = null)
+    {
         return $this->getDb()->table('parkwash_order')->field($field)->where($condition)->order($order)->limit(1)->find();
     }
 
@@ -2372,8 +2377,8 @@ class ParkWashModel extends Crud {
      * @param $field 查询字段
      * @return array
      */
-    protected function findStoreInfo ($condition, $field = null) {
-
+    protected function findStoreInfo ($condition, $field = null)
+    {
         return $this->getDb()->table('parkwash_store')->field($field)->where($condition)->limit(1)->find();
     }
 
@@ -2394,8 +2399,8 @@ class ParkWashModel extends Crud {
      * @param $place 车位号
      * @return int 1正常 0不支持洗车服务
      */
-    protected function checkPlaceState ($area_id, $place) {
-
+    protected function checkPlaceState ($area_id, $place)
+    {
         $parkingInfo = $this->getDb()->table('parkwash_parking')->field('status')->where(['area_id' => $area_id, 'place' => $place])->find();
         return $parkingInfo ? $parkingInfo['status'] : 1;
     }
@@ -2403,8 +2408,8 @@ class ParkWashModel extends Crud {
     /**
      * 写入通知
      */
-    public function pushNotice ($post) {
-
+    public function pushNotice ($post)
+    {
         return $this->getDb()->insert('parkwash_notice', [
             'receiver' => $post['receiver'], 'notice_type' => $post['notice_type'], 'orderid' => $post['orderid'], 'store_id' => $post['store_id'], 'uid' => $post['uid'], 'tel' => $post['tel'], 'title' => $post['title'], 'url' => $post['url'], 'content' => $post['content'], 'create_time' => date('Y-m-d H:i:s', TIMESTAMP)
         ]);
@@ -2413,8 +2418,8 @@ class ParkWashModel extends Crud {
     /**
      * 记录订单状态改变
      */
-    public function pushSequence ($post) {
-
+    public function pushSequence ($post)
+    {
         return $this->getDb()->insert('parkwash_order_sequence', [
             'orderid' => $post['orderid'], 'uid' => $post['uid'], 'title' => $post['title'], 'create_time' => date('Y-m-d H:i:s', TIMESTAMP)
         ]);
@@ -2423,8 +2428,8 @@ class ParkWashModel extends Crud {
     /**
      * 记录资金变动
      */
-    protected function pushTrades ($post) {
-
+    protected function pushTrades ($post)
+    {
         if ($post['money'] <= 0) {
             return false;
         }
@@ -2437,8 +2442,8 @@ class ParkWashModel extends Crud {
      * 生成单号(16位)
      * @return string
      */
-    protected function generateOrderCode ($uid) {
-
+    protected function generateOrderCode ($uid)
+    {
         $code[] = date('Ymd', TIMESTAMP);
         $code[] = (rand() % 10) . (rand() % 10) . (rand() % 10) . (rand() % 10);
         $code[] = str_pad(substr($uid, -4),4,'0',STR_PAD_LEFT);
@@ -2448,8 +2453,8 @@ class ParkWashModel extends Crud {
     /**
      * geo排序
      */
-    protected function geoOrder ($lon, $lat, $as = '') {
-
+    protected function geoOrder ($lon, $lat, $as = '')
+    {
         if (!$location = LocationUtils::checkLocation([$lat, $lon])) {
             return null;
         }
@@ -2480,8 +2485,8 @@ class ParkWashModel extends Crud {
      * @param $business_hours 营业时间 9:00-10:00
      * @return int 1是 0否
      */
-    protected function checkBusinessHoursRange ($business_hours) {
-
+    protected function checkBusinessHoursRange ($business_hours)
+    {
         return 1; // 前端不限制营业时间
 
         if (!$business_hours) {
@@ -2530,8 +2535,8 @@ class ParkWashModel extends Crud {
     /**
      * 生成测试门店
      */
-    protected function buildTestStore () {
-
+    protected function buildTestStore ()
+    {
         set_time_limit(0);
         $operator = ['-', '+'];
         $status = [1, 0];
@@ -2656,8 +2661,8 @@ class ParkWashModel extends Crud {
     /**
      * 计划任务
      */
-    public function task ($timer) {
-
+    public function task ($timer)
+    {
         set_time_limit(3600);
         // 每天 0 点执行
         if (false !== strpos($timer, '0h')) {
@@ -2688,8 +2693,8 @@ class ParkWashModel extends Crud {
     /**
      * 24小时自动确认完成订单
      */
-    protected function taskConfirmOrder () {
-
+    protected function taskConfirmOrder ()
+    {
         // 查询自动确认完成任务，获取已完成，超过24小时未确认完成的订单
         $queueList = $this->getDb()
             ->table('parkwash_order_queue')
@@ -2706,9 +2711,9 @@ class ParkWashModel extends Crud {
 
         // 更新订单状态
         if (!$this->getDb()->update('parkwash_order', [
-            'status' => 5, 'confirm_time' => date('Y-m-d H:i:s', TIMESTAMP), 'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
+            'status' => ParkWashOrderStatus::CONFIRM, 'confirm_time' => date('Y-m-d H:i:s', TIMESTAMP), 'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
         ], [
-            'id' => ['in', array_column($queueList, 'orderid')], 'status' => 4
+            'id' => ['in', array_column($queueList, 'orderid')], 'status' => ParkWashOrderStatus::COMPLETE
         ])) {
             return false;
         }
@@ -2734,8 +2739,8 @@ class ParkWashModel extends Crud {
     /**
      * 入场车辆查询
      */
-    protected function taskEntryPark () {
-
+    protected function taskEntryPark ()
+    {
         // 查询入场车查询任务
         $queueList = $this->getDb()
             ->table('parkwash_order_queue')
@@ -2828,8 +2833,8 @@ class ParkWashModel extends Crud {
     /**
      * 清理过期未支付订单
      */
-    protected function taskCleanExpireOrder () {
-
+    protected function taskCleanExpireOrder ()
+    {
         // 停车场洗车未支付订单超时时间 (秒)
         $washOrderExpire = getConfig('xc', 'wash_order_expire');
 
@@ -2837,7 +2842,7 @@ class ParkWashModel extends Crud {
             ->table('parkwash_order')
             ->field('id,pool_id')
             ->where([
-                'status' => 0, 'create_time' => ['<', date('Y-m-d H:i:s', TIMESTAMP - $washOrderExpire)]
+                'status' => ParkWashOrderStatus::WAIT_PAY, 'create_time' => ['<', date('Y-m-d H:i:s', TIMESTAMP - $washOrderExpire)]
             ])
             ->limit(1000)
             ->select();
@@ -2846,7 +2851,7 @@ class ParkWashModel extends Crud {
         }
 
         // 删除过期订单
-        if (!$this->getDb()->delete('parkwash_order', ['status' => 0, 'id' => ['in', array_column($orderList, 'id')]])) {
+        if (!$this->getDb()->delete('parkwash_order', ['status' => ParkWashOrderStatus::WAIT_PAY, 'id' => ['in', array_column($orderList, 'id')]])) {
             return false;
         }
         // 更新排班可预约数
@@ -2863,40 +2868,40 @@ class ParkWashModel extends Crud {
     /**
      * 清理商家通知
      */
-    protected function taskCleanNotice () {
-
+    protected function taskCleanNotice ()
+    {
         return $this->getDb()->delete('parkwash_notice', ['receiver' => 2, 'notice_type' => 2, 'create_time' => ['<', date('Y-m-d', TIMESTAMP - 86400)]]);
     }
 
     /**
      * 清理过期未支付交易单
      */
-    protected function taskCleanExpireTrade () {
-
+    protected function taskCleanExpireTrade ()
+    {
         return $this->getDb()->delete('pro_payments', ['status' => 0, 'createtime' => ['<', date('Y-m-d', TIMESTAMP - 86400)]]);
     }
 
     /**
      * 清理一天前接口限流记录
      */
-    protected function taskCleanRatelimit () {
-
+    protected function taskCleanRatelimit ()
+    {
         return $this->getDb()->delete('pro_ratelimit', ['time' => ['<', mktime(0, 0, 0, date('m', TIMESTAMP), date('d', TIMESTAMP), date('Y', TIMESTAMP))]]);
     }
 
     /**
      * 清理排班
      */
-    protected function taskCleanSchedule () {
-
+    protected function taskCleanSchedule ()
+    {
         return $this->getDb()->delete('parkwash_pool', ['today' => ['<', date('Y-m-d', TIMESTAMP)]]);
     }
 
     /**
      * 门店排班
      */
-    protected function taskStoreSchedule () {
-
+    protected function taskStoreSchedule ()
+    {
         // 获取正常营业的门店
         $storeList = $this->getDb()->table('parkwash_store')->field('id,business_hours,time_interval,time_amount,time_day')->where(['status' => 1, 'time_interval' => ['>', 0], 'time_amount' => ['>', 0], 'time_day' => ['>', 0]])->select();
         if (!$storeList) {
@@ -2960,8 +2965,8 @@ class ParkWashModel extends Crud {
     /**
      * 获取时间分段
      */
-    public function selectDuration ($business_hours, $time_interval) {
-
+    public function selectDuration ($business_hours, $time_interval)
+    {
         // 验证营业时间是否正确
         list($start, $end) = explode('-', $business_hours);
         $start = strtotime(date('Y-m-d', TIMESTAMP) . ' ' . $start);

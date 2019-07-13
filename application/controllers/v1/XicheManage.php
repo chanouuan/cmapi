@@ -474,14 +474,16 @@ class XicheManage extends ActionPDO {
     /**
      * 更新停车场洗车订单状态
      */
-    public function parkOrderStatusUpdate () {
+    public function parkOrderStatusUpdate ()
+    {
         return (new XicheManageModel())->parkOrderStatusUpdate($_POST);
     }
 
     /**
      * 获取车辆入场信息
      */
-    public function entryParkInfo () {
+    public function entryParkInfo ()
+    {
         return (new XicheManageModel())->entryParkInfo(getgpc('id'));
     }
 
@@ -491,22 +493,22 @@ class XicheManage extends ActionPDO {
     public function parkOrderView ()
     {
         $modle = new XicheManageModel();
-        $orderInfo = $modle->getInfo('parkwash_order', ['id' => getgpc('id')]);
-        $brandInfo = $modle->getInfo('parkwash_car_brand', ['id' => $orderInfo['brand_id']], 'name');
+        $orderInfo  = $modle->getInfo('parkwash_order', ['id' => getgpc('id')]);
+        $brandInfo  = $modle->getInfo('parkwash_car_brand', ['id' => $orderInfo['brand_id']], 'name');
         $seriesInfo = $modle->getInfo('parkwash_car_series', ['id' => $orderInfo['series_id']], 'name');
-        $areaInfo = $modle->getInfo('parkwash_park_area', ['id' => $orderInfo['area_id']], 'floor,name');
-        $storeInfo = $modle->getInfo('parkwash_store', ['id' => $orderInfo['store_id']], 'name,tel,address,order_count,money');
-        $orderInfo['order_code'] = str_replace(['-', ' ', ':'], '', $orderInfo['create_time']) . $orderInfo['id'];
-        $orderInfo['brand_name'] = $brandInfo['name'];
-        $orderInfo['series_name'] = $seriesInfo['name'];
-        $orderInfo['area_floor'] = $areaInfo['floor'];
-        $orderInfo['area_name'] = $areaInfo['name'];
-        $orderInfo['store_name'] = $storeInfo['name'];
-        $orderInfo['store_tel'] = $storeInfo['tel'];
-        $orderInfo['store_address'] = $storeInfo['address'];
+        $areaInfo   = $modle->getInfo('parkwash_park_area', ['id' => $orderInfo['area_id']], 'floor,name');
+        $storeInfo  = $modle->getInfo('parkwash_store', ['id' => $orderInfo['store_id']], 'name,tel,address,order_count,money');
+        $orderInfo['order_code']        = str_replace(['-', ' ', ':'], '', $orderInfo['create_time']) . $orderInfo['id'];
+        $orderInfo['brand_name']        = $brandInfo['name'];
+        $orderInfo['series_name']       = $seriesInfo['name'];
+        $orderInfo['area_floor']        = $areaInfo['floor'];
+        $orderInfo['area_name']         = $areaInfo['name'];
+        $orderInfo['store_name']        = $storeInfo['name'];
+        $orderInfo['store_tel']         = $storeInfo['tel'];
+        $orderInfo['store_address']     = $storeInfo['address'];
         $orderInfo['store_order_count'] = $storeInfo['order_count'];
-        $orderInfo['store_money'] = $storeInfo['money'];
-        $orderInfo['payway'] = ParkWashPayWay::getMessage($orderInfo['payway']);
+        $orderInfo['store_money']       = $storeInfo['money'];
+        $orderInfo['payway']            = ParkWashPayWay::getMessage($orderInfo['payway']);
         // 获取订单时序表
         $orderInfo['sequence'] = $modle->getlist('parkwash_order_sequence', ['orderid' => $orderInfo['id']], null, 'id asc', 'title,create_time');
         // 判断状态
@@ -529,12 +531,19 @@ class XicheManage extends ActionPDO {
             $orderInfo['out_park_time'] = $outParkTime ? date('Y-m-d H:i:s', $outParkTime) : '未出场/无出场信息';
         }
         // 员工与帮手
-        $helper = $modle->getList('parkwash_order_helper', ['orderid' => $orderInfo['id']]);
-        $helper = array_column($helper, 'helper_id');
-        $employee = $modle->getlist('parkwash_employee', ['id' => ['in', array_merge([$orderInfo['employee_id']], $helper)]], null, 'id asc', 'id,realname');
-        $employee = array_column($employee, 'realname', 'id');
-        $orderInfo['employee_name'] = $employee[$orderInfo['employee_id']];
-        $orderInfo['helper'] = strtr(implode(',', $helper), $employee);
+        if ($orderInfo['employee_id']) {
+            $helper = $modle->getList('parkwash_order_helper', ['orderid' => $orderInfo['id']]);
+            $helper = array_column($helper, null, 'employee_id');
+            $employee = $modle->getlist('parkwash_employee', ['id' => ['in', array_keys($helper)]], null, null, 'id,realname');
+            $employee = array_column($employee, 'realname', 'id');
+            $orderInfo['employee_name'] = $employee[$orderInfo['employee_id']];
+            foreach ($helper as $k => $v) {
+                $helper[$k]['realname'] = $employee[$k];
+                $helper[$k]['employee_salary'] = round_dollar($v['employee_salary']);
+            }
+            $orderInfo['helper'] = $helper;
+        }
+
         return [
             'info' => $orderInfo
         ];
@@ -765,10 +774,10 @@ class XicheManage extends ActionPDO {
     }
 
     /**
-     * 缴费记录
+     * 洗车卡缴费记录
      */
-    public function cardRecord () {
-
+    public function cardRecord ()
+    {
         $modle = new XicheManageModel();
 
         $condition = [];
@@ -827,7 +836,8 @@ class XicheManage extends ActionPDO {
     /**
      * 卡类型管理
      */
-    public function cardType () {
+    public function cardType ()
+    {
         $modle = new XicheManageModel();
         $list = $modle->getList('parkwash_card_type', null, null, 'sort desc');
         return [
@@ -838,8 +848,8 @@ class XicheManage extends ActionPDO {
     /**
      * 卡类型添加
      */
-    public function cardTypeAdd () {
-
+    public function cardTypeAdd ()
+    {
         if (submitcheck()) {
             return (new XicheManageModel())->cardTypeAdd($_POST);
         }
@@ -850,8 +860,8 @@ class XicheManage extends ActionPDO {
     /**
      * 卡类型编辑
      */
-    public function cardTypeUpdate () {
-
+    public function cardTypeUpdate ()
+    {
         if (submitcheck()) {
             return (new XicheManageModel())->cardTypeUpdate($_POST);
         }
@@ -859,6 +869,105 @@ class XicheManage extends ActionPDO {
         $info = (new XicheManageModel())->getInfo('parkwash_card_type', ['id' => getgpc('id')]);
         return [
             'info' => $info
+        ];
+    }
+
+    /**
+     * 充值卡类型管理
+     */
+    public function rechargeType ()
+    {
+        $modle = new XicheManageModel();
+        $list = $modle->getList('parkwash_recharge_type', null, null, 'sort desc');
+        return [
+            'list' => $list
+        ];
+    }
+
+    /**
+     * 充值卡类型添加
+     */
+    public function rechargeTypeAdd ()
+    {
+        if (submitcheck()) {
+            return (new XicheManageModel())->rechargeTypeAdd($_POST);
+        }
+
+        return [];
+    }
+
+    /**
+     * 充值卡类型编辑
+     */
+    public function rechargeTypeUpdate ()
+    {
+        if (submitcheck()) {
+            return (new XicheManageModel())->rechargeTypeUpdate($_POST);
+        }
+
+        $info = (new XicheManageModel())->getInfo('parkwash_recharge_type', ['id' => getgpc('id')]);
+        return [
+            'info' => $info
+        ];
+    }
+
+    /**
+     * 充值卡缴费记录
+     */
+    public function rechargeRecord ()
+    {
+        $modle = new XicheManageModel();
+
+        $condition = [];
+        if ($_GET['uid']) {
+            $condition['uid'] = intval($_GET['uid']);
+        }
+        if ($_GET['user_tel']) {
+            $condition['user_tel'] = ['like', $_GET['user_tel'] . '%'];
+        }
+        if ($_GET['type_id']) {
+            $condition['type_id'] = intval($_GET['type_id']);
+        }
+        if ($_GET['start_time'] && $_GET['end_time']) {
+            $condition['create_time'] = ['between', [$_GET['start_time'] . ' 00:00:00', $_GET['end_time'] . ' 23:59:59']];
+        }
+
+        if (empty($_GET['export'])) {
+            $row = \app\library\DB::getInstance()
+                ->table('parkwash_recharge_record')
+                ->field('count(*) as count,sum(money) as money,sum(give) as give')
+                ->where($condition)
+                ->find();
+            $count      = $row['count'];
+            $totalMoney = round_dollar($row['money']);
+            $totalGive  = round_dollar($row['give']);
+            $pagesize   = getPageParams($_GET['page'], $count);
+        }
+        $list = $modle->getList('parkwash_recharge_record', $condition, $pagesize['limitstr']);
+        $cardType = $modle->getList('parkwash_recharge_type', null, null, 'sort desc');
+        $cardType = array_column($cardType, 'name', 'id');
+
+        foreach ($list as $k => $v) {
+            $list[$k]['type_name'] = isset($cardType[$v['type_id']]) ? $cardType[$v['type_id']] : $v['type_id'];
+            $list[$k]['money']     = round_dollar($v['money']);
+            $list[$k]['give']      = round_dollar($v['give']);
+        }
+
+        // 导出
+        if ($_GET['export']) {
+            $input = [];
+            foreach ($list as $k => $v) {
+                $input[] = [$v['id'], $v['user_tel'], $v['type_name'], $v['money'], $v['give'], $v['create_time']];
+            }
+            $modle->exportCsv('充值记录', '编号,用户,卡类型,缴费(元),赠送(元),缴费时间', $input);
+        }
+
+        return [
+            'pagesize'   => $pagesize,
+            'list'       => $list,
+            'cardType'   => $cardType,
+            'totalMoney' => $totalMoney,
+            'totalGive'  => $totalGive
         ];
     }
 

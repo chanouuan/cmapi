@@ -91,13 +91,10 @@
                     <div class="layui-card">
                         <div class="layui-card-header">员工信息</div>
                         <div class="layui-card-body">
-                            姓名：<?=$info['employee_name']?>
+                            接单员工：<?=$info['employee_name']?>
                         </div>
                         <div class="layui-card-body">
-                            帮手：<?=$info['helper']?>
-                        </div>
-                        <div class="layui-card-body">
-                            员工收益：<?=$info['employee_salary']/100?> 元
+                            员工收益：<?php foreach($info['helper'] as $k=>$v){ ?><?=$v['realname']?>: <?=$v['employee_salary']?>元<?php }?>
                         </div>
                     </div>
                     <?php } ?>

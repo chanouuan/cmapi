@@ -274,7 +274,7 @@ class ParkWashEmployeeModel extends Crud {
     public function takeOrder ($uid, $post)
     {
         $post['orderid'] = intval($post['orderid']);
-        $post['helper'] = $post['helper'] ? get_short_array($post['helper']) : null;
+        $post['helper']  = $post['helper'] ? get_short_array($post['helper']) : null;
 
         $result = $this->checkTakeOrder($uid);
         if ($result['errorcode'] !== 0) {
@@ -285,7 +285,7 @@ class ParkWashEmployeeModel extends Crud {
             return error('员工不存在或已禁用');
         }
 
-        if (!$orderInfo = $this->getDb()->table('parkwash_order')->field('id,uid,store_id,item_id,pay,deduct,status')->where(['id' => $post['orderid']])->limit(1)->find()) {
+        if (!$orderInfo = $this->getDb()->table('parkwash_order')->field('id,uid,user_tel,store_id,item_id,pay,deduct,status')->where(['id' => $post['orderid']])->limit(1)->find()) {
             return error('订单不存在或无效');
         }
 
@@ -384,6 +384,9 @@ class ParkWashEmployeeModel extends Crud {
             'title'       => '商家开始服务',
             'content'     => $employeeInfo['store_name'] . '正在为您服务，请留意完成洗车提醒！'
         ]);
+
+        // 发送短信
+        (new UserModel())->sendSmsServer($orderInfo['user_tel'], $employeeInfo['store_name'] . '正在为您服务，请留意完成洗车提醒！');
 
         // 推送APP通知
         $parkWashModel->pushEmployee($orderInfo['store_id'], $orderInfo['item_id'], $employeeInfo['realname'] . '已开始服务', '车秘未来洗车', [
@@ -801,27 +804,16 @@ class ParkWashEmployeeModel extends Crud {
             return [$total];
         }
 
-        $avgNumber = bcdiv($total, $number, 5);
-        if (substr($avgNumber, -3) === '000') {
+        $avgNumber = bcdiv($total, $number);
+        $person    = array_fill(0, $number, intval($avgNumber));
+        $avgTotal  = array_sum($person);
+
+        if ($avgTotal == $total) {
             // 被整除
-            return array_fill(0, $number, floatval($avgNumber));
+            return $person;
         }
 
-        $person = array_fill(0, $number, 0);
-        $person[0] = floatval($avgNumber);
-
-        while (substr($avgNumber, -3) !== '000') {
-            $avgNumber = bcadd($person[0], 0.01, 2);
-            $person[0] = floatval($avgNumber);
-            $avgNumber = bcdiv(bcsub($total, $avgNumber, 2), $number - 1, 5);
-        }
-        $avgNumber = floatval($avgNumber);
-
-        foreach ($person as $k => $v) {
-            if ($k != 0) {
-                $person[$k] = $avgNumber;
-            }
-        }
+        $person[0] += $total - $avgTotal;
 
         return $person;
     }
