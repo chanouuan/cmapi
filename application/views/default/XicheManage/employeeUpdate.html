@@ -12,7 +12,7 @@
                     <select name="store_id" lay-verify="required">
                         <option value="">请选择</option>
                         <?php foreach($stores as $k=>$v){ ?>
-                        <option value="<?=$v['id']?>"><?=$v['name']?></option>
+                        <option value="<?=$v['id']?>" <?php if($v['id']==$info['store_id']){ ?>selected<?php } ?>><?=$v['name']?></option>
                         <?php } ?>
                     </select>
                 </div>
@@ -23,7 +23,7 @@
                 </label>
                 <div class="layui-input-inline">
                     <?php foreach($items as $k=>$v){ ?>
-                    <input type="checkbox" name="item_id[]" value="<?=$v['id']?>" title="<?=$v['name']?>">
+                    <input type="checkbox" name="item_id[]" value="<?=$v['id']?>" title="<?=$v['name']?>" <?php if(false!==strpos($info['item_id'],','.$v['id'].',')){ ?>checked<?php } ?>>
                     <?php } ?>
                 </div>
             </div>
@@ -32,7 +32,7 @@
                     <span class="x-red">*</span>姓名
                 </label>
                 <div class="layui-input-inline">
-                    <input placeholder="请填写姓名" type="text" maxlength="20" name="realname" required="" lay-verify="required" autocomplete="off" class="layui-input">
+                    <input value="<?=$info['realname']?>" placeholder="请填写姓名" type="text" maxlength="20" name="realname" required="" lay-verify="required" autocomplete="off" class="layui-input">
                 </div>
             </div>
             <div class="layui-form-item">
@@ -42,13 +42,16 @@
                 <div class="layui-input-inline">
                     <input type="file" name="upfile">
                 </div>
+                <div class="layui-input-inline">
+                    <?=$info['avatar']?>
+                </div>
             </div>
             <div class="layui-form-item">
                 <label class="layui-form-label">
                     <span class="x-red">*</span>手机号
                 </label>
                 <div class="layui-input-inline">
-                    <input placeholder="请填写手机号" type="tel" maxlength="11" name="telephone" required="" lay-verify="required" autocomplete="off" class="layui-input">
+                    <input value="<?=$info['telephone']?>" placeholder="请填写手机号" type="tel" maxlength="11" name="telephone" required="" lay-verify="required" autocomplete="off" class="layui-input">
                 </div>
             </div>
             <div class="layui-form-item">
@@ -56,7 +59,7 @@
                     身份证号
                 </label>
                 <div class="layui-input-inline">
-                    <input placeholder="请填写身份证号" type="text" maxlength="18" name="idcard" autocomplete="off" class="layui-input">
+                    <input value="<?=$info['idcard']?>" placeholder="请填写身份证号" type="text" maxlength="18" name="idcard" autocomplete="off" class="layui-input">
                 </div>
             </div>
             <div class="layui-form-item">
@@ -64,8 +67,8 @@
                     <span class="x-red">*</span>性别
                 </label>
                 <div class="layui-input-inline">
-                    <input type="radio" name="gender" value="1" title="男" checked>
-                    <input type="radio" name="gender" value="2" title="女">
+                    <input type="radio" name="gender" value="1" title="男" <?php if(1==$info['gender']){ ?>checked<?php } ?>>
+                    <input type="radio" name="gender" value="2" title="女" <?php if(2==$info['gender']){ ?>checked<?php } ?>>
                 </div>
             </div>
             <div class="layui-form-item">
@@ -75,6 +78,9 @@
                 <div class="layui-input-inline">
                     <input placeholder="请填写登录密码" type="text" maxlength="32" name="password" autocomplete="off" class="layui-input">
                 </div>
+                <div class="layui-input-inline" style="line-height: 30px">
+                    <i class="layui-icon">&#xe60b;</i> 不修改密码就不用重新填写
+                </div>
             </div>
             <div class="layui-form-item">
                 <label class="layui-form-label">
@@ -83,11 +89,12 @@
                 <div class="layui-input-inline">
                     <select name="status" lay-verify="required">
                         <option value="1">正常</option>
-                        <option value="0">禁用</option>
+                        <option value="0" <?php if(0==$info['status']){ ?>selected<?php } ?>>禁用</option>
                     </select>
                 </div>
             </div>
             <div class="layui-form-item">
+                <input type="hidden" name="id" value="<?=$info['id']?>">
                 <input type="hidden" name="formhash" value="<?=encode_formhash()?>">
                 <label class="layui-form-label"></label>
                 <button class="layui-btn" lay-filter="add" lay-submit="">提交</button>
@@ -106,7 +113,7 @@
                 var formData = new FormData($("#form")[0]);
                 $.ajax({
                     type: 'POST',
-                    url: '<?=gurl("xicheManage/employeeAdd")?>',
+                    url: '<?=gurl("xicheManage/employeeUpdate")?>',
                     data: formData,
                     async: false,
                     cache: false,
@@ -119,7 +126,7 @@
                        if(list.errorcode != 0) {
                            return layer.msg(list.message);
                        }
-                       layer.alert("增加成功", {icon: 6},function () {
+                       layer.alert("修改成功", {icon: 6},function () {
                            parent.location.reload();
                        });
                     },

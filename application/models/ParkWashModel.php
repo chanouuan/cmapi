@@ -1551,10 +1551,15 @@ class ParkWashModel extends Crud {
             return error('车位号最多10个字符');
         }
         if (!$post['pool_id']) {
-            return error('请选择服务时间');
+            return error('请选择取车时间');
         }
         if (!$post['items']) {
             return error('请选择洗车套餐');
+        }
+
+        // 有服务中订单限制
+        if ($this->getDb()->table('parkwash_order')->where(['uid' => $uid, 'status' => ParkWashOrderStatus::IN_SERVICE])->count()) {
+            return error('有订单正在服务，请耐心等待');
         }
 
         // 下单数限制
@@ -2025,7 +2030,7 @@ class ParkWashModel extends Crud {
         $storeInfo = $this->findStoreInfo(['id' => $orderInfo['store_id']], 'id,name,tel');
 
         // 套餐
-        $itemInfo = $this->findItemInfo(['id' => $orderInfo['item_id']], 'id,firstorder');
+        $itemInfo  = $this->findItemInfo(['id' => $orderInfo['item_id']], 'id,firstorder');
 
         // 消费首单免费
         if ($itemInfo['firstorder']) {
@@ -3032,8 +3037,6 @@ class ParkWashModel extends Crud {
         return $data;
     }
 
-
-
     /**
      * 获取汽车车系
      */
@@ -3043,9 +3046,11 @@ class ParkWashModel extends Crud {
 
         $data = [];
         foreach ($list as $k => $v) {
-            $data[$v['brand_id']][] = [
-                'id' => $k, 'name' => $v['name']
-            ];
+            if ($v['status']) {
+                $data[$v['brand_id']][] = [
+                    'id' => $k, 'name' => $v['name']
+                ];
+            }
         }
         unset($list);
 
@@ -3057,7 +3062,13 @@ class ParkWashModel extends Crud {
      */
     public function getBrandList ()
     {
-        return success(ParkWashCache::getBrand());
+        $list = ParkWashCache::getBrand();
+        foreach ($list as $k => $v) {
+            if (!$v['status']) {
+                unset($list[$k]);
+            }
+        }
+        return success(array_values($list));
     }
 
 }

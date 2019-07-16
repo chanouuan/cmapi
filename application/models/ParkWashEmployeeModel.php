@@ -44,7 +44,6 @@ class ParkWashEmployeeModel extends Crud {
         $condition = [
             'helper_table.employee_id'  => $uid,
             'order_table.status'        => ['in', [ParkWashOrderStatus::COMPLETE, ParkWashOrderStatus::CONFIRM]],
-            'order_table.order_time'    => ['between', [date('Y-m-d H:i:s', strtotime($post['start_time']) - 86400 * 7), $post['end_time']]],
             'order_table.complete_time' => ['between', [$post['start_time'], $post['end_time']]]
         ];
 
@@ -306,7 +305,6 @@ class ParkWashEmployeeModel extends Crud {
 
         // 更新订单状态
         if (!$this->getDb()->update('parkwash_order', [
-            'employee_id'  => $uid,
             'status'       => ParkWashOrderStatus::IN_SERVICE,
             'service_time' => date('Y-m-d H:i:s', TIMESTAMP),
             'update_time'  => date('Y-m-d H:i:s', TIMESTAMP)
@@ -320,13 +318,15 @@ class ParkWashEmployeeModel extends Crud {
         $helperParams = [];
         $helperParams[] = [
             'orderid'     => $post['orderid'],
-            'employee_id' => $uid
+            'employee_id' => $uid,
+            'identity'    => 1
         ];
         if ($post['helper']) {
             foreach ($post['helper'] as $k => $v) {
                 $helperParams[] = [
                     'orderid'     => $post['orderid'],
-                    'employee_id' => $v
+                    'employee_id' => $v,
+                    'identity'    => 0
                 ];
             }
         }
@@ -335,7 +335,6 @@ class ParkWashEmployeeModel extends Crud {
         if (!$this->getDb()->insert('parkwash_order_helper', $helperParams)) {
             // 回滚订单
             $this->getDb()->update('parkwash_order', [
-                'employee_id'  => 0,
                 'status'       => ParkWashOrderStatus::PAY,
                 'update_time'  => date('Y-m-d H:i:s', TIMESTAMP)
             ], [
@@ -450,7 +449,7 @@ class ParkWashEmployeeModel extends Crud {
     {
         $orderid = intval($orderid);
 
-        if (!$orderInfo = $this->getDb()->table('parkwash_order')->field('id,car_number,brand_id,series_id,area_id,place,pay+deduct as pay,payway,item_name,order_time,create_time,status,user_tel,remark,service_time,complete_time,cancel_time,employee_id')->where(['id' => $orderid])->limit(1)->find()) {
+        if (!$orderInfo = $this->getDb()->table('parkwash_order')->field('id,car_number,brand_id,series_id,area_id,place,pay+deduct as pay,payway,item_name,order_time,create_time,status,user_tel,remark,service_time,complete_time,cancel_time')->where(['id' => $orderid])->limit(1)->find()) {
             return error('订单不存在或无效');
         }
 
@@ -479,11 +478,12 @@ class ParkWashEmployeeModel extends Crud {
             $helperList = array_column($helperList, 'employee_id');
             $employeeList = $this->getDb()->table('parkwash_employee')->field('id,realname')->where(['id' => ['in', $helperList]])->select();
             $employeeList = array_column($employeeList, 'realname', 'id');
-            $orderInfo['employee'] = $employeeList[$orderInfo['employee_id']];
+            $orderInfo['employee'] = $employeeList[$helperList[0]];
             $orderInfo['helper'] = [];
-            unset($employeeList[$orderInfo['employee_id']]);
+            unset($employeeList[$helperList[0]]);
             $orderInfo['helper'] = $employeeList;
             $orderInfo['helper'] = implode(',', $orderInfo['helper']);
+            unset($employeeList);
         }
 
         return success($orderInfo);

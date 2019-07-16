@@ -27,7 +27,7 @@ class ParkWashEmployee extends ActionPDO {
             'remarkOrder'     => ['interval' => 1000],
             'onLine'          => ['interval' => 1000],
             'onRemind'        => ['interval' => 1000],
-            'statistics'      => ['interval' => 1000]
+            'statistics'      => ['interval' => 200]
         ];
     }
 

@@ -13,6 +13,17 @@
                 </div>
             </div>
             <div class="layui-form-item">
+                <label class="layui-form-label">
+                    <span class="x-red">*</span>状态
+                </label>
+                <div class="layui-input-inline">
+                    <select name="status" lay-verify="required">
+                        <option value="1">显示</option>
+                        <option value="0">隐藏</option>
+                    </select>
+                </div>
+            </div>
+            <div class="layui-form-item">
                 <input type="hidden" name="formhash" value="<?=encode_formhash()?>">
                 <label class="layui-form-label"></label>
                 <button class="layui-btn" lay-filter="add" lay-submit="">提交</button>

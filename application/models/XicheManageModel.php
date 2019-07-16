@@ -12,6 +12,87 @@ class XicheManageModel extends Crud {
     /**
      * 添加员工
      */
+    public function employeeUpdate ($post)
+    {
+        $post['store_id'] = intval($post['store_id']);
+        $post['realname'] = trim_space($post['realname']);
+        $post['item_id']  = implode(',', $post['item_id']);
+        $post['gender']   = $post['gender'] == 1 ? 1 : 2;
+        $post['status']   = $post['status'] == 1 ? 1 : 0;
+        $post['password'] = trim_space($post['password']);
+        $post['idcard']   = trim_space($post['idcard']);
+
+        $userModel = new UserModel();
+
+        if (empty($post['store_id'])) {
+            return error('店铺不能为空');
+        }
+        if (empty($post['item_id'])) {
+            return error('服务项目不能为空');
+        }
+        if (empty($post['realname'])) {
+            return error('姓名不能为空');
+        }
+        if (!validate_telephone($post['telephone'])) {
+            return error('手机号不正确');
+        }
+        if ($post['idcard']) {
+            if (!$userModel->check_id($post['idcard'])) {
+                return error('身份证号不正确');
+            }
+        }
+        if ($post['password']) {
+            // 密码长度验证
+            if (strlen($post['password']) < 6 || strlen($post['password']) > 32) {
+                return error('请输入6-32位密码');
+            }
+        }
+
+        if (!$storeInfo = $this->getInfo('parkwash_store', ['id' => $post['store_id']], 'name')) {
+            return error('该店铺不存在');
+        }
+
+        // 上传图片
+        if (isset($_FILES['upfile']) && $_FILES['upfile']['error'] == 0) {
+            if ($_FILES['upfile']['size'] > 1048576) {
+                return error('最大上传不超过1M');
+            }
+            $result = uploadfile($_FILES['upfile'], 'jpg,jpeg,png', 350, 0);
+            if ($result['errorcode'] !== 0) {
+                return $result;
+            }
+            $result = $result['result'];
+            $post['avatar'] = $result['thumburl'];
+        }
+
+        // 编辑员工
+        $param = [
+            'store_id'    => $post['store_id'],
+            'item_id'     => ',' . $post['item_id'] . ',',
+            'store_name'  => $storeInfo['name'],
+            'realname'    => $post['realname'],
+            'telephone'   => $post['telephone'],
+            'idcard'      => $post['idcard'],
+            'gender'      => $post['gender'],
+            'status'      => $post['status'],
+            'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
+        ];
+        if ($post['avatar']) {
+            $param['avatar'] = $post['avatar'];
+        }
+        if ($post['password']) {
+            $param['password'] = $userModel->hashPassword(md5($post['password']));
+        }
+        if (!$this->getDb()->update('parkwash_employee', $param, ['id' => $post['id']])) {
+            return error('添加失败');
+        }
+
+        return success('OK');
+    }
+
+    /**
+     * 添加员工
+     */
     public function employeeAdd ($post)
     {
         $post['store_id'] = intval($post['store_id']);
@@ -92,14 +173,92 @@ class XicheManageModel extends Crud {
     /**
      * 车型编辑
      */
+    public function carBrandUpdate ($post)
+    {
+        $post['name']   = trim_space($post['name']);
+        $post['status'] = $post['status'] ? 1 : 0;
+
+        if (empty($post['name'])) {
+            return error('名称不能为空');
+        }
+
+        $param = [
+            'name'   => $post['name'],
+            'pinyin' => $post['pinyin'],
+            'status' => $post['status']
+        ];
+
+        if (isset($_FILES['upfile']) && $_FILES['upfile']['error'] == 0) {
+            if ($_FILES['upfile']['size'] > 1048576) {
+                return error('最大上传不超过1M');
+            }
+            $result = uploadfile($_FILES['upfile'], 'jpg,jpeg,png', 150, 0);
+            if ($result['errorcode'] !== 0) {
+                return $result;
+            }
+            $result = $result['result'];
+            $param['logo'] = $result['thumburl'];
+        }
+
+        if (false === $this->getDb()->update('parkwash_car_brand', $param, ['id' => $post['id']])) {
+            return error('修改失败');
+        }
+
+        F('CarBrand', null);
+        return success('OK');
+    }
+
+    /**
+     * 品牌添加
+     */
+    public function carBrandAdd ($post)
+    {
+        $post['name']   = trim_space($post['name']);
+        $post['status'] = $post['status'] ? 1 : 0;
+
+        if (empty($post['name'])) {
+            return error('名称不能为空');
+        }
+        if ($_FILES['upfile']['error'] != 0) {
+            return error('请上传logo图片');
+        }
+
+        if ($_FILES['upfile']['size'] > 1048576) {
+            return error('最大上传不超过1M');
+        }
+        $result = uploadfile($_FILES['upfile'], 'jpg,jpeg,png', 150, 0);
+        if ($result['errorcode'] !== 0) {
+            return $result;
+        }
+        $result = $result['result'];
+        $post['logo'] = $result['thumburl'];
+
+        if (!$this->getDb()->insert('parkwash_car_brand', [
+            'name'   => $post['name'],
+            'logo'   => $post['logo'],
+            'pinyin' => $post['pinyin'],
+            'status' => $post['status']
+        ])) {
+            return error('添加失败');
+        }
+
+        F('CarBrand', null);
+        return success('OK');
+    }
+
+    /**
+     * 品牌编辑
+     */
     public function carTypeUpdate ($post)
     {
-        $post['name'] = trim_space($post['name']);
+        $post['name']   = trim_space($post['name']);
+        $post['status'] = $post['status'] ? 1 : 0;
         if (empty($post['name'])) {
             return error('名称不能为空');
         }
         if (false === $this->getDb()->update('parkwash_car_type', [
-                'name' => $post['name']
+                'name'   => $post['name'],
+                'status' => $post['status']
             ], ['id' => $post['id']])) {
             return error('修改失败');
         }
@@ -112,12 +271,14 @@ class XicheManageModel extends Crud {
      */
     public function carTypeAdd ($post)
     {
-        $post['name'] = trim_space($post['name']);
+        $post['name']   = trim_space($post['name']);
+        $post['status'] = $post['status'] ? 1 : 0;
         if (empty($post['name'])) {
             return error('名称不能为空');
         }
         if (!$this->getDb()->insert('parkwash_car_type', [
-            'name' => $post['name']
+            'name'   => $post['name'],
+            'status' => $post['status']
         ])) {
             return error('添加失败');
         }
@@ -671,6 +832,9 @@ class XicheManageModel extends Crud {
             // 更新排班
             $this->poolSave($post['id'], $post['business_hours'], $post['time_interval'], $post['time_amount'], $post['time_day']);
         }
+
+        // 更新员工store_name字段
+        $this->getDb()->update('parkwash_employee', ['store_name' => $post['name']], ['store_id' => $post['id']]);
 
         return success('OK');
     }

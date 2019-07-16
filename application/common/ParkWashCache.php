@@ -16,7 +16,7 @@ class ParkWashCache
     public static function getBrand ()
     {
         if (false === F('CarBrand')) {
-            $list = DB::getInstance()->table('parkwash_car_brand')->field('id,name,logo,pinyin')->select();
+            $list = DB::getInstance()->table('parkwash_car_brand')->field('id,name,logo,pinyin,status')->select();
             foreach ($list as $k => $v) {
                 $list[$k]['logo'] = httpurl($v['logo']);
             }
@@ -32,7 +32,7 @@ class ParkWashCache
     public static function getSeries ()
     {
         if (false === F('CarSeries')) {
-            $list = DB::getInstance()->table('parkwash_car_series')->field('id,brand_id,name,car_type_id')->select();
+            $list = DB::getInstance()->table('parkwash_car_series')->field('id,brand_id,name,car_type_id,status')->select();
             $list = array_column($list, null, 'id');
             $list = array_key_clean($list, ['id']);
             F('CarSeries', $list);

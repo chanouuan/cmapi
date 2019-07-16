@@ -3,6 +3,7 @@
 namespace app\controllers;
 
 use ActionPDO;
+use app\common\ParkWashCache;
 use app\common\ParkWashPayWay;
 use app\models\XicheManageModel;
 use app\models\UserModel;
@@ -19,14 +20,16 @@ class XicheManage extends ActionPDO {
         }
     }
 
-    public function __style () {
+    public function __style ()
+    {
         if ($this->_action == 'login') {
             return CLIENT_TYPE == 'pc' ? 'default' : 'mobile';
         }
         return 'default';
     }
 
-    public function index () {
+    public function index ()
+    {
         $userList = (new UserModel())->getUserByBinding([
             'platform = 3',
             'uid = ' . $this->_G['user']['uid']
@@ -40,7 +43,8 @@ class XicheManage extends ActionPDO {
     /**
      * home页
      */
-    public function welcome () {
+    public function welcome ()
+    {
         $userList = (new UserModel())->getUserByBinding([
             'platform = 3',
             'uid = ' . $this->_G['user']['uid']
@@ -62,10 +66,23 @@ class XicheManage extends ActionPDO {
         }
         $stores = $model->getList('parkwash_store', null, null, null, 'id,name');
         $items  = $model->getList('parkwash_item', null, null, null, 'id,name');
-        return [
-            'stores' => $stores,
-            'items'  => $items
-        ];
+        return compact('stores', 'items');
+    }
+
+    /**
+     * 员工编辑
+     */
+    public function employeeUpdate ()
+    {
+        $model = new XicheManageModel();
+        if (submitcheck()) {
+            return $model->employeeUpdate($_POST);
+        }
+        $stores = $model->getList('parkwash_store', null, null, null, 'id,name');
+        $items  = $model->getList('parkwash_item', null, null, null, 'id,name');
+        $info   = $model->getInfo('parkwash_employee', ['id' => getgpc('id')]);
+        $info['avatar'] = $info['avatar'] ? '<img height="30" src="' . httpurl($info['avatar']) . '">' : '';
+        return compact('stores', 'items', 'info');
     }
 
     /**
@@ -99,10 +116,46 @@ class XicheManage extends ActionPDO {
             $list[$k]['item_id'] = strtr(trim($v['item_id'], ','), $items);
         }
 
-        return [
-            'pagesize' => $pagesize,
-            'list' => $list
-        ];
+        return compact('pagesize', 'list');
+    }
+
+    /**
+     * 品牌列表
+     */
+    public function carBrand ()
+    {
+
+        $list = ParkWashCache::getBrand();
+        foreach ($list as $k => $v) {
+            $list[$k]['logo'] = $v['logo'] ? '<a onclick="xadmin.open(\'IMG\',\'' . httpurl($v['logo']) . '\')" href="javascript:;" target="_blank"><img height="30" src="' . httpurl($v['logo']) . '"></a>' : '';
+        }
+
+        return compact('list');
+    }
+
+    /**
+     * 车型添加
+     */
+    public function carBrandAdd ()
+    {
+        if (submitcheck()) {
+            return (new XicheManageModel())->carBrandAdd($_POST);
+        }
+        return [];
+    }
+
+    /**
+     * 车型编辑
+     */
+    public function carBrandUpdate ()
+    {
+        $model = new XicheManageModel();
+        if (submitcheck()) {
+            return $model->carBrandUpdate($_POST);
+        }
+        $info = $model->getInfo('parkwash_car_brand', ['id' => getgpc('id')]);
+        $info['logo'] = $info['logo'] ? '<img height="30" src="' . httpurl($info['logo']) . '">' : '';
+        return compact('info');
     }
 
     /**
@@ -111,7 +164,7 @@ class XicheManage extends ActionPDO {
     public function carType ()
     {
         return [
-            'list' => (new XicheManageModel())->getCarTypeItem()
+            'list' => (new XicheManageModel())->getList('parkwash_car_type', null, null, null)
         ];
     }
 
@@ -133,7 +186,7 @@ class XicheManage extends ActionPDO {
     {
         $model = new XicheManageModel();
         if (submitcheck()) {
-            return $model->itemUpdate($_POST);
+            return $model->carTypeUpdate($_POST);
         }
         return [
             'info' => $model->getInfo('parkwash_car_type', ['id' => getgpc('id')])
@@ -152,9 +205,8 @@ class XicheManage extends ActionPDO {
             $list[$k]['car_type'] = isset($carType[$v['car_type_id']]) ? $carType[$v['car_type_id']] : '不限';
             $list[$k]['firstorder'] = $v['firstorder'] ? '开启' : '关闭';
         }
-        return [
-            'list' => $list
-        ];
+
+        return compact('list');
     }
 
     /**
@@ -168,9 +220,10 @@ class XicheManage extends ActionPDO {
             return $model->itemAdd($_POST);
         }
 
-        return [
-            'carType' => $model->getCarTypeItem()
-        ];
+        $carType = $model->getList('parkwash_car_type', ['status' => 1], null, null);
+        $carType = array_column($carType, 'name', 'id');
+
+        return compact('carType');
     }
 
     /**
@@ -184,10 +237,11 @@ class XicheManage extends ActionPDO {
             return $model->itemUpdate($_POST);
         }
 
-        return [
-            'info' => $model->getInfo('parkwash_item', ['id' => getgpc('id')]),
-            'carType' => $model->getCarTypeItem()
-        ];
+        $info    = $model->getInfo('parkwash_item', ['id' => getgpc('id')]);
+        $carType = $model->getList('parkwash_car_type', ['status' => 1], null, null);
+        $carType = array_column($carType, 'name', 'id');
+
+        return compact('info', 'carType');
     }
 
     /**
@@ -531,12 +585,12 @@ class XicheManage extends ActionPDO {
             $orderInfo['out_park_time'] = $outParkTime ? date('Y-m-d H:i:s', $outParkTime) : '未出场/无出场信息';
         }
         // 员工与帮手
-        if ($orderInfo['employee_id']) {
-            $helper = $modle->getList('parkwash_order_helper', ['orderid' => $orderInfo['id']]);
+        $helper = $modle->getList('parkwash_order_helper', ['orderid' => $orderInfo['id']]);
+        if ($helper) {
             $helper = array_column($helper, null, 'employee_id');
             $employee = $modle->getlist('parkwash_employee', ['id' => ['in', array_keys($helper)]], null, null, 'id,realname');
             $employee = array_column($employee, 'realname', 'id');
-            $orderInfo['employee_name'] = $employee[$orderInfo['employee_id']];
+            $orderInfo['employee_name'] = $employee[$helper[0]];
             foreach ($helper as $k => $v) {
                 $helper[$k]['realname'] = $employee[$k];
                 $helper[$k]['employee_salary'] = round_dollar($v['employee_salary']);

@@ -657,8 +657,10 @@ class XicheModel extends Crud {
         $order_id = (new ParkWashModel())->handleXichePaySuc([
             'adcode' => $deviceInfo['adcode'], 'uid' => $tradeInfo['trade_id'], 'xc_trade_id' => $cardId, 'pay' => $tradeInfo['money'], 'deduct' => $tradeInfo['money'] - $tradeInfo['pay'], 'payway' => $tradeInfo['payway']
         ]);
-        // 关联交易单的订单号
-        $this->getDb()->update('__tablepre__payments', ['order_id' => intval($order_id)], ['id' => $cardId]);
+        if ($order_id) {
+            // 关联交易单的订单号
+            $this->getDb()->update('__tablepre__payments', ['order_id' => intval($order_id)], ['id' => $cardId]);
+        }
 
         // 保存订单到洗车机
         $result = $this->XiCheCOrder($deviceInfo['devcode'], $tradeInfo['ordercode'], $tradeInfo['money']);
