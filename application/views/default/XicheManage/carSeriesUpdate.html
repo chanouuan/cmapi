@@ -6,26 +6,36 @@
         <form id="form" class="layui-form">
             <div class="layui-form-item">
                 <label class="layui-form-label">
-                    <span class="x-red">*</span>名称
+                  <span class="x-red">*</span>车型名称
                 </label>
                 <div class="layui-input-inline">
-                  <input placeholder="请填写名称" type="text" maxlength="30" name="name" required="" lay-verify="required" autocomplete="off" class="layui-input">
+                  <input value="<?=$info['name']?>" placeholder="请填写车型名称" type="text" maxlength="30" name="name" required="" lay-verify="required" autocomplete="off" class="layui-input">
                 </div>
             </div>
             <div class="layui-form-item">
                 <label class="layui-form-label">
-                    <span class="x-red">*</span>图标
+                    <span class="x-red">*</span>品牌
                 </label>
                 <div class="layui-input-inline">
-                    <input type="file" name="upfile">
+                    <select name="brand_id" lay-verify="required">
+                        <option value="">请选择品牌</option>
+                        <?php foreach($brands as $k=>$v){ ?>
+                        <option <?php if($info['brand_id']==$k){ ?>selected<?php } ?> value="<?=$k?>"><?=$v?></option>
+                        <?php } ?>
+                    </select>
                 </div>
             </div>
             <div class="layui-form-item">
                 <label class="layui-form-label">
-                    <span class="x-red">*</span>拼音首字母
+                    <span class="x-red">*</span>车型
                 </label>
                 <div class="layui-input-inline">
-                    <input placeholder="请填写拼音首字母" type="text" maxlength="1" name="pinyin" required="" lay-verify="required" autocomplete="off" class="layui-input">
+                    <select name="car_type_id" lay-verify="required">
+                        <option value="">请选择车型</option>
+                        <?php foreach($carType as $k=>$v){ ?>
+                        <option <?php if($info['car_type_id']==$k){ ?>selected<?php } ?> value="<?=$k?>"><?=$v?></option>
+                        <?php } ?>
+                    </select>
                 </div>
             </div>
             <div class="layui-form-item">
@@ -35,11 +45,12 @@
                 <div class="layui-input-inline">
                     <select name="status" lay-verify="required">
                         <option value="1">显示</option>
-                        <option value="0">隐藏</option>
+                        <option value="0" <?php if($info['status']==0){ ?>selected<?php } ?>>隐藏</option>
                     </select>
                 </div>
             </div>
             <div class="layui-form-item">
+                <input type="hidden" name="id" value="<?=$info['id']?>">
                 <input type="hidden" name="formhash" value="<?=encode_formhash()?>">
                 <label class="layui-form-label"></label>
                 <button class="layui-btn" lay-filter="add" lay-submit="">提交</button>
@@ -54,36 +65,31 @@
 
             //监听提交
             form.on('submit(add)', function(data){
-                var formData = new FormData($("#form")[0]);
                 $.ajax({
                     type: 'POST',
-                    url: '<?=gurl("xicheManage/carBrandAdd")?>',
-                    data: formData,
-                    async: false,
-                    cache: false,
-                    contentType: false,
-                    processData: false,
+                    url: '<?=gurl("xicheManage/carSeriesUpdate")?>',
+                    data: data.field,
                     dataType: 'json',
                     timeout: 10000,
                     success: function(list){
-                        layer.closeAll();
-                        if(list.errorcode != 0) {
-                            return layer.msg(list.message);
-                        }
-                        layer.alert("添加成功", {icon: 6},function () {
-                            parent.location.reload();
-                        });
+                       layer.closeAll();
+                       if(list.errorcode != 0) {
+                           return layer.msg(list.message);
+                       }
+                       layer.alert("修改成功", {icon: 6},function () {
+                           parent.location.reload();
+                       });
                     },
                     beforeSend: function(xhr){
-                        layer.load();
+                       layer.load();
                     },
                     error: function(xhr, type){
-                        layer.closeAll();
-                        layer.msg('网络错误，请重试!');
+                       layer.closeAll();
+                       layer.msg('网络错误，请重试!');
                     }
                 });
                 return false;
-            });
+          });
 
         });
     </script>

@@ -24,6 +24,7 @@
                             <th>ID</th>
                             <th>名称</th>
                             <th>图标</th>
+                            <th>拼音</th>
                             <th>状态</th>
                             <th>操作</th>
                         </tr>
@@ -34,6 +35,7 @@
                             <td><?=$v['id']?></td>
                             <td><?=$v['name']?></td>
                             <td><?=$v['logo']?></td>
+                            <td><?=$v['pinyin']?></td>
                             <td><?=$v['status']?'显示':'隐藏'?></td>
                             <td class="td-manage">
                                 <button class="layui-btn layui-btn layui-btn-xs" onclick="xadmin.open('编辑品牌','<?=gurl('xicheManage/carBrandUpdate',['id'=>$v['id']])?>')"><i class="layui-icon"></i>编辑</button>

@@ -25,7 +25,11 @@
                             订单金额：<?=($info['pay']+$info['deduct'])/100?> 元
                         </div>
                         <div class="layui-card-body">
+                            <?php if($info['payway']=='车币'){ ?>
+                            已付车币：<?=$info['pay']/100?>；已付余额：<?=$info['deduct']/100?> 元
+                            <?php }else{ ?>
                             已付款：<?=$info['pay']/100?> 元
+                            <?php } ?>
                         </div>
                         <div class="layui-card-body">
                             支付方式：<?=$info['payway']?>
@@ -91,10 +95,22 @@
                     <div class="layui-card">
                         <div class="layui-card-header">员工信息</div>
                         <div class="layui-card-body">
-                            接单员工：<?=$info['employee_name']?>
-                        </div>
-                        <div class="layui-card-body">
-                            员工收益：<?php foreach($info['helper'] as $k=>$v){ ?><?=$v['realname']?>: <?=$v['employee_salary']?>元<?php }?>
+                            <table class="layui-table" lay-size="sm">
+                                <thead>
+                                <tr>
+                                    <th>员工姓名</th>
+                                    <th>收益（元）</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <?php foreach($info['helper'] as $v){ ?>
+                                <tr>
+                                    <td><?=$v['realname']?></td>
+                                    <td><?=$v['employee_salary']?></td>
+                                </tr>
+                                <?php } ?>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                     <?php } ?>

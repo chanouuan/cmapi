@@ -43,8 +43,8 @@ class XicheManageModel extends Crud {
         }
         if ($post['password']) {
             // 密码长度验证
-            if (strlen($post['password']) < 6 || strlen($post['password']) > 32) {
-                return error('请输入6-32位密码');
+            if (!preg_match('/^[0-9a-zA-Z]{6,20}$/', $post['password'])) {
+                return error('请输入6-20位数字与字母组合的密码');
             }
         }
 
@@ -84,7 +84,7 @@ class XicheManageModel extends Crud {
             $param['password'] = $userModel->hashPassword(md5($post['password']));
         }
         if (!$this->getDb()->update('parkwash_employee', $param, ['id' => $post['id']])) {
-            return error('添加失败');
+            return error('编辑失败');
         }
 
         return success('OK');
@@ -124,8 +124,8 @@ class XicheManageModel extends Crud {
         }
         if ($post['password']) {
             // 密码长度验证
-            if (strlen($post['password']) < 6 || strlen($post['password']) > 32) {
-                return error('请输入6-32位密码');
+            if (!preg_match('/^[0-9a-zA-Z]{6,20}$/', $post['password'])) {
+                return error('请输入6-20位数字与字母组合的密码');
             }
         }
 
@@ -171,15 +171,85 @@ class XicheManageModel extends Crud {
     }
 
     /**
+     * 品牌编辑
+     */
+    public function carSeriesUpdate ($post)
+    {
+        $post['name']        = trim_space($post['name']);
+        $post['brand_id']    = intval($post['brand_id']);
+        $post['car_type_id'] = intval($post['car_type_id']);
+        $post['status']      = $post['status'] ? 1 : 0;
+
+        if (empty($post['name'])) {
+            return error('名称不能为空');
+        }
+        if (empty($post['brand_id'])) {
+            return error('请选择品牌');
+        }
+        if (empty($post['car_type_id'])) {
+            return error('请选择车型');
+        }
+
+        if (false === $this->getDb()->update('parkwash_car_series', [
+                'name'        => $post['name'],
+                'brand_id'    => $post['brand_id'],
+                'car_type_id' => $post['car_type_id'],
+                'status'      => $post['status']
+            ], ['id' => $post['id']])) {
+            return error('修改失败');
+        }
+
+        F('CarSeries', null);
+        return success('OK');
+    }
+
+    /**
+     * 车型添加
+     */
+    public function carSeriesAdd ($post)
+    {
+        $post['name']        = trim_space($post['name']);
+        $post['brand_id']    = intval($post['brand_id']);
+        $post['car_type_id'] = intval($post['car_type_id']);
+        $post['status']      = $post['status'] ? 1 : 0;
+
+        if (empty($post['name'])) {
+            return error('名称不能为空');
+        }
+        if (empty($post['brand_id'])) {
+            return error('请选择品牌');
+        }
+        if (empty($post['car_type_id'])) {
+            return error('请选择车型');
+        }
+
+        if (!$this->getDb()->insert('parkwash_car_series', [
+            'name'        => $post['name'],
+            'brand_id'    => $post['brand_id'],
+            'car_type_id' => $post['car_type_id'],
+            'status'      => $post['status']
+        ])) {
+            return error('添加失败');
+        }
+
+        F('CarSeries', null);
+        return success('OK');
+    }
+
+    /**
      * 车型编辑
      */
     public function carBrandUpdate ($post)
     {
         $post['name']   = trim_space($post['name']);
         $post['status'] = $post['status'] ? 1 : 0;
+        $post['pinyin'] = strtoupper($post['pinyin']);
 
         if (empty($post['name'])) {
             return error('名称不能为空');
+        }
+        if (!preg_match('/^[A-Z]{1}$/', $post['pinyin'])) {
+            return error('请检查拼音首字母是否正确');
         }
 
         $param = [
@@ -215,14 +285,18 @@ class XicheManageModel extends Crud {
     {
         $post['name']   = trim_space($post['name']);
         $post['status'] = $post['status'] ? 1 : 0;
+        $post['pinyin'] = strtoupper($post['pinyin']);
 
         if (empty($post['name'])) {
             return error('名称不能为空');
         }
+        if (!preg_match('/^[A-Z]{1}$/', $post['pinyin'])) {
+            return error('请检查拼音首字母是否正确');
+        }
+
         if ($_FILES['upfile']['error'] != 0) {
             return error('请上传logo图片');
         }
-
         if ($_FILES['upfile']['size'] > 1048576) {
             return error('最大上传不超过1M');
         }

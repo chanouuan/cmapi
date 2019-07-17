@@ -124,12 +124,10 @@ class XicheManage extends ActionPDO {
      */
     public function carBrand ()
     {
-
         $list = ParkWashCache::getBrand();
         foreach ($list as $k => $v) {
             $list[$k]['logo'] = $v['logo'] ? '<a onclick="xadmin.open(\'IMG\',\'' . httpurl($v['logo']) . '\')" href="javascript:;" target="_blank"><img height="30" src="' . httpurl($v['logo']) . '"></a>' : '';
         }
-
         return compact('list');
     }
 
@@ -157,6 +155,76 @@ class XicheManage extends ActionPDO {
         $info['logo'] = $info['logo'] ? '<img height="30" src="' . httpurl($info['logo']) . '">' : '';
         return compact('info');
     }
+
+    /**
+     * 车系列表
+     */
+    public function carSeries ()
+    {
+        $condition = [];
+        if ($_GET['brand_id']) {
+            $condition['brand_id'] = intval($_GET['brand_id']);
+        }
+        if ($_GET['name']) {
+            $condition['name'] = ['like', '%' . $_GET['name'] . '%'];
+        }
+        if ($_GET['car_type_id']) {
+            $condition['car_type_id'] = intval($_GET['car_type_id']);
+        }
+        if (isset($_GET['status']) && $_GET['status'] !== '') {
+            $condition['status'] = intval($_GET['status']);
+        }
+
+        $model = new XicheManageModel();
+        $count = $model->getCount('parkwash_car_series', $condition);
+        $pagesize = getPageParams($_GET['page'], $count);
+
+        $list = $model->getList('parkwash_car_series', $condition, $pagesize['limitstr']);
+        $carType = $model->getCarTypeItem();
+        $brands = ParkWashCache::getBrand();
+        $brands = array_column($brands, 'name', 'id');
+
+        foreach ($list as $k => $v) {
+            $list[$k]['car_type_name'] = $carType[$v['car_type_id']];
+            $list[$k]['brand_name'] = $brands[$v['brand_id']];
+        }
+
+        return compact('pagesize', 'list', 'carType', 'brands');
+    }
+
+    /**
+     * 车系添加
+     */
+    public function carSeriesAdd ()
+    {
+        $model = new XicheManageModel();
+        if (submitcheck()) {
+            return $model->carSeriesAdd($_POST);
+        }
+        $model = new XicheManageModel();
+        $carType = $model->getCarTypeItem();
+        $brands = ParkWashCache::getBrand();
+        $brands = array_column($brands, 'name', 'id');
+        return compact('carType', 'brands');
+    }
+
+    /**
+     * 车型编辑
+     */
+    public function carSeriesUpdate ()
+    {
+        $model = new XicheManageModel();
+        if (submitcheck()) {
+            return $model->carSeriesUpdate($_POST);
+        }
+        $model = new XicheManageModel();
+        $carType = $model->getCarTypeItem();
+        $brands = ParkWashCache::getBrand();
+        $brands = array_column($brands, 'name', 'id');
+        $info = $model->getInfo('parkwash_car_series', ['id' => getgpc('id')]);
+        return compact('info', 'carType', 'brands');
+    }
+
 
     /**
      * 车型列表
@@ -585,14 +653,13 @@ class XicheManage extends ActionPDO {
             $orderInfo['out_park_time'] = $outParkTime ? date('Y-m-d H:i:s', $outParkTime) : '未出场/无出场信息';
         }
         // 员工与帮手
-        $helper = $modle->getList('parkwash_order_helper', ['orderid' => $orderInfo['id']]);
+        $helper = $modle->getList('parkwash_order_helper', ['orderid' => $orderInfo['id']], null, null);
         if ($helper) {
-            $helper = array_column($helper, null, 'employee_id');
-            $employee = $modle->getlist('parkwash_employee', ['id' => ['in', array_keys($helper)]], null, null, 'id,realname');
+            $employee = $modle->getlist('parkwash_employee', ['id' => ['in', array_column($helper, 'employee_id')]], null, null, 'id,realname');
             $employee = array_column($employee, 'realname', 'id');
-            $orderInfo['employee_name'] = $employee[$helper[0]];
+            $orderInfo['employee_name'] = $employee[$helper[0]['employee_id']];
             foreach ($helper as $k => $v) {
-                $helper[$k]['realname'] = $employee[$k];
+                $helper[$k]['realname'] = $employee[$v['employee_id']];
                 $helper[$k]['employee_salary'] = round_dollar($v['employee_salary']);
             }
             $orderInfo['helper'] = $helper;

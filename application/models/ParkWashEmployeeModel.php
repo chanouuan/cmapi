@@ -648,9 +648,10 @@ class ParkWashEmployeeModel extends Crud {
         if (!validate_telephone($post['telephone'])) {
             return error('手机号为空或格式不正确！');
         }
+
         // 密码长度验证
-        if (strlen($post['password']) < 6 || strlen($post['password']) > 32) {
-            return error('请输入6-32位密码');
+        if (!preg_match('/^[0-9a-zA-Z]{6,20}$/', $post['password'])) {
+            return error('请输入6-20位数字与字母组合的密码');
         }
 
         // 获取员工

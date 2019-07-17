@@ -25,6 +25,14 @@
             </div>
             <div class="layui-form-item">
                 <label class="layui-form-label">
+                    <span class="x-red">*</span>拼音首字母
+                </label>
+                <div class="layui-input-inline">
+                    <input value="<?=$info['pinyin']?>" placeholder="请填写拼音首字母" type="text" maxlength="1" name="pinyin" required="" lay-verify="required" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">
                     <span class="x-red">*</span>状态
                 </label>
                 <div class="layui-input-inline">

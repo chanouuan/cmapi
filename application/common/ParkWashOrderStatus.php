@@ -32,7 +32,7 @@ class ParkWashOrderStatus
     public static function inService ($code)
     {
         return in_array($code, [
-            self::IN_SERVICE, self::COMPLETE, self::CONFIRM, self::CANCEL
+            self::IN_SERVICE, self::COMPLETE, self::CONFIRM
         ]);
     }
 
