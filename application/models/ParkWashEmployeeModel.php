@@ -558,7 +558,7 @@ class ParkWashEmployeeModel extends Crud {
             // 分页参数
             if ($post['lastpage']) {
                 $post['lastpage'] = array_map('intval', explode(',', $post['lastpage']));
-                $condition[] = 'latetime >= ' . $post['lastpage'][0] . ' and order_table.id > ' . $post['lastpage'][1];
+                $condition[] = 'ABS(UNIX_TIMESTAMP(order_table.order_time) - ' . TIMESTAMP . ') >= ' . $post['lastpage'][0] . ' and order_table.id > ' . $post['lastpage'][1];
             }
 
             // 获取订单
@@ -614,7 +614,14 @@ class ParkWashEmployeeModel extends Crud {
             $orderList[$k]['car_type_name'] = $seriesList[$v['series_id']]['car_type_name'];
             $orderList[$k]['area_floor']    = isset($areaList[$v['area_id']]) ? $areaList[$v['area_id']]['floor'] : '';
             $orderList[$k]['area_name']     = isset($areaList[$v['area_id']]) ? $areaList[$v['area_id']]['name'] : '';
-            unset($orderList[$k]['brand_id'], $orderList[$k]['series_id'], $orderList[$k]['area_id'], $orderList[$k]['update_time'], $orderList[$k]['complete_time']);
+            unset(
+                $orderList[$k]['brand_id'],
+                $orderList[$k]['series_id'],
+                $orderList[$k]['area_id'],
+                $orderList[$k]['update_time'],
+                $orderList[$k]['complete_time'],
+                $orderList[$k]['latetime']
+            );
         }
         unset($brandList, $seriesList, $areaList);
 
@@ -650,7 +657,7 @@ class ParkWashEmployeeModel extends Crud {
         }
 
         // 密码长度验证
-        if (!preg_match('/^[0-9a-zA-Z]{6,20}$/', $post['password'])) {
+        if (!preg_match('/^[0-9a-zA-Z]{6,32}$/', $post['password'])) {
             return error('请输入6-20位数字与字母组合的密码');
         }
 
@@ -732,7 +739,25 @@ class ParkWashEmployeeModel extends Crud {
         $userInfo['avatar'] = httpurl($userInfo['avatar']);
         unset($userInfo['password'], $userInfo['status']);
 
+        // 登录成功自动上线
+        $this->onLine($userInfo['id'], 1);
+
         return success($userInfo);
+    }
+
+    /**
+     * APP登出
+     */
+    public function logout ($uid)
+    {
+        // 下线
+        $this->onLine($uid, 0);
+        // 清空设备码
+        $this->getDb()->update('__tablepre__session', ['stoken' => ''], [
+            'userid' => $uid,
+            'clienttype' => 'yee'
+        ]);
+        return success('ok');
     }
 
     /**

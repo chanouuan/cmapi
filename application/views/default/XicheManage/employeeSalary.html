@@ -1,0 +1,113 @@
+<?php include('header.html'); ?>
+
+<body>
+<div class="x-nav">
+    <span class="layui-breadcrumb">
+        <a><cite>缴费记录</cite></a>
+    </span>
+    <a class="layui-btn layui-btn-small" style="line-height:1.6em;margin-top:3px;float:right" onclick="location.reload()" title="刷新">
+        <i class="layui-icon layui-icon-refresh" style="line-height:30px"></i>
+    </a>
+</div>
+
+<div class="layui-fluid">
+    <div class="layui-row layui-col-space15">
+        <div class="layui-col-md12">
+            <div class="layui-card">
+                <div class="layui-card-body ">
+                    <form class="layui-form layui-col-space5" method="get">
+                        <div class="layui-input-inline layui-show-xs-block">
+                            <input value="<?=$_GET['telephone']?>" maxlength="11" type="tel" name="telephone" placeholder="请输入手机号" autocomplete="off" class="layui-input">
+                        </div>
+                        <div class="layui-input-inline layui-show-xs-block">
+                            <input value="<?=$_GET['start_time']?>" class="layui-input" id="start_time" name="start_time" placeholder="开始日期" readonly>
+                        </div>
+                        <div class="layui-input-inline layui-show-xs-block">
+                            <input value="<?=$_GET['end_time']?>" class="layui-input" id="end_time" name="end_time" placeholder="结束日期" readonly>
+                        </div>
+                        <div class="layui-input-inline layui-show-xs-block">
+                            <button class="layui-btn" lay-submit="" lay-filter="sreach"><i class="layui-icon">&#xe615;</i></button>
+                        </div>
+                    </form>
+                </div>
+                <div class="layui-card-header">
+                    <a href="?<?=burl('export=1')?>" class="layui-btn layui-btn-normal" target="temp">导出</a>
+                    <iframe id="temp" name="temp" style="display: none;"></iframe>
+                    <span class="x-left" style="line-height:40px">总收益：<?=$totalMoney?>元</span>
+                    <span class="right-page">共有数据：<?=$pagesize['totalcount']?> 条</span>
+                </div>
+                <div class="layui-card-body card-table">
+                    <table class="layui-table">
+                        <thead>
+                        <tr>
+                            <th>订单编号</th>
+                            <th>员工姓名</th>
+                            <th>员工手机</th>
+                            <th>是否帮手</th>
+                            <th>车牌号</th>
+                            <th>品牌</th>
+                            <th>车系</th>
+                            <th>车型</th>
+                            <th>服务项目</th>
+                            <th>收益(元)</th>
+                            <th>完成时间</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <?php if($list){ ?>
+                        <?php foreach($list as $k=>$v){ ?>
+                        <tr>
+                            <td><?=$v['id']?></td>
+                            <td><?=$v['employee_name']?></td>
+                            <td><?=$v['employee_tel']?></td>
+                            <td><?=$v['identity']?></td>
+                            <td><?=$v['car_number']?></td>
+                            <td><?=$v['brand_name']?></td>
+                            <td><?=$v['series_name']?></td>
+                            <td><?=$v['car_type_name']?></td>
+                            <td><?=$v['item_name']?></td>
+                            <td><?=$v['employee_salary']?></td>
+                            <td><?=$v['complete_time']?></td>
+                        </tr>
+                        <?php } ?>
+                        <?php }else{ ?>
+                        <tr><td colspan="6">暂无数据</td></tr>
+                        <?php } ?>
+                        </tbody>
+                    </table>
+                </div>
+                <?php if($pagesize['totalpage']>1){ ?>
+                <div class="layui-card-body ">
+                    <div class="page">
+                        <div>
+                            <?php foreach($pagesize['scrollpage'] as $k=>$v){ ?>
+                            <?php if($pagesize['page']==$k){ ?>
+                            <span class="current"><?=$v?></span>
+                            <?php }else{ ?>
+                            <a class="num" href="?<?=burl('page='.$k)?>"><?=$v?></a>
+                            <?php } ?>
+                            <?php } ?>
+                        </div>
+                    </div>
+                </div>
+                <?php } ?>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    layui.use(['laydate','form'], function(){
+        var laydate = layui.laydate;
+        laydate.render({
+            elem: '#start_time'
+        });
+        laydate.render({
+            elem: '#end_time'
+        });
+    });
+
+</script>
+</body>
+
+</html>

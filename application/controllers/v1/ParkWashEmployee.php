@@ -15,6 +15,7 @@ class ParkWashEmployee extends ActionPDO {
     {
         return [
             'login'           => ['interval' => 1000],
+            'logout'          => ['interval' => 1000],
             'setpw'           => ['interval' => 1000],
             'getEmployeeInfo' => ['interval' => 1000],
             'getOrderList'    => [],
@@ -61,6 +62,21 @@ class ParkWashEmployee extends ActionPDO {
             'clientapp'  => $_POST['clientapp'],
             'stoken'     => $_POST['stoken']
         ]);
+    }
+
+    /**
+     * 登出
+     * @login
+     * @return array
+     * {
+     * "errNo":0, // 错误码 0成功 -1失败
+     * "message":"", //错误消息
+     * "result":[]
+     * }
+     */
+    public function logout ()
+    {
+        return (new ParkWashEmployeeModel())->logout($this->_G['user']['uid']);
     }
 
     /**

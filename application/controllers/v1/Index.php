@@ -205,8 +205,8 @@ class Index extends \ActionPDO {
 
     }
 
-    public function logger () {
-
+    public function logger ()
+    {
         $path = trim_space(ltrim($_GET['path'], '/'));
         $path = ltrim(str_replace('.', '', $path), '/');
         $path = $path ? $path : (date('Ym') . '/' . date('Ymd') . '_debug');
@@ -214,7 +214,7 @@ class Index extends \ActionPDO {
         if ($_GET['dir']) {
             $list = get_list_dir(APPLICATION_PATH . '/log');
             foreach ($list as $k => $v) {
-                $list[$k] = str_replace(APPLICATION_PATH . '/log', '', $v) . ' ' . byte_convert(filesize($v)) . ' <a href="' . APPLICATION_URL . '/index/logger?path=' . str_replace([APPLICATION_PATH . '/log', '.log'], '', $v) . '&dir=1&clear=1">DEL</a>';
+                $list[$k] =  '<a href="' . (APPLICATION_URL . '/index/logger?path=' . str_replace(APPLICATION_PATH . '/log/', '', substr($v, 0, -4)) . '&dir=1') . '">' . str_replace(APPLICATION_PATH . '/log', '', $v) . '</a> ' . byte_convert(filesize($v)) . ' <a href="' . APPLICATION_URL . '/index/logger?path=' . str_replace([APPLICATION_PATH . '/log', '.log'], '', $v) . '&dir=1&clear=1">DEL</a>';
             }
         }
         if ($_GET['clear']) {

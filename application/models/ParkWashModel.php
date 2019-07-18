@@ -1554,7 +1554,7 @@ class ParkWashModel extends Crud {
             return error('请选择取车时间');
         }
         if (!$post['items']) {
-            return error('请选择洗车套餐');
+            return error('请选择服务项目');
         }
 
         // 有服务中订单限制

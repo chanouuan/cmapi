@@ -74,7 +74,8 @@
                             <td><?=$v['money']/100?></td>
                             <td><?=$v['status']==1?'正常':'禁用'?></td>
                             <td class="td-manage">
-                                <button class="layui-btn layui-btn layui-btn-xs" onclick="xadmin.open('编辑员工','<?=gurl('xicheManage/employeeUpdate',['id'=>$v['id']])?>')"><i class="layui-icon"></i>编辑</button>
+                                <button class="layui-btn layui-btn-xs" onclick="xadmin.open('编辑员工','<?=gurl('xicheManage/employeeUpdate',['id'=>$v['id']])?>')">编辑</button>
+                                <button class="layui-btn layui-btn-normal layui-btn-xs" onclick="xadmin.open('员工收益','<?=gurl('xicheManage/employeeSalary',['telephone'=>$v['telephone']])?>')">收益</button>
                             </td>
                         </tr>
                         <?php } ?>

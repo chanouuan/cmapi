@@ -39,7 +39,7 @@
                             <td><?=$v['car_type']?></td>
                             <td class="td-manage">
                                 <button class="layui-btn layui-btn layui-btn-xs" onclick="xadmin.open('编辑项目','<?=gurl('xicheManage/itemUpdate',['id'=>$v['id']])?>')"><i class="layui-icon"></i>编辑</button>
-                                <button class="layui-btn-danger layui-btn layui-btn-xs" onclick="del(<?=$v['id']?>)"><i class="layui-icon"></i>删除</button>
+                                <button class="layui-btn-danger layui-btn layui-btn-xs" onclick="del(<?=$v['id']?>)"><i class="layui-icon">&#xe640;</i>删除</button>
                             </td>
                         </tr>
                         <?php } ?>
