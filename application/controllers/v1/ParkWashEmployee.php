@@ -15,19 +15,19 @@ class ParkWashEmployee extends ActionPDO {
     {
         return [
             'login'           => ['interval' => 1000],
-            'logout'          => ['interval' => 1000],
-            'setpw'           => ['interval' => 1000],
-            'getEmployeeInfo' => ['interval' => 1000],
+            'logout'          => ['interval' => 200],
+            'setpw'           => ['interval' => 200],
+            'getEmployeeInfo' => ['interval' => 200],
             'getOrderList'    => [],
-            'getOrderCount'   => ['interval' => 1000],
-            'getOrderInfo'    => ['interval' => 1000],
-            'getHelperList'   => ['interval' => 1000],
-            'checkTakeOrder'  => ['interval' => 1000],
-            'takeOrder'       => ['interval' => 2000],
-            'completeOrder'   => ['interval' => 2000],
-            'remarkOrder'     => ['interval' => 1000],
-            'onLine'          => ['interval' => 1000],
-            'onRemind'        => ['interval' => 1000],
+            'getOrderCount'   => [],
+            'getOrderInfo'    => ['interval' => 200],
+            'getHelperList'   => ['interval' => 200],
+            'checkTakeOrder'  => ['interval' => 200],
+            'takeOrder'       => ['interval' => 1000],
+            'completeOrder'   => ['interval' => 1000],
+            'remarkOrder'     => ['interval' => 200],
+            'onLine'          => ['interval' => 200],
+            'onRemind'        => ['interval' => 200],
             'statistics'      => ['interval' => 200]
         ];
     }

@@ -10,6 +10,51 @@ use app\common\ParkWashOrderStatus;
 class XicheManageModel extends Crud {
 
     /**
+     * 停车场编辑
+     */
+    public function parkUpdate ($post)
+    {
+        $post['name'] = trim_space($post['name']);
+
+        if (empty($post['name'])) {
+            return error('名称不能为空');
+        }
+
+        if (false === $this->getDb()->update('parkwash_park', [
+                'name'        => $post['name'],
+                'update_time' => date('Y-m-d H:i:s', TIMESTAMP),
+                'status'      => 1
+            ], ['id' => $post['id']])) {
+            return error('修改失败');
+        }
+
+        return success('OK');
+    }
+
+    /**
+     * 停车场添加
+     */
+    public function parkAdd ($post)
+    {
+        $post['name'] = trim_space($post['name']);
+
+        if (empty($post['name'])) {
+            return error('名称不能为空');
+        }
+
+        if (!$this->getDb()->insert('parkwash_park', [
+            'name'        => $post['name'],
+            'create_time' => date('Y-m-d H:i:s', TIMESTAMP),
+            'update_time' => date('Y-m-d H:i:s', TIMESTAMP),
+            'status'      => 1
+        ])) {
+            return error('添加失败');
+        }
+
+        return success('OK');
+    }
+
+    /**
      * 添加员工
      */
     public function employeeUpdate ($post)
@@ -803,6 +848,7 @@ class XicheManageModel extends Crud {
         $post['time_day']           = array_filter($post['time_day']);
         sort($post['time_day']);
         $post['time_day']           = intval(implode('', $post['time_day']));
+        $post['park_id']            = intval($post['park_id']);
 
         // 套餐
         $post['item'] = $post['item'] ? $post['item'] : [];
@@ -829,6 +875,9 @@ class XicheManageModel extends Crud {
         }
         if (empty($post['address'])) {
             return error('地址不能为空');
+        }
+        if (!$post['park_id']) {
+            return error('停车场不能为空');
         }
         if (!$post['order_count_ratio']) {
             return error('订单数倍率不能为空');
@@ -870,7 +919,8 @@ class XicheManageModel extends Crud {
             'time_interval'      => $post['time_interval'],
             'time_amount'        => $post['time_amount'],
             'time_day'           => $post['time_day'],
-            'update_time'        => date('Y-m-d H:i:s', TIMESTAMP)
+            'update_time'        => date('Y-m-d H:i:s', TIMESTAMP),
+            'park_id'            => $post['park_id']
         ];
 
         // 上传图片
@@ -1036,6 +1086,7 @@ class XicheManageModel extends Crud {
         $post['time_day']           = array_filter($post['time_day']);
         sort($post['time_day']);
         $post['time_day']           = intval(implode('', $post['time_day']));
+        $post['park_id']            = intval($post['park_id']);
 
         // 套餐
         $post['item'] = $post['item'] ? $post['item'] : [];
@@ -1062,6 +1113,9 @@ class XicheManageModel extends Crud {
         }
         if (empty($post['address'])) {
             return error('地址不能为空');
+        }
+        if (!$post['park_id']) {
+            return error('停车场不能为空');
         }
         if (!$post['order_count_ratio']) {
             return error('订单数倍率不能为空');
@@ -1119,7 +1173,8 @@ class XicheManageModel extends Crud {
             'time_amount'        => $post['time_amount'],
             'time_day'           => $post['time_day'],
             'create_time'        => date('Y-m-d H:i:s', TIMESTAMP),
-            'update_time'        => date('Y-m-d H:i:s', TIMESTAMP)
+            'update_time'        => date('Y-m-d H:i:s', TIMESTAMP),
+            'park_id'            => $post['park_id']
         ])) {
             return error('添加失败');
         }
@@ -1149,8 +1204,8 @@ class XicheManageModel extends Crud {
      */
     public function parkingAdd ($post) {
         $post['area_id'] = intval($post['area_id']);
-        $post['place'] = trim_space($post['place']);
-        $post['status'] = $post['status'] ? 1 : 0;
+        $post['place']   = trim_space($post['place']);
+        $post['status']  = $post['status'] ? 1 : 0;
 
         if (!$post['place']) {
             return error('车位号不能为空');
@@ -1158,8 +1213,8 @@ class XicheManageModel extends Crud {
 
         if (!$this->getDb()->insert('parkwash_parking', [
             'area_id' => $post['area_id'],
-            'place' => $post['place'],
-            'status' => $post['status']
+            'place'   => $post['place'],
+            'status'  => $post['status']
         ])) {
             return error('添加失败');
         }
@@ -1183,8 +1238,8 @@ class XicheManageModel extends Crud {
      */
     public function parkingUpdate ($post) {
         $post['area_id'] = intval($post['area_id']);
-        $post['place'] = trim_space($post['place']);
-        $post['status'] = $post['status'] ? 1 : 0;
+        $post['place']   = trim_space($post['place']);
+        $post['status']  = $post['status'] ? 1 : 0;
 
         if (!$post['place']) {
             return error('车位号不能为空');
@@ -1192,8 +1247,8 @@ class XicheManageModel extends Crud {
 
         if (false === $this->getDb()->update('parkwash_parking', [
             'area_id' => $post['area_id'],
-            'place' => $post['place'],
-            'status' => $post['status']
+            'place'   => $post['place'],
+            'status'  => $post['status']
         ], ['id' => $post['id']])) {
             return error('编辑失败');
         }

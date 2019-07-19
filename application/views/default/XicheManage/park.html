@@ -1,0 +1,83 @@
+<?php include('header.html'); ?>
+
+<body>
+<div class="x-nav">
+    <span class="layui-breadcrumb">
+        <a><cite>停车场列表</cite></a>
+    </span>
+    <a class="layui-btn layui-btn-small" style="line-height:1.6em;margin-top:3px;float:right" onclick="location.reload()" title="刷新">
+        <i class="layui-icon layui-icon-refresh" style="line-height:30px"></i>
+    </a>
+</div>
+
+<div class="layui-fluid">
+    <div class="layui-row layui-col-space15">
+        <div class="layui-col-md12">
+            <div class="layui-card">
+                <div class="layui-card-body ">
+                    <form class="layui-form layui-col-space5" method="get">
+                        <div class="layui-input-inline layui-show-xs-block">
+                            <input value="<?=$_GET['name']?>" maxlength="30" type="text" name="name" placeholder="请输入名称" autocomplete="off" class="layui-input">
+                        </div>
+                        <div class="layui-input-inline layui-show-xs-block">
+                            <button class="layui-btn" lay-submit="" lay-filter="sreach"><i class="layui-icon">&#xe615;</i></button>
+                        </div>
+                    </form>
+                </div>
+                <div class="layui-card-header">
+                    <span class="right-page">共有数据：<?=$pagesize['totalcount']?> 条</span>
+                    <button class="layui-btn" onclick="xadmin.open('添加停车场','<?=gurl('xicheManage/parkAdd')?>')"><i class="layui-icon"></i>添加</button>
+                </div>
+                <div class="layui-card-body card-table">
+                    <table class="layui-table">
+                        <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>停车场名称</th>
+                            <th>状态</th>
+                            <th>操作</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <?php if($list){ ?>
+                        <?php foreach($list as $k=>$v){ ?>
+                        <tr>
+                            <td><?=$v['id']?></td>
+                            <td><?=$v['name']?></td>
+                            <td><?=$v['status']?'正常':'禁用'?></td>
+                            <td class="td-manage">
+                                <button class="layui-btn layui-btn layui-btn-xs" onclick="xadmin.open('编辑停车场','<?=gurl('xicheManage/parkUpdate',['id'=>$v['id']])?>')"><i class="layui-icon"></i>编辑</button>
+                            </td>
+                        </tr>
+                        <?php } ?>
+                        <?php }else{ ?>
+                        <tr>
+                            <td colspan="6">暂无数据</td>
+                        </tr>
+                        <?php } ?>
+                        </tbody>
+                    </table>
+                </div>
+                <?php if($pagesize['totalpage']>1){ ?>
+                <div class="layui-card-body ">
+                    <div class="page">
+                        <div>
+                            <?php foreach($pagesize['scrollpage'] as $k=>$v){ ?>
+                            <?php if($pagesize['page']==$k){ ?>
+                            <span class="current"><?=$v?></span>
+                            <?php }else{ ?>
+                            <a class="num" href="?<?=burl('page='.$k)?>"><?=$v?></a>
+                            <?php } ?>
+                            <?php } ?>
+                        </div>
+                    </div>
+                </div>
+                <?php } ?>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+
+</html>

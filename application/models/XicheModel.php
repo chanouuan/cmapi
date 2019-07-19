@@ -181,15 +181,6 @@ class XicheModel extends Crud {
             return error('设备编码不能为空或格式不正确');
         }
 
-        // 限制机器上报频率
-        $cacheVal = Cache::getInstance(['type' => 'file'])->get(concat('ReportStatus', $DevCode));
-        if ($cacheVal) {
-            if ($cacheVal == concat($IsOnline, $UseState)) {
-                return success('上报频率过快');
-            }
-        }
-        Cache::getInstance(['type' => 'file'])->set(concat('ReportStatus', $DevCode), concat($IsOnline, $UseState), 60);
-
         $deviceInfo = $this->getDeviceByCode($DevCode);
         if ($deviceInfo) {
             // 更新设备
@@ -345,6 +336,24 @@ class XicheModel extends Crud {
                     // 状态为空闲
                     if ($this->updateDevUse(0, $deviceInfo['id'], $param)) {
                         $deviceInfo = array_merge($deviceInfo, $param);
+                    }
+                }
+            }
+        } else {
+            // 若设备不在线，就更新设备
+            if (!$deviceInfo['isonline']) {
+                // 获取设备状态
+                $result = $this->getDevIsUse($deviceInfo['devcode']);
+                if ($result['errorcode'] === 0) {
+                    if ($deviceInfo['usestate'] != $result['result'][0] || $deviceInfo['isonline'] != $result['result'][1]) {
+                        $param = [
+                            'usestate' => $result['result'][0],
+                            'isonline' => $result['result'][1],
+                        ];
+                        // 更新设备
+                        if ($this->updateDevUse(0, $deviceInfo['id'], $param)) {
+                            $deviceInfo = array_merge($deviceInfo, $param);
+                        }
                     }
                 }
             }

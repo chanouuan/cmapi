@@ -40,7 +40,7 @@ class ParkWashModel extends Crud {
         if (isset($post['msgcode'])) {
             // 短信验证
             if (!$userModel->checkSmsCode($post['telephone'], $post['msgcode'])) {
-                return error('验证码错误！');
+                return error('验证码错误或已过期！');
             }
         }
 
@@ -736,7 +736,7 @@ class ParkWashModel extends Crud {
 
         // 判断车辆下是否有订单
         if ($this->findOrderInfo([
-            'uid' => $uid, 'car_number' => $carportInfo['car_number'], 'status' => ['in', [1,2,3]]
+            'uid' => $uid, 'car_number' => $carportInfo['car_number'], 'status' => ['in', [ParkWashOrderStatus::PAY, ParkWashOrderStatus::IN_SERVICE]]
         ], 'id')) {
             return error('该车辆有洗车订单，编辑失败');
         }
@@ -1006,9 +1006,11 @@ class ParkWashModel extends Crud {
      */
     public function getParkArea ($post)
     {
-        $post['park_id'] = get_real_val($post['park_id'], 1);
+        $post['store_id'] = intval($post['store_id']);
 
-        $list = $this->getDb()->table('parkwash_park_area')->field('id,floor,name')->where(['park_id' => $post['park_id'], 'status' => 1])->select();
+        $storeInfo = $this->getDb()->table('parkwash_store')->field('park_id')->where(['id' => $post['store_id']])->find();
+
+        $list = $this->getDb()->table('parkwash_park_area')->field('id,floor,name')->where(['park_id' => $storeInfo['park_id'], 'status' => 1])->select();
 
         return success($list);
     }
@@ -1558,7 +1560,7 @@ class ParkWashModel extends Crud {
         }
 
         // 有服务中订单限制
-        if ($this->getDb()->table('parkwash_order')->where(['uid' => $uid, 'status' => ParkWashOrderStatus::IN_SERVICE])->count()) {
+        if ($this->getDb()->table('parkwash_order')->where(['uid' => $uid, 'status' => ['in', [ParkWashOrderStatus::PAY, ParkWashOrderStatus::IN_SERVICE]]])->count()) {
             return error('有订单正在服务，请耐心等待');
         }
 
@@ -2105,7 +2107,7 @@ class ParkWashModel extends Crud {
     public function pushEmployee ($store_id, $item_id, $alert, $title, array $extras = [], $penetrate = 0)
     {
         // 查找接单人
-        if (!$employees = $this->getDb()->table('parkwash_employee')->field('id')->where(['store_id' => $store_id, 'item_id' => ['like', '%,' . $item_id . ',%'], 'state_online' => 1, 'status' => 1])->limit(1000)->select()) {
+        if (!$employees = $this->getDb()->table('parkwash_employee')->field('id')->where(['store_id' => $store_id, 'item_id' => ['like', '%,' . $item_id . ',%'], 'state_online' => 1, 'state_remind' => 1, 'status' => 1])->limit(1000)->select()) {
             return error('没有接收人');
         }
 

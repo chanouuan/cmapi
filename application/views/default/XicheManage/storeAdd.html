@@ -6,6 +6,19 @@
         <form id="form" class="layui-form" enctype="multipart/form-data">
             <div class="layui-form-item">
                 <label class="layui-form-label">
+                    <span class="x-red">*</span>所属停车场
+                </label>
+                <div class="layui-input-inline">
+                    <select name="park_id" required="" lay-verify="required">
+                        <option value=""></option>
+                        <?php foreach($parks as $k=>$v){ ?>
+                        <option value="<?=$v['id']?>"><?=$v['name']?></option>
+                        <?php } ?>
+                    </select>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">
                     <span class="x-red">*</span>区域代码
                 </label>
                 <div class="layui-input-inline">

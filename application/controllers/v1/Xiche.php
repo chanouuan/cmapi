@@ -9,6 +9,13 @@ use app\models\UserModel;
 
 class Xiche extends ActionPDO {
 
+    public function __ratelimit ()
+    {
+        return [
+            'ReportStatus' => ['url' => 'ReportStatus' . getgpc('DevCode'), 'interval' => 5000],
+        ];
+    }
+
     /**
      * 接收洗车机状态上报
      */

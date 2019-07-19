@@ -56,6 +56,50 @@ class XicheManage extends ActionPDO {
     }
 
     /**
+     * 停车场列表
+     */
+    public function park ()
+    {
+        $condition = [];
+        if ($_GET['name']) {
+            $condition['name'] = ['like', '%' . $_GET['name'] . '%'];
+        }
+
+        $model = new XicheManageModel();
+        $count = $model->getCount('parkwash_park', $condition);
+        $pagesize = getPageParams($_GET['page'], $count);
+
+        $list = $model->getList('parkwash_park', $condition, $pagesize['limitstr']);
+
+        return compact('pagesize', 'list');
+    }
+
+    /**
+     * 停车场添加
+     */
+    public function parkAdd ()
+    {
+        $model = new XicheManageModel();
+        if (submitcheck()) {
+            return $model->parkAdd($_POST);
+        }
+        return [];
+    }
+
+    /**
+     * 停车场编辑
+     */
+    public function parkUpdate ()
+    {
+        $model = new XicheManageModel();
+        if (submitcheck()) {
+            return $model->parkUpdate($_POST);
+        }
+        $info = $model->getInfo('parkwash_park', ['id' => getgpc('id')]);
+        return compact('info');
+    }
+
+    /**
      * 员工添加
      */
     public function employeeAdd ()
@@ -154,7 +198,7 @@ class XicheManage extends ActionPDO {
             $seriesList   = ParkWashCache::getSeries();
             $carTypeList  = ParkWashCache::getCarType();
             foreach ($list as $k => $v) {
-                $list[$k]['identity']        = $v['identity'] ? '帮手' : '';
+                $list[$k]['identity']        = $v['identity'] ? '' : '帮手';
                 $list[$k]['employee_name']   = $employeeList[$v['employee_id']]['realname'];
                 $list[$k]['employee_tel']    = $employeeList[$v['employee_id']]['telephone'];
                 $list[$k]['brand_name']      = $brandList[$v['brand_id']];
@@ -414,14 +458,15 @@ class XicheManage extends ActionPDO {
      */
     public function storeAdd ()
     {
+        $model = (new XicheManageModel());
         if (submitcheck()) {
-            return (new XicheManageModel())->storeAdd($_POST);
+            return $model->storeAdd($_POST);
         }
 
-        $items = (new XicheManageModel())->getList('parkwash_item', null, null, null);
-        return [
-            'items' => $items
-        ];
+        $items = $model->getList('parkwash_item', null, null, null);
+        $parks = $model->getList('parkwash_park', null, null, null);
+
+        return compact('items', 'parks');
     }
 
     /**
@@ -429,11 +474,11 @@ class XicheManage extends ActionPDO {
      */
     public function storeUpdate ()
     {
+        $model = new XicheManageModel();
         if (submitcheck()) {
-            return (new XicheManageModel())->storeUpdate($_POST);
+            return $model->storeUpdate($_POST);
         }
 
-        $model = new XicheManageModel();
         $info = $model->getInfo('parkwash_store', ['id' => getgpc('id')]);
         $info['logo'] = $info['logo'] ? json_decode($info['logo'], true) : [];
         $info['logo'] = $info['logo'] ? '<img height="30" src="' . httpurl($info['logo'][0]) . '">' : '';
@@ -445,10 +490,9 @@ class XicheManage extends ActionPDO {
             $items[$k]['price'] = isset($storeItems[$v['id']]) ? $storeItems[$v['id']]['price'] : 0;
             $items[$k]['employee_salary'] = isset($storeItems[$v['id']]) ? $storeItems[$v['id']]['employee_salary'] : 0;
         }
-        return [
-            'info' => $info,
-            'items' => $items
-        ];
+        $parks = $model->getList('parkwash_park', null, null, null);
+
+        return compact('info', 'items', 'parks');
     }
 
     /**

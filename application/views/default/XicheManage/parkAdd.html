@@ -1,0 +1,61 @@
+<?php include('header.html'); ?>
+
+  <body>
+<div class="layui-fluid">
+    <div class="layui-row">
+        <form id="form" class="layui-form">
+            <div class="layui-form-item">
+                <label class="layui-form-label">
+                    <span class="x-red">*</span>停车场名称
+                </label>
+                <div class="layui-input-inline">
+                    <input placeholder="请填写停车场名称" type="text" maxlength="30" name="name" required="" lay-verify="required" autocomplete="off" class="layui-input">
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <input type="hidden" name="formhash" value="<?=encode_formhash()?>">
+                <label class="layui-form-label"></label>
+                <button class="layui-btn" lay-filter="add" lay-submit="">提交</button>
+            </div>
+      </form>
+    </div>
+</div>
+    <script>
+        layui.use(['form','layer'], function(){
+            $ = layui.jquery;
+            var form = layui.form, layer = layui.layer;
+
+            //监听提交
+            form.on('submit(add)', function(data){
+                $.ajax({
+                    type: 'POST',
+                    url: '<?=gurl("xicheManage/parkAdd")?>',
+                    data: data.field,
+                    dataType: 'json',
+                    timeout: 10000,
+                    success: function(list){
+                       layer.closeAll();
+                       if(list.errorcode != 0) {
+                           return layer.msg(list.message);
+                       }
+                       layer.alert("增加成功", {icon: 6},function () {
+                           parent.location.reload();
+                       });
+                    },
+                    beforeSend: function(xhr){
+                       layer.load();
+                    },
+                    error: function(xhr, type){
+                       layer.closeAll();
+                       layer.msg('网络错误，请重试!');
+                    }
+                });
+                return false;
+          });
+
+        });
+    </script>
+
+  </body>
+
+</html>

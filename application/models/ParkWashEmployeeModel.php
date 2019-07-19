@@ -197,7 +197,7 @@ class ParkWashEmployeeModel extends Crud {
         // 更新帮手工作状态，累计金额
         if (!$this->getDb()->transaction(function ($db) use($orderInfo, $helperList, $orderCount) {
             foreach ($helperList as $k => $v) {
-                if (false === $db->update('parkwash_employee', ['money' => ['money+' . $v], 'state_work' => $orderCount[$k] > 1 ? 1 : 0], ['id' => $k])) {
+                if (false === $db->update('parkwash_employee', ['order_count' => ['order_count+1'], 'money' => ['money+' . $v], 'state_work' => $orderCount[$k] > 1 ? 1 : 0], ['id' => $k])) {
                     return false;
                 }
                 if ($v) {

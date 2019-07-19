@@ -408,6 +408,7 @@ class ParkWash extends ActionPDO {
 
     /**
      * 获取停车场区域
+     * @param *store_id string 店铺ID
      * @return array
      * {
      * "errNo":0, //错误码 0成功 -1失败
