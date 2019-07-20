@@ -16,7 +16,7 @@ class ParkWashCache
     public static function getBrand ()
     {
         if (false === F('CarBrand')) {
-            $list = DB::getInstance()->table('parkwash_car_brand')->field('id,name,logo,pinyin,status')->select();
+            $list = DB::getInstance()->table('parkwash_car_brand')->field('id,name,logo,pinyin,status')->order('pinyin')->select();
             foreach ($list as $k => $v) {
                 $list[$k]['logo'] = httpurl($v['logo']);
             }

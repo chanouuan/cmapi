@@ -6,13 +6,24 @@
         <form id="form" class="layui-form">
             <div class="layui-form-item">
                 <label class="layui-form-label">
+                    <span class="x-red">*</span>停车场
+                </label>
+                <div class="layui-input-inline">
+                    <select id="park_id" name="park_id" required="" lay-verify="required" lay-filter="park_id" >
+                        <option value="">请选择</option>
+                        <?php foreach($parks as $k=>$v){ ?>
+                        <option value="<?=$v['id']?>"><?=$v['name']?></option>
+                        <?php } ?>
+                    </select>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">
                     <span class="x-red">*</span>区域
                 </label>
                 <div class="layui-input-inline">
-                    <select name="area_id">
-                        <?php foreach($areaList as $v){ ?>
-                        <option value="<?=$v['id']?>"><?=$v['floor']?> <?=$v['name']?></option>
-                        <?php } ?>
+                    <select id="area_id" name="area_id" required="" lay-verify="required">
+                        <option value="">请选择</option>
                     </select>
                 </div>
             </div>
@@ -47,12 +58,27 @@
         layui.use(['form','layer'], function(){
             $ = layui.jquery;
             var form = layui.form, layer = layui.layer;
+            var areas = JSON.parse('<?=json_encode($areas)?>');
+
+            // 选择停车场
+            form.on('select(park_id)', function(data){
+                $('#area_id').empty();
+                $('#area_id').append("<option value=''>请选择</option>");
+                if (!data.value || !areas[data.value]) {
+                    form.render('select');
+                    return false;
+                }
+                $.each(areas[data.value], function(key,val){
+                    $('#area_id').append("<option value='"+val.id+"'>"+val.floor+' '+val.name+"</option>");
+                });
+                form.render('select');
+            });
 
             //监听提交
             form.on('submit(add)', function(data){
                 $.ajax({
                     type: 'POST',
-                    url: '<?=gurl('xicheManage/parkingAdd')?>',
+                    url: '<?=gurl("xicheManage/parkingAdd")?>',
                     data: data.field,
                     dataType: 'json',
                     timeout: 10000,

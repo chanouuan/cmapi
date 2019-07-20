@@ -50,6 +50,9 @@
                 <div class="layui-card-header">
                     <span class="right-page">共有数据：<?=$pagesize['totalcount']?> 条</span>
                     <button class="layui-btn" onclick="xadmin.open('添加车系','<?=gurl('xicheManage/carSeriesAdd')?>')"><i class="layui-icon"></i>添加</button>
+                    <a href="?<?=burl('export=1')?>" class="layui-btn layui-btn-normal" target="temp">导出</a>
+                    <iframe id="temp" name="temp" style="display: none;"></iframe>
+                    <a href="javascript:;" onclick="importPage()" class="layui-btn layui-btn-normal" target="temp">导入</a>
                 </div>
                 <div class="layui-card-body card-table">
                     <table class="layui-table">
@@ -106,6 +109,15 @@
 </div>
 
 <script>
+
+    function importPage() {
+        layer.open({
+            type: 2,
+            title: '导入',
+            area: ['550px', '250px'],
+            content: "<?=gurl('xicheManage/carSeriesImport')?>"
+        });
+    }
 
     layui.use(['form'], function(){
 

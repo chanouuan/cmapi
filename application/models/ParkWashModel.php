@@ -478,7 +478,7 @@ class ParkWashModel extends Crud {
 
         // 记录资金变动
         $this->pushTrades([
-            'uid' => $orderInfo['uid'], 'mark' => '+', 'money' => $orderInfo['pay'], 'title' => '取消洗车服务'
+            'uid' => $orderInfo['uid'], 'mark' => '+', 'money' => $orderInfo['pay'] + $orderInfo['deduct'], 'title' => '取消洗车服务'
         ]);
 
         // 记录订单状态改变
@@ -2053,7 +2053,7 @@ class ParkWashModel extends Crud {
 
         // 记录资金变动
         $this->pushTrades([
-            'uid' => $orderInfo['uid'], 'mark' => '-', 'money' => $tradeInfo['pay'], 'title' => '支付停车场洗车费'
+            'uid' => $orderInfo['uid'], 'mark' => '-', 'money' => $tradeInfo['money'], 'title' => '支付停车场洗车费'
         ]);
 
         // 记录订单状态改变

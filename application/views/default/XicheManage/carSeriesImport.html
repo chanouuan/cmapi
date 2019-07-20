@@ -1,0 +1,70 @@
+<?php include('header.html'); ?>
+
+  <body>
+<div class="layui-fluid">
+    <div class="layui-row">
+        <form id="form" class="layui-form" method="post" enctype="multipart/form-data">
+            <div class="layui-form-item">
+                <label class="layui-form-label">
+                  选择文件
+                </label>
+                <div class="layui-input-inline">
+                  <input type="file" name="file" autocomplete="off" class="layui-input">
+                </div>
+                <div class="layui-input-inline" style="line-height: 30px">
+                    <i class="layui-icon">&#xe60b;</i> <a href="<?=gurl('xicheManage/carSeriesImport',['tpl'=>1])?>" target="_blank">下载模板</a>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label"></label>
+                <button id="btn" class="layui-btn" lay-filter="add" lay-submit="">上传</button>
+            </div>
+      </form>
+    </div>
+</div>
+    <script>
+        layui.use(['form','layer'], function(){
+            $ = layui.jquery;
+            var form = layui.form, layer = layui.layer;
+            //监听提交
+            form.on('submit(add)', function(data){
+                $('#btn').attr('disabled', true);
+                var formData = new FormData($("#form")[0]);
+                $.ajax({
+                    type: 'POST',
+                    url: '<?=gurl("xicheManage/carSeriesImport",["upload"=>1])?>',
+                    data: formData,
+                    async: false,
+                    cache: false,
+                    contentType: false,
+                    processData: false,
+                    dataType: 'json',
+                    timeout: 10000,
+                    success: function(list){
+                        layer.closeAll();
+                        if(list.errorcode != 0) {
+                            $('#btn').attr('disabled', false);
+                            return layer.msg(list.message);
+                        }
+                        layer.alert(list.message, {icon: 6},function () {
+                            parent.location.reload();
+                        });
+                    },
+                    beforeSend: function(xhr){
+                        layer.load();
+                    },
+                    error: function(xhr, type){
+                        $('#btn').attr('disabled', false);
+                        layer.closeAll();
+                        layer.msg('网络错误，请重试!');
+                    }
+                });
+                return false;
+            });
+
+        });
+    </script>
+
+  </body>
+
+</html>

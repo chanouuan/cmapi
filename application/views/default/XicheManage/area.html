@@ -17,6 +17,14 @@
                 <div class="layui-card-body ">
                     <form class="layui-form layui-col-space5" method="get">
                         <div class="layui-input-inline layui-show-xs-block">
+                            <select name="park_id">
+                                <option value="">停车场</option>
+                                <?php foreach($parks as $k=>$v){ ?>
+                                <option <?php if($_GET['park_id']==$k){ ?>selected<?php } ?> value="<?=$k?>"><?=$v?></option>
+                                <?php } ?>
+                            </select>
+                        </div>
+                        <div class="layui-input-inline layui-show-xs-block">
                             <input value="<?=$_GET['name']?>" maxlength="20" type="text" name="name" placeholder="请输入区域" autocomplete="off" class="layui-input">
                         </div>
                         <div class="layui-input-inline layui-show-xs-block">
@@ -33,6 +41,7 @@
                         <thead>
                         <tr>
                             <th>ID</th>
+                            <th>停车场</th>
                             <th>楼层</th>
                             <th>区域</th>
                             <th>状态</th>
@@ -40,9 +49,11 @@
                         </tr>
                         </thead>
                         <tbody>
+                        <?php if($list){ ?>
                         <?php foreach($list as $k=>$v){ ?>
                         <tr>
                             <td><?=$v['id']?></td>
+                            <td><?=$v['park_name']?></td>
                             <td><?=$v['floor']?></td>
                             <td><?=$v['name']?></td>
                             <td><?=$v['status']?'正常':'禁用'?></td>
@@ -50,6 +61,9 @@
                                 <button class="layui-btn layui-btn layui-btn-xs" onclick="xadmin.open('编辑区域','<?=gurl('xicheManage/areaUpdate',['id'=>$v['id']])?>')"><i class="layui-icon"></i>编辑</button>
                             </td>
                         </tr>
+                        <?php } ?>
+                        <?php }else{ ?>
+                        <tr><td colspan="16">暂无数据</td></tr>
                         <?php } ?>
                         </tbody>
                     </table>
@@ -74,6 +88,11 @@
     </div>
 </div>
 
+<script>
+    layui.use(['form'], function(){
+
+    });
+</script>
 </body>
 
 </html>

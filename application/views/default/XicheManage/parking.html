@@ -17,6 +17,14 @@
                 <div class="layui-card-body ">
                     <form class="layui-form layui-col-space5" method="get">
                         <div class="layui-input-inline layui-show-xs-block">
+                            <select name="park_id">
+                                <option value="">停车场</option>
+                                <?php foreach($parks as $k=>$v){ ?>
+                                <option <?php if($_GET['park_id']==$k){ ?>selected<?php } ?> value="<?=$k?>"><?=$v?></option>
+                                <?php } ?>
+                            </select>
+                        </div>
+                        <div class="layui-input-inline layui-show-xs-block">
                             <input value="<?=$_GET['place']?>" maxlength="10" type="text" name="place" placeholder="请输入车位" autocomplete="off" class="layui-input">
                         </div>
                         <div class="layui-input-inline layui-show-xs-block">
@@ -33,6 +41,7 @@
                         <thead>
                         <tr>
                             <th>ID</th>
+                            <th>停车场</th>
                             <th>区域</th>
                             <th>车位</th>
                             <th>状态</th>
@@ -40,17 +49,22 @@
                         </tr>
                         </thead>
                         <tbody>
+                        <?php if($list){ ?>
                         <?php foreach($list as $k=>$v){ ?>
                         <tr>
                             <td><?=$v['id']?></td>
+                            <td><?=$v['park_name']?></td>
                             <td><?=$v['area_floor']?> <?=$v['area_name']?></td>
                             <td><?=$v['place']?></td>
                             <td><?=$v['status']?'正常':'不支持洗车服务'?></td>
                             <td class="td-manage">
-                                <button class="layui-btn layui-btn-xs" onclick="xadmin.open('编辑区域','<?=gurl('xicheManage/parkingUpdate',['id'=>$v['id']])?>')"><i class="layui-icon"></i>编辑</button>
+                                <button class="layui-btn layui-btn-xs" onclick="xadmin.open('编辑车位','<?=gurl('xicheManage/parkingUpdate',['id'=>$v['id']])?>')"><i class="layui-icon"></i>编辑</button>
                                 <button class="layui-btn-danger layui-btn layui-btn-xs" onclick="del(<?=$v['id']?>)"><i class="layui-icon"></i>删除</button>
                             </td>
                         </tr>
+                        <?php } ?>
+                        <?php }else{ ?>
+                        <tr><td colspan="16">暂无数据</td></tr>
                         <?php } ?>
                         </tbody>
                     </table>
@@ -76,6 +90,9 @@
 </div>
 
 <script>
+    layui.use(['form'], function(){
+
+    });
     function del(id){
         layer.confirm('确定要删除吗？',function(index){
             $.ajax({

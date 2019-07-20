@@ -6,6 +6,19 @@
         <form id="form" class="layui-form">
             <div class="layui-form-item">
                 <label class="layui-form-label">
+                    <span class="x-red">*</span>停车场
+                </label>
+                <div class="layui-input-inline">
+                    <select name="park_id" required="" lay-verify="required">
+                        <option value="">请选择</option>
+                        <?php foreach($parks as $k=>$v){ ?>
+                        <option value="<?=$k?>"><?=$v?></option>
+                        <?php } ?>
+                    </select>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">
                   <span class="x-red">*</span>楼层
                 </label>
                 <div class="layui-input-inline">
@@ -48,7 +61,7 @@
             form.on('submit(add)', function(data){
                 $.ajax({
                     type: 'POST',
-                    url: '<?=gurl('xicheManage/areaAdd')?>',
+                    url: '<?=gurl("xicheManage/areaAdd")?>',
                     data: data.field,
                     dataType: 'json',
                     timeout: 10000,

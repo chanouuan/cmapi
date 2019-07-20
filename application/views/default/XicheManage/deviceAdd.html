@@ -99,7 +99,7 @@
                 }
                 $.ajax({
                     type: 'POST',
-                    url: '<?=gurl('xicheManage/getDev')?>',
+                    url: '<?=gurl("xicheManage/getDev")?>',
                     data: {AreaId:data.value},
                     dataType: 'json',
                     timeout: 5000,
@@ -131,7 +131,7 @@
               data.field['formhash'] = "<?=encode_formhash()?>";
               $.ajax({
                   type: 'POST',
-                  url: '<?=gurl('xicheManage/deviceAdd')?>',
+                  url: '<?=gurl("xicheManage/deviceAdd")?>',
                   data: data.field,
                   dataType: 'json',
                       timeout: 5000,

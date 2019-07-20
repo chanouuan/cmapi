@@ -204,7 +204,8 @@ class XicheManageModel extends Crud {
             'gender'      => $post['gender'],
             'status'      => $post['status'],
             'create_time' => date('Y-m-d H:i:s', TIMESTAMP),
-            'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
+            'update_time' => date('Y-m-d H:i:s', TIMESTAMP),
+            'state_online'=> 0
         ], null, null, true)) {
             return error('添加失败');
         }
@@ -1202,7 +1203,8 @@ class XicheManageModel extends Crud {
     /**
      * 车位状态添加
      */
-    public function parkingAdd ($post) {
+    public function parkingAdd ($post)
+    {
         $post['area_id'] = intval($post['area_id']);
         $post['place']   = trim_space($post['place']);
         $post['status']  = $post['status'] ? 1 : 0;
@@ -1225,9 +1227,9 @@ class XicheManageModel extends Crud {
     /**
      * 车位状态删除
      */
-    public function parkingDelete ($id) {
-        $id = intval($id);
-        if (!$this->getDb()->delete('parkwash_parking', ['id' => $id])) {
+    public function parkingDelete ($id)
+    {
+        if (!$this->getDb()->delete('parkwash_parking', ['id' => intval($id)])) {
             return error('删除失败');
         }
         return success('OK');
@@ -1236,7 +1238,8 @@ class XicheManageModel extends Crud {
     /**
      * 车位状态添加
      */
-    public function parkingUpdate ($post) {
+    public function parkingUpdate ($post)
+    {
         $post['area_id'] = intval($post['area_id']);
         $post['place']   = trim_space($post['place']);
         $post['status']  = $post['status'] ? 1 : 0;
@@ -1259,19 +1262,25 @@ class XicheManageModel extends Crud {
     /**
      * 车位区域添加
      */
-    public function areaAdd ($post) {
-        $post['floor'] = trim_space($post['floor']);
-        $post['name'] = trim_space($post['name']);
-        $post['status'] = $post['status'] ? 1 : 0;
+    public function areaAdd ($post)
+    {
+        $post['floor']   = trim_space($post['floor']);
+        $post['name']    = trim_space($post['name']);
+        $post['park_id'] = intval($post['park_id']);
+        $post['status']  = $post['status'] ? 1 : 0;
 
         if (!$post['floor']) {
             return error('楼层不能为空');
+        }
+        if (!$post['park_id']) {
+            return error('请选择停车场');
         }
 
         if (!$this->getDb()->insert('parkwash_park_area', [
             'park_id' => 1,
             'floor'   => $post['floor'],
             'name'    => $post['name'],
+            'park_id' => $post['park_id'],
             'status'  => $post['status']
         ])) {
             return error('添加失败');
@@ -1284,19 +1293,22 @@ class XicheManageModel extends Crud {
     /**
      * 车位区域编辑
      */
-    public function areaUpdate ($post) {
-        $post['floor'] = trim_space($post['floor']);
-        $post['name'] = trim_space($post['name']);
-        $post['status'] = $post['status'] ? 1 : 0;
+    public function areaUpdate ($post)
+    {
+        $post['floor']   = trim_space($post['floor']);
+        $post['name']    = trim_space($post['name']);
+        $post['park_id'] = intval($post['park_id']);
+        $post['status']  = $post['status'] ? 1 : 0;
 
         if (!$post['floor']) {
             return error('楼层不能为空');
         }
 
         if (false === $this->getDb()->update('parkwash_park_area', [
-            'floor'  => $post['floor'],
-            'name'   => $post['name'],
-            'status' => $post['status']
+            'floor'   => $post['floor'],
+            'name'    => $post['name'],
+            'park_id' => $post['park_id'],
+            'status'  => $post['status']
         ], ['id' => $post['id']])) {
             return error('编辑失败');
         }
@@ -1308,8 +1320,8 @@ class XicheManageModel extends Crud {
     /**
      * 检查营业时间格式是否正确
      */
-    protected function checkBusinessHours ($business_hours) {
-
+    protected function checkBusinessHours ($business_hours)
+    {
         if (!preg_match('/^\d{1,2}\:\d{1,2}-\d{1,2}\:\d{1,2}$/', $business_hours)) {
             return error('请填写营业时间,格式为:9:00-17:00');
         }
@@ -1786,6 +1798,153 @@ class XicheManageModel extends Crud {
         }
 
         exit(0);
+    }
+
+    /**
+     * 车系导入
+     */
+    public function carSeriesImport ()
+    {
+        set_time_limit(3600);
+
+        if ($_FILES['file']['error'] !== 0) {
+            return error('上传文件为空');
+        }
+        if (strtolower(substr(strrchr($_FILES['file']['name'], '.'), 1)) != 'csv') {
+            return error('上传文件格式错误');
+        }
+
+        // 转码
+        if (false === file_put_contents($_FILES['file']['tmp_name'], $this->encodeUTF(file_get_contents($_FILES['file']['tmp_name'])))) {
+            return error($_FILES['name'] . '转码失败');
+        }
+
+        if (($handle = fopen($_FILES['file']['tmp_name'], "r" )) ===  FALSE) {
+            return error($_FILES['name'] . '文件读取失败');
+        }
+
+        $field = ['品牌','车系','车型','状态'];
+
+        $rs = [];
+        while(($data = fgetcsv($handle, 1000, ",")) !== FALSE) {
+            if (empty($data)) {
+                continue;
+            }
+            $arr = [];
+            foreach ($field as $k => $v) {
+                $arr[$v] = $this->filterData($data[$k]);
+            }
+            $rs[] = $arr;
+        }
+        unset($rs[0]);
+        fclose($handle);
+        unlink($_FILES['file']['tmp_name']);
+
+        if (!count($rs)) {
+            return error('导入数据为空');
+        }
+
+        // 品牌
+        $brands   = $this->getList('parkwash_car_brand', null, null, null, 'id,name');
+        $brands   = array_column($brands, 'id', 'name');
+        $carTypes = $this->getList('parkwash_car_type', null, null, null, 'id,name');
+        $carTypes = array_column($carTypes, 'id', 'name');
+
+        // 效验数据正确性
+        foreach ($rs as $k => $v) {
+            if (!$v['品牌'] || !isset($brands[$v['品牌']])) {
+                return error('[第' . ($k + 1) . '行] 品牌不存在！');
+            }
+            $rs[$k]['品牌'] = $brands[$v['品牌']];
+            if (!$v['车系']) {
+                return error('[第' . ($k + 1) . '行] 车系不能为空！');
+            }
+            if (!$v['车型'] || !isset($carTypes[$v['车型']])) {
+                return error('[第' . ($k + 1) . '行] 车型不存在！');
+            }
+            $rs[$k]['车型'] = $carTypes[$v['车型']];
+            $rs[$k]['状态'] = ($v['状态'] == '显示' || $v['状态'] == '正常' || $v['状态'] == '1') ? 1 : 0;
+        }
+        unset($brands, $carTypes);
+
+        // 合并重复数据
+        $g_rs = [];
+        foreach ($rs as $k => $v) {
+            $g_rs[$v['品牌'] . $v['车系']] = $v;
+        }
+        unset($rs);
+
+        // 开始导入
+        $list   = $this->getList('parkwash_car_series', null, null, null, 'id,name,brand_id,car_type_id,status');
+        $series = [];
+        foreach ($list as $k => $v) {
+            $series[$v['brand_id'] . $v['name']] = $v;
+        }
+        unset($list);
+        $insert = [];
+        $result = [];
+        foreach ($g_rs as $k => $v) {
+            if (isset($series[$k])) {
+                // 更新
+                if ($series[$k]['car_type_id'] == $v['车型'] && $series[$k]['status'] == $v['状态']) {
+                    continue;
+                }
+                $result['更新'] ++;
+                $this->getDb()->update('parkwash_car_series', [
+                    'name'        => $v['车系'],
+                    'brand_id'    => $v['品牌'],
+                    'car_type_id' => $v['车型'],
+                    'status'      => $v['状态']
+                ], ['id' => $series[$k]['id']]);
+            } else {
+                // 新增
+                $result['新增'] ++;
+                $insert[] = [
+                    'name'        => $v['车系'],
+                    'brand_id'    => $v['品牌'],
+                    'car_type_id' => $v['车型'],
+                    'status'      => $v['状态']
+                ];
+            }
+        }
+
+        if ($insert) {
+            // 分组插入
+            $insert = array_chunk($insert, 1000);
+            foreach ($insert as $k => $v) {
+                $this->getDb()->insert('parkwash_car_series', $v);
+            }
+            unset($insert);
+        }
+
+        return success('导入成功' . ($result ? '（' . urldecode(http_build_query($result)) . '）' : ''));
+    }
+
+    /**
+     * 转码UTF
+     */
+    public function encodeUTF($text)
+    {
+        if (!$encode = mb_detect_encoding($text, array('UTF-8','GB2312','GBK','ASCII','BIG5'))) {
+            return '';
+        }
+        if($encode != 'UTF-8') {
+            return mb_convert_encoding($text, 'UTF-8', $encode);
+        } else {
+            return $text;
+        }
+    }
+
+    /**
+     * 过滤数据
+     */
+    public function filterData($data)
+    {
+        $data = trim(trim(trim($data, ' '), '-'), '	');
+        $data = str_replace(["\r", "\n", "\t", '"', '\''], '', $data);
+        $data = htmlspecialchars(rtrim($data, "\0"), ENT_QUOTES);
+        $data = mb_substr($data, 0, 200, 'UTF-8');
+        return $data;
     }
 
 }

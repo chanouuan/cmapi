@@ -259,6 +259,24 @@ class XicheManage extends ActionPDO {
     }
 
     /**
+     * 导入车系
+     */
+    public function carSeriesImport ()
+    {
+        $model = new XicheManageModel();
+
+        if ($_GET['tpl']) {
+            // 下载模板
+            $model->exportCsv('车系导入模板', '品牌,车系,车型,状态', []);
+        }
+        if ($_GET['upload']) {
+            // 上传
+            return $model->carSeriesImport();
+        }
+        return [];
+    }
+
+    /**
      * 车系列表
      */
     public function carSeries ()
@@ -278,10 +296,14 @@ class XicheManage extends ActionPDO {
         }
 
         $model = new XicheManageModel();
-        $count = $model->getCount('parkwash_car_series', $condition);
-        $pagesize = getPageParams($_GET['page'], $count);
+        $order = 'brand_id';
+        if (empty($_GET['export'])) {
+            $count = $model->getCount('parkwash_car_series', $condition);
+            $pagesize = getPageParams($_GET['page'], $count);
+            $order = 'id desc';
+        }
 
-        $list = $model->getList('parkwash_car_series', $condition, $pagesize['limitstr']);
+        $list = $model->getList('parkwash_car_series', $condition, $pagesize['limitstr'], $order);
         $carType = $model->getCarTypeItem();
         $brands = ParkWashCache::getBrand();
         $brands = array_column($brands, 'name', 'id');
@@ -289,6 +311,15 @@ class XicheManage extends ActionPDO {
         foreach ($list as $k => $v) {
             $list[$k]['car_type_name'] = $carType[$v['car_type_id']];
             $list[$k]['brand_name'] = $brands[$v['brand_id']];
+        }
+
+        // 导出
+        if ($_GET['export']) {
+            $input = [];
+            foreach ($list as $k => $v) {
+                $input[] = [$v['id'], $v['brand_name'], $v['name'], $v['car_type_name'], $v['status'] ? '显示' : '隐藏'];
+            }
+            $model->exportCsv('汽车车系', '编号,品牌,车系,车型,状态', $input);
         }
 
         return compact('pagesize', 'list', 'carType', 'brands');
@@ -498,16 +529,24 @@ class XicheManage extends ActionPDO {
     /**
      * 车位状态管理
      */
-    public function parking () {
+    public function parking ()
+    {
+        $model = new XicheManageModel();
+
         $condition = [];
+        if ($_GET['park_id']) {
+            $areas = $model->getList('parkwash_park_area', ['park_id' => intval($_GET['park_id'])], null, null, 'id');
+            $condition['area_id'] = $areas ? ['in', array_column($areas, 'id')] : 0;
+        }
         if ($_GET['place']) {
             $condition['place'] = ['like', '%' . $_GET['place'] . '%'];
         }
 
-        $model = new XicheManageModel();
         $count = $model->getCount('parkwash_parking', $condition);
         $pagesize = getPageParams($_GET['page'], $count);
         $list = $model->getList('parkwash_parking', $condition, $pagesize['limitstr']);
+        $parks = $model->getList('parkwash_park', null, null, null);
+        $parks = array_column($parks, 'name', 'id');
         if ($list) {
             $areaList = $model->getList('parkwash_park_area', [
                 'id' => ['in', array_column($list, 'area_id')]
@@ -516,39 +555,55 @@ class XicheManage extends ActionPDO {
             foreach ($list as $k => $v) {
                 $list[$k]['area_floor'] = $areaList[$v['area_id']]['floor'];
                 $list[$k]['area_name'] = $areaList[$v['area_id']]['name'];
+                $list[$k]['park_name'] = $parks[$areaList[$v['area_id']]['park_id']];
             }
         }
 
-        return [
-            'pagesize' => $pagesize,
-            'list' => $list
-        ];
+        return compact('pagesize', 'list', 'parks');
     }
 
     /**
      * 车位状态添加
      */
-    public function parkingAdd () {
-        if (submitcheck()) {
-            return (new XicheManageModel())->parkingAdd($_POST);
-        }
+    public function parkingAdd ()
+    {
         $model = new XicheManageModel();
-        $areaList = $model->getList('parkwash_park_area', ['status' => 1]);
-        return compact('areaList');
+        if (submitcheck()) {
+            return $model->parkingAdd($_POST);
+        }
+
+        $list = $model->getList('parkwash_park_area', ['status' => 1]);
+        $areas = [];
+        foreach ($list as $k => $v) {
+            $areas[$v['park_id']][] = $v;
+        }
+        unset($list);
+        $parks = $model->getList('parkwash_park');
+        return compact('areas', 'parks');
     }
 
     /**
      * 车位状态编辑
      */
-    public function parkingUpdate () {
+    public function parkingUpdate ()
+    {
+        $model = new XicheManageModel();
         if (submitcheck()) {
-            return (new XicheManageModel())->parkingUpdate($_POST);
+            return $model->parkingUpdate($_POST);
         }
 
-        $model = new XicheManageModel();
         $info = $model->getInfo('parkwash_parking', ['id' => getgpc('id')]);
-        $areaList = $model->getList('parkwash_park_area', ['status' => 1]);
-        return compact('info', 'areaList');
+        $list = $model->getList('parkwash_park_area');
+        $areas = [];
+        foreach ($list as $k => $v) {
+            $areas[$v['park_id']][] = $v;
+            if ($v['id'] == $info['area_id']) {
+                $info['park_id'] = $v['park_id'];
+            }
+        }
+        unset($list);
+        $parks = $model->getList('parkwash_park');
+        return compact('info', 'areas', 'parks');
     }
 
     /**
@@ -561,8 +616,12 @@ class XicheManage extends ActionPDO {
     /**
      * 车位区域管理
      */
-    public function area () {
+    public function area ()
+    {
         $condition = [];
+        if ($_GET['park_id']) {
+            $condition['park_id'] = intval($_GET['park_id']);
+        }
         if ($_GET['name']) {
             $condition['name'] = ['like', '%' . $_GET['name'] . '%'];
         }
@@ -571,35 +630,46 @@ class XicheManage extends ActionPDO {
         $count = $model->getCount('parkwash_park_area', $condition);
         $pagesize = getPageParams($_GET['page'], $count);
         $list = $model->getList('parkwash_park_area', $condition, $pagesize['limitstr']);
+        $parks = $model->getList('parkwash_park', null, null, null);
+        $parks = array_column($parks, 'name', 'id');
+        foreach ($list as $k => $v) {
+            $list[$k]['park_name'] = $parks[$v['park_id']];
+        }
 
-        return [
-            'pagesize' => $pagesize,
-            'list' => $list
-        ];
+        return compact('pagesize', 'list', 'parks');
     }
 
     /**
      * 车位区域添加
      */
-    public function areaAdd () {
+    public function areaAdd ()
+    {
+        $model = new XicheManageModel();
         if (submitcheck()) {
-            return (new XicheManageModel())->areaAdd($_POST);
+            return $model->areaAdd($_POST);
         }
 
-        return [];
+        $parks = $model->getList('parkwash_park', null, null, null);
+        $parks = array_column($parks, 'name', 'id');
+
+        return compact('parks');
     }
 
     /**
      * 车位区域编辑
      */
-    public function areaUpdate () {
+    public function areaUpdate ()
+    {
+        $model = new XicheManageModel();
         if (submitcheck()) {
-            return (new XicheManageModel())->areaUpdate($_POST);
+            return $model->areaUpdate($_POST);
         }
 
-        $model = new XicheManageModel();
         $info = $model->getInfo('parkwash_park_area', ['id' => getgpc('id')]);
-        return compact('info');
+        $parks = $model->getList('parkwash_park', null, null, null);
+        $parks = array_column($parks, 'name', 'id');
+
+        return compact('info', 'parks');
     }
 
     /**
