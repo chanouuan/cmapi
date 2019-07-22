@@ -129,7 +129,7 @@ class Controller {
             if (false !== strpos($refDoc, '@login')) {
                 $referer->_G['user'] = $referer->loginCheck();
                 if (empty($referer->_G['user'])) {
-                    json(null, StatusCodes::getMessage(StatusCodes::USER_NOT_LOGIN_ERROR), StatusCodes::USER_NOT_LOGIN_ERROR, StatusCodes::STATUS_UNAUTHORIZED);
+                    json(null, StatusCodes::getMessage(StatusCodes::USER_NOT_LOGIN_ERROR), StatusCodes::USER_NOT_LOGIN_ERROR, StatusCodes::STATUS_OK);
                 }
             }
         }

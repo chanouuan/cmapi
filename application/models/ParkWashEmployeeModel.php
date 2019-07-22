@@ -744,15 +744,25 @@ class ParkWashEmployeeModel extends Crud {
         $userInfo['avatar'] = httpurl($userInfo['avatar']);
         unset($userInfo['password'], $userInfo['status']);
 
-        if ($lastSession) {
-            
-        }
-
         // 登录成功自动上线
         $this->onLine($userInfo['id'], 1);
 
         // 重置短信验证码
         $userModel->resetSmsCode($post['telephone']);
+
+        if ($extra && $extra['clienttype'] && $extra['stoken']) {
+            // 保持stoken唯一
+            $this->getDb()->update('__tablepre__session', ['stoken' => ''], [
+                'userid'     => ['<>', $userInfo['id']],
+                'clienttype' => $extra['clienttype'],
+                'stoken'     => $extra['stoken']
+            ]);
+        }
+
+        if ($lastSession && $lastSession['stoken']) {
+            // 发送下线通知
+            (new ParkWashModel())->sendJPush('该用户已在其他设备登录', '登录提示', ['action' => 'logout'], [$lastSession['stoken']], 1);
+        }
 
         return success($userInfo);
     }

@@ -2640,6 +2640,7 @@ class ParkWashModel extends Crud {
                 'extras' => $extras
             ],
             'options' => [
+                'time_to_live' => 0,
                 'apns_production' => $production
             ]
         ];
