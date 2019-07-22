@@ -688,6 +688,14 @@ class UserModel extends Crud {
     }
 
     /**
+     * 重置短信验证码
+     */
+    public function resetSmsCode ($telephone)
+    {
+        return $this->getDb()->delete('__tablepre__smscode', ['tel' => $telephone]);
+    }
+
+    /**
      * 保存图片验证码
      */
     public function saveImgCode ($code)

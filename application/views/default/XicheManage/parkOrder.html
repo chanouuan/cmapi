@@ -57,8 +57,8 @@
                     </form>
                 </div>
                 <div class="layui-card-header">
-                    <a href="?<?=burl('start_time='.$dateTime['today_start'].'&end_time='.$dateTime['today_end'])?>" class="layui-btn <?php if($dateTime['today_start']==$_GET['start_time']&&$dateTime['today_end']==$_GET['end_time']){ ?>layui-btn-primary<?php } ?>">今日</a>
                     <a href="?<?=burl('start_time='.$dateTime['yesterday_start'].'&end_time='.$dateTime['yesterday_end'])?>" class="layui-btn <?php if($dateTime['yesterday_start']==$_GET['start_time']&&$dateTime['yesterday_end']==$_GET['end_time']){ ?>layui-btn-primary<?php } ?>">昨日</a>
+                    <a href="?<?=burl('start_time='.$dateTime['today_start'].'&end_time='.$dateTime['today_end'])?>" class="layui-btn <?php if($dateTime['today_start']==$_GET['start_time']&&$dateTime['today_end']==$_GET['end_time']){ ?>layui-btn-primary<?php } ?>">今日</a>
                     <a href="?<?=burl('start_time='.$dateTime['week_start'].'&end_time='.$dateTime['week_end'])?>" class="layui-btn <?php if($dateTime['week_start']==$_GET['start_time']&&$dateTime['week_end']==$_GET['end_time']){ ?>layui-btn-primary<?php } ?>">本周</a>
                     <a href="?<?=burl('start_time='.$dateTime['month_start'].'&end_time='.$dateTime['month_end'])?>" class="layui-btn <?php if($dateTime['month_start']==$_GET['start_time']&&$dateTime['month_end']==$_GET['end_time']){ ?>layui-btn-primary<?php } ?>">本月</a>
                     <a href="?<?=burl('start_time='.$dateTime['lastmonth_start'].'&end_time='.$dateTime['lastmonth_end'])?>" class="layui-btn <?php if($dateTime['lastmonth_start']==$_GET['start_time']&&$dateTime['lastmonth_end']==$_GET['end_time']){ ?>layui-btn-primary<?php } ?>">上月</a>

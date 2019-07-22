@@ -34,7 +34,7 @@ class ParkWashModel extends Crud {
         }
 
         // 加载模型
-        $userModel = new UserModel();
+        $userModel  = new UserModel();
         $xicheModel = new XicheModel();
 
         if (isset($post['msgcode'])) {
@@ -88,6 +88,9 @@ class ParkWashModel extends Crud {
 
         // 绑定微信小程序
         $xicheModel->bindingLogin($post['__authcode'], $userInfo['uid']);
+
+        // 重置短信验证码
+        $userModel->resetSmsCode($post['telephone']);
 
         return success($userInfo);
     }

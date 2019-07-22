@@ -663,7 +663,7 @@ class ParkWashEmployeeModel extends Crud {
 
         // 获取员工
         if (!$userInfo = $this->getDb()->table('parkwash_employee')->field('id')->where(['telephone' => $post['telephone']])->limit(1)->find()) {
-            return error('手机号不存在！');
+            return error('该手机号未注册，请联系管理员！');
         }
 
         // 短信验证
@@ -710,7 +710,7 @@ class ParkWashEmployeeModel extends Crud {
             ->find();
 
         if (empty($userInfo)) {
-            return error('用户名或密码错误！');
+            return error('该手机号未注册，请联系管理员！');
         }
         if (!$userInfo['status']) {
             return error('该账号已禁用！');
@@ -725,8 +725,13 @@ class ParkWashEmployeeModel extends Crud {
         if ($post['msgcode']) {
             // 短信验证
             if (!$userModel->checkSmsCode($post['telephone'], $post['msgcode'])) {
-                return error('验证码错误！');
+                return error('验证码错误或已过期！');
             }
+        }
+
+        // 获取上次登录设备
+        if ($extra && $extra['clienttype'] && $extra['stoken']) {
+            $lastSession = $this->getDb()->table('__tablepre__session')->field('stoken')->where(['userid' => $userInfo['id'], 'clienttype' => $extra['clienttype'], 'stoken' => ['<>', $extra['stoken']]])->find();
         }
 
         // 登录状态
@@ -739,8 +744,15 @@ class ParkWashEmployeeModel extends Crud {
         $userInfo['avatar'] = httpurl($userInfo['avatar']);
         unset($userInfo['password'], $userInfo['status']);
 
+        if ($lastSession) {
+            
+        }
+
         // 登录成功自动上线
         $this->onLine($userInfo['id'], 1);
+
+        // 重置短信验证码
+        $userModel->resetSmsCode($post['telephone']);
 
         return success($userInfo);
     }

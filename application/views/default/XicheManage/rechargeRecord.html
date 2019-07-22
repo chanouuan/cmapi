@@ -20,10 +20,10 @@
                             <input value="<?=$_GET['user_tel']?>" maxlength="11" type="tel" name="user_tel" placeholder="请输入手机号" autocomplete="off" class="layui-input">
                         </div>
                         <div class="layui-input-inline layui-show-xs-block">
-                            <select name="card_type_id">
+                            <select name="type_id">
                                 <option value="">卡类型</option>
                                 <?php foreach($cardType as $k=>$v){ ?>
-                                <option <?php if($_GET['card_type_id']==$k){ ?>selected<?php } ?> value="<?=$k?>"><?=$v?></option>
+                                <option <?php if($_GET['type_id']==$k){ ?>selected<?php } ?> value="<?=$k?>"><?=$v?></option>
                                 <?php } ?>
                             </select>
                         </div>
