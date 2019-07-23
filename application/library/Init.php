@@ -111,15 +111,9 @@ class Controller {
         $ratelimit = $referer->__ratelimit();
         if (!empty($ratelimit) && isset($ratelimit[$action])) {
             $ratelimit = $ratelimit[$action];
-            if (!RateLimit::grant($ratelimit['url'] ? $ratelimit['url'] : ($_SERVER['REMOTE_ADDR'] . $module . $action), $ratelimit['rule'], $ratelimit['engine'])) {
-                json(null, StatusCodes::getMessage(StatusCodes::ACCESS_NUM_OVERFLOW), StatusCodes::ACCESS_NUM_OVERFLOW, StatusCodes::STATUS_404);
-            }
-            if (defined('RATE_LIMIT_DIFF_TIME')) {
-                if ($ratelimit['interval']) {
-                    if (RATE_LIMIT_DIFF_TIME < $ratelimit['interval']) {
-                        json(null, StatusCodes::getMessage(StatusCodes::REQUEST_REPEAT), StatusCodes::REQUEST_REPEAT, StatusCodes::STATUS_OK);
-                    }
-                }
+            $result = RateLimit::grant($ratelimit['url'] ? $ratelimit['url'] : ($_SERVER['REMOTE_ADDR'] . $module . $action), $ratelimit['rule'], $ratelimit['interval'], $ratelimit['engine']);
+            if ($result['errorcode'] !== 0) {
+                json($result['result'], isset($ratelimit['message']) && $ratelimit['message'][$result['errorcode']] ? $ratelimit['message'][$result['errorcode']] : $result['message'], $result['errorcode']);
             }
         }
         unset($ratelimit);
@@ -1035,65 +1029,69 @@ class Route
 
 class RateLimit
 {
-    public static function grant($key, $rule = null, $adapter = null)
+    public static function grant($key, $rule = null, $interval = null, $adapter = null)
     {
         if ($rule) {
             list($minNum, $hourNum, $dayNum) = explode('|', $rule);
         } else {
-            $minNum = 500;
-            $hourNum = 5000;
-            $dayNum = 10000;
+            $minNum  = 1000;
+            $hourNum = 10000;
+            $dayNum  = 100000;
         }
         $adapter = $adapter ? $adapter : 'mysql';
-        return self::{$adapter}($key, $minNum, $hourNum, $dayNum);
+        return self::{$adapter}($key, $minNum, $hourNum, $dayNum, $interval);
     }
 
-    protected static function mysql($key, $minNum, $hourNum, $dayNum)
+    protected static function mysql($key, $minNum, $hourNum, $dayNum, $interval)
     {
         $key = md5($key);
-        $limitVal = \app\library\DB::getInstance()->table('__tablepre__ratelimit')->field('min_num,hour_num,day_num,time,microtime,version')->where(['skey' => $key])->find();
+        $limitVal = \app\library\DB::getInstance()->ignoreLevel(2)->table('__tablepre__ratelimit')->field('min_num,hour_num,day_num,time,microtime,version')->where(['skey' => $key])->find();
         $param = [
-            'skey' => $key,
-            'min_num' => 1,
-            'hour_num' => 1,
-            'day_num' => 1,
-            'time' => TIMESTAMP,
+            'skey'      => $key,
+            'min_num'   => 1,
+            'hour_num'  => 1,
+            'day_num'   => 1,
+            'time'      => TIMESTAMP,
             'microtime' => intval((MICROTIME - intval(MICROTIME)) * 1000)
         ];
         if ($limitVal) {
-            define('RATE_LIMIT_DIFF_TIME', intval((MICROTIME - ($limitVal['time'] + $limitVal['microtime'] / 1000)) * 1000));
+            if ($interval > 0) {
+                $rateTime = intval((MICROTIME - ($limitVal['time'] + $limitVal['microtime'] / 1000)) * 1000);
+                if ($rateTime < $interval) {
+                    return error(null, StatusCodes::getMessage(StatusCodes::REQUEST_REPEAT), StatusCodes::REQUEST_REPEAT);
+                }
+            }
             $currentTime = date('YmdHi', TIMESTAMP);
-            $lastTime = date('YmdHi', $limitVal['time']);
+            $lastTime    = date('YmdHi', $limitVal['time']);
             if ($currentTime == $lastTime) {
                 if ($limitVal['min_num'] >= $minNum) {
-                    return false;
+                    return error(null, StatusCodes::getMessage(StatusCodes::ACCESS_NUM_OVERFLOW), StatusCodes::ACCESS_NUM_OVERFLOW);
                 }
                 $param['min_num'] = ['min_num+1'];
             }
             if (substr($currentTime, 0, 10) == substr($lastTime, 0, 10)) {
                 if ($limitVal['hour_num'] >= $hourNum) {
-                    return false;
+                    return error(null, StatusCodes::getMessage(StatusCodes::ACCESS_NUM_OVERFLOW), StatusCodes::ACCESS_NUM_OVERFLOW);
                 }
                 $param['hour_num'] = ['hour_num+1'];
             }
             if (substr($currentTime, 0, 8) == substr($lastTime, 0, 8)) {
                 if ($limitVal['day_num'] >= $dayNum) {
-                    return false;
+                    return error(null, StatusCodes::getMessage(StatusCodes::ACCESS_NUM_OVERFLOW), StatusCodes::ACCESS_NUM_OVERFLOW);
                 }
                 $param['day_num'] = ['day_num+1'];
             }
             $param['version'] = ['version+1'];
             unset($param['skey']);
-            if (!\app\library\DB::getInstance()->update('__tablepre__ratelimit', $param, ['skey' => $key, 'version' => $limitVal['version']])) {
-                usleep(mt_rand(200000, 1200000)); // 200ms-1200ms
+            if (!\app\library\DB::getInstance()->ignoreLevel(2)->update('__tablepre__ratelimit', $param, ['skey' => $key, 'version' => $limitVal['version']])) {
+                usleep(mt_rand(200000, 2000000));
             }
         } else {
-            if (!\app\library\DB::getInstance()->insert('__tablepre__ratelimit', $param)) {
-                usleep(mt_rand(200000, 1200000)); // 200ms-1200ms
+            if (!\app\library\DB::getInstance()->ignoreLevel(2)->insert('__tablepre__ratelimit', $param)) {
+                usleep(mt_rand(200000, 2000000));
             }
         }
-        unset($limitVal);
-        return true;
+        return success(true);
     }
 }
 

@@ -824,7 +824,7 @@ class XicheManage extends ActionPDO {
             $orderInfo['out_park_time'] = $outParkTime ? date('Y-m-d H:i:s', $outParkTime) : '未出场/无出场信息';
         }
         // 员工与帮手
-        $helper = $model->getList('parkwash_order_helper', ['orderid' => $orderInfo['id']], null, null);
+        $helper = $model->getList('parkwash_order_helper', ['orderid' => $orderInfo['id']], null, 'id');
         if ($helper) {
             $employee = $model->getlist('parkwash_employee', ['id' => ['in', array_column($helper, 'employee_id')]], null, null, 'id,realname');
             $employee = array_column($employee, 'realname', 'id');

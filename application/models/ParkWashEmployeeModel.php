@@ -399,8 +399,16 @@ class ParkWashEmployeeModel extends Crud {
     /**
      * 检查当前用户是否可以接单
      */
-    public function checkTakeOrder ($uid)
+    public function checkTakeOrder ($uid, $orderid = 0)
     {
+        $orderid = intval($orderid);
+
+        if ($orderid) {
+            if (!$this->getDb()->table('parkwash_order')->where(['id' => $orderid, 'status' => ['<>', ParkWashOrderStatus::PAY]])->count()) {
+                return error('该订单已开始服务或用户已取消');
+            }
+        }
+
         if (!$orderCount = $this->getDb()->table('parkwash_employee_order_count')->field('s1')->where(['id' => $uid])->limit(1)->find()) {
             return error('你当前不能接单');
         }
@@ -474,7 +482,7 @@ class ParkWashEmployeeModel extends Crud {
 
         // 帮手
         if (ParkWashOrderStatus::inService($orderInfo['status'])) {
-            $helperList = $this->getDb()->table('parkwash_order_helper')->field('employee_id')->where(['orderid' => $orderid])->select();
+            $helperList = $this->getDb()->table('parkwash_order_helper')->field('employee_id')->where(['orderid' => $orderid])->order('id')->select();
             $helperList = array_column($helperList, 'employee_id');
             $employeeList = $this->getDb()->table('parkwash_employee')->field('id,realname')->where(['id' => ['in', $helperList]])->select();
             $employeeList = array_column($employeeList, 'realname', 'id');
@@ -761,7 +769,7 @@ class ParkWashEmployeeModel extends Crud {
 
         if ($lastSession && $lastSession['stoken']) {
             // 发送下线通知
-            (new ParkWashModel())->sendJPush('该用户已在其他设备登录', '登录提示', ['action' => 'logout'], [$lastSession['stoken']], 1);
+            (new ParkWashModel())->sendJPush('该用户已在其他设备登录', '登录提示', ['action' => 'logout'], [$lastSession['stoken']], 2);
         }
 
         return success($userInfo);

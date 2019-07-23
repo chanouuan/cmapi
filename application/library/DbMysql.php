@@ -389,6 +389,9 @@ class DbMysql extends Db {
      */
     private function execute ($query, $parameters = null, $invoke = null, $reconnection = false)
     {
+        // 忽略错误
+        $ignoreLevel = isset($this->_options['ignorelevel']) ? $this->_options['ignorelevel'] : 0;
+        // 解析sql
         if (empty($query)) {
             $query = $this->parseSql();
         } else {
@@ -414,7 +417,7 @@ class DbMysql extends Db {
             $statement->execute();
         } catch (\PDOException $e) {
             // 记录日志
-            if ($reconnection === false) {
+            if ($reconnection === false && $ignoreLevel != 2) {
                 DebugLog::_mysql(null, concat('[', round(microtime(true) - $time, 3), 's] ', $lastSql), $this->error($e->errorInfo));
             }
             if ($reconnection === false && ($e->errorInfo[1] == 2006 || $e->errorInfo[1] == 2013)) {
@@ -431,7 +434,7 @@ class DbMysql extends Db {
             }
         }
         // 记录日志
-        if ($this->_debug === true && $reconnection === false) {
+        if ($this->_debug === true && $reconnection === false && $ignoreLevel != 1 && $ignoreLevel != 2) {
             DebugLog::_mysql(null, concat('[', round(microtime(true) - $time, 3), 's] ', $lastSql));
         }
         if (isset($invoke)) {
