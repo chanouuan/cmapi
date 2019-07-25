@@ -1884,11 +1884,14 @@ class XicheManageModel extends Crud {
             if (!$v['车系']) {
                 return error('[第' . ($k + 1) . '行] 车系不能为空！');
             }
-            if (!$v['车型'] || !isset($carTypes[$v['车型']])) {
+            if ($v['车型'] && !isset($carTypes[$v['车型']])) {
                 return error('[第' . ($k + 1) . '行] 车型不存在！');
             }
-            $rs[$k]['车型'] = $carTypes[$v['车型']];
+            $rs[$k]['车型'] = intval($carTypes[$v['车型']]);
             $rs[$k]['状态'] = ($v['状态'] == '显示' || $v['状态'] == '正常' || $v['状态'] == '1') ? 1 : 0;
+            if (!$v['车型']) {
+                $rs[$k]['状态'] = 0;
+            }
         }
         unset($brands, $carTypes);
 
@@ -1903,7 +1906,7 @@ class XicheManageModel extends Crud {
         $list   = $this->getList('parkwash_car_series', null, null, null, 'id,name,brand_id,car_type_id,status');
         $series = [];
         foreach ($list as $k => $v) {
-            $series[$v['brand_id'] . $v['name']] = $v;
+            $series[$v['brand_id'] . $this->filterData($v['name'])] = $v;
         }
         unset($list);
         $insert = [];
@@ -1942,6 +1945,7 @@ class XicheManageModel extends Crud {
             unset($insert);
         }
 
+        F('CarSeries', null);
         return success('导入成功' . ($result ? '（' . urldecode(http_build_query($result)) . '）' : ''));
     }
 
@@ -1965,7 +1969,7 @@ class XicheManageModel extends Crud {
      */
     public function filterData($data)
     {
-        $data = trim(trim(trim($data, ' '), '-'), '	');
+        $data = trim(trim($data), '　');
         $data = str_replace(["\r", "\n", "\t", '"', '\''], '', $data);
         $data = htmlspecialchars(rtrim($data, "\0"), ENT_QUOTES);
         $data = mb_substr($data, 0, 200, 'UTF-8');

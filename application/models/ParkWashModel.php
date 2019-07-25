@@ -1586,6 +1586,9 @@ class ParkWashModel extends Crud {
         if ($storeInfo['status'] == 0) {
             return error('该门店正在建设中');
         }
+        if ($storeInfo['status'] == -1) {
+            return error('该门店已禁用');
+        }
 
         // 判断车辆状态
         if (!$carportInfo = $this->getDb()->table('parkwash_carport')->field('car_number,brand_id,series_id,vip_expire')->where(['id' => $post['carport_id'], 'uid' => $uid])->find()) {
