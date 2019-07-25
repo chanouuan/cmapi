@@ -232,7 +232,7 @@ class ParkWashEmployee extends ActionPDO {
     /**
      * 检查当前用户是否可以接单
      * @login
-     * @param *orderid 订单ID
+     * @param orderid 订单ID
      * @return array
      * {
      * "errNo":0, //错误码 0成功 -1失败

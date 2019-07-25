@@ -160,7 +160,7 @@ class ParkWashEmployeeModel extends Crud {
         }
 
         // 只有接单人或帮手可以操作
-        if (!$helperList = $this->getDb()->table('parkwash_order_helper')->field('employee_id')->where(['orderid' => $post['orderid']])->select()) {
+        if (!$helperList = $this->getDb()->table('parkwash_order_helper')->field('employee_id')->where(['orderid' => $post['orderid']])->order('id')->select()) {
             return error('该订单异常不能完成服务');
         }
 
@@ -404,7 +404,7 @@ class ParkWashEmployeeModel extends Crud {
         $orderid = intval($orderid);
 
         if ($orderid) {
-            if (!$this->getDb()->table('parkwash_order')->where(['id' => $orderid, 'status' => ['<>', ParkWashOrderStatus::PAY]])->count()) {
+            if (!$this->getDb()->table('parkwash_order')->where(['id' => $orderid, 'status' => ParkWashOrderStatus::PAY])->count()) {
                 return error('该订单已开始服务或用户已取消');
             }
         }
@@ -750,6 +750,7 @@ class ParkWashEmployeeModel extends Crud {
         $result = $result['result'];
         $userInfo['token'] = $result['token'];
         $userInfo['avatar'] = httpurl($userInfo['avatar']);
+        $userInfo['state_online'] = 1;
         unset($userInfo['password'], $userInfo['status']);
 
         // 登录成功自动上线

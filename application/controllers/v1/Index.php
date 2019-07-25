@@ -122,22 +122,22 @@ class Index extends \ActionPDO {
 //            ->setNotificationAlert('Hello, JPush')
 //            ->send();
 
-        $parkWashModel = new \app\models\ParkWashModel();
-        echo '<br>新订单已发: <br>';
-        print_r($parkWashModel->sendJPush('您有新的订单', '车秘未来洗车', [
-            'action'  => 'newOrderNotification',
-            'orderid' => 1
-        ]));
-        echo '<br>取消订单已发: <br>';
-        print_r($parkWashModel->sendJPush('用户取消订单', '车秘未来洗车', [
-            'action'  => 'cancelOrderNotification',
-            'orderid' => 1
-        ], null, 1));
-        echo '<br>开始服务已发: <br>';
-        print_r($parkWashModel->sendJPush('老王已开始服务', '车秘未来洗车', [
-            'action'  => 'takeOrderNotification',
-            'orderid' => 1
-        ], null, 1));
+//        $parkWashModel = new \app\models\ParkWashModel();
+//        echo '<br>新订单已发: <br>';
+//        print_r($parkWashModel->sendJPush('您有新的订单', '车秘未来洗车', [
+//            'action'  => 'newOrderNotification',
+//            'orderid' => 1
+//        ]));
+//        echo '<br>取消订单已发: <br>';
+//        print_r($parkWashModel->sendJPush('用户取消订单', '车秘未来洗车', [
+//            'action'  => 'cancelOrderNotification',
+//            'orderid' => 1
+//        ], null, 1));
+//        echo '<br>开始服务已发: <br>';
+//        print_r($parkWashModel->sendJPush('老王已开始服务', '车秘未来洗车', [
+//            'action'  => 'takeOrderNotification',
+//            'orderid' => 1
+//        ], null, 1));
     }
 
     public function total () {

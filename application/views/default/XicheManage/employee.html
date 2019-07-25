@@ -26,10 +26,10 @@
                             <input value="<?=$_GET['telephone']?>" maxlength="11" type="text" name="telephone" placeholder="请输入员工手机" autocomplete="off" class="layui-input">
                         </div>
                         <div class="layui-input-inline layui-show-xs-block">
-                            <select name="payway">
+                            <select name="status">
                                 <option value="">状态</option>
-                                <option <?php if($_GET['payway']=='0'){ ?>selected<?php } ?> value="0">禁用</option>
-                                <option <?php if($_GET['payway']=='1'){ ?>selected<?php } ?> value="1">正常</option>
+                                <option <?php if($_GET['status']=='0'){ ?>selected<?php } ?> value="0">禁用</option>
+                                <option <?php if($_GET['status']=='1'){ ?>selected<?php } ?> value="1">正常</option>
                             </select>
                         </div>
                         <div class="layui-input-inline layui-show-xs-block">
@@ -54,6 +54,7 @@
                             <th>服务项目</th>
                             <th>工作</th>
                             <th>在线</th>
+                            <th>服务次数</th>
                             <th>总收益</th>
                             <th>状态</th>
                             <th>操作</th>
@@ -71,6 +72,7 @@
                             <td><?=$v['item_id']?></td>
                             <td><?=$v['state_work']==1?'工作中':'闲置中'?></td>
                             <td><?=$v['state_online']==1?'在线':'离线'?></td>
+                            <td><?=$v['order_count']?></td>
                             <td><?=$v['money']/100?></td>
                             <td><?=$v['status']==1?'正常':'禁用'?></td>
                             <td class="td-manage">

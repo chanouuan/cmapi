@@ -34,6 +34,7 @@
                         <tr>
                             <th>ID</th>
                             <th>区域代码</th>
+                            <th>停车场</th>
                             <th>店名</th>
                             <th>电话</th>
                             <th>地址</th>
@@ -50,12 +51,13 @@
                         <tr>
                             <td><?=$v['id']?></td>
                             <td><?=$v['adcode']?></td>
+                            <td><?=$v['park_name']?></td>
                             <td><?=$v['name']?></td>
                             <td><?=$v['tel']?></td>
                             <td><?=$v['address']?></td>
                             <td><?=$v['business_hours']?></td>
                             <td><?=$v['order_count']?></td>
-                            <td><?=round_dollar($v['money'])?></td>
+                            <td><?=$v['money']?></td>
                             <td><?=$v['employee_count']?></td>
                             <td><?=$v['str_status']?></td>
                             <td class="td-manage">

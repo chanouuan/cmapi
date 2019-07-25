@@ -20,6 +20,10 @@ class XicheManageModel extends Crud {
             return error('名称不能为空');
         }
 
+        if ($this->getDb()->table('parkwash_park')->where(['id' => ['<>', $post['id']], 'name' => $post['name']])->count()) {
+            return error('该停车场名称已存在');
+        }
+
         if (false === $this->getDb()->update('parkwash_park', [
                 'name'        => $post['name'],
                 'update_time' => date('Y-m-d H:i:s', TIMESTAMP),
@@ -40,6 +44,10 @@ class XicheManageModel extends Crud {
 
         if (empty($post['name'])) {
             return error('名称不能为空');
+        }
+
+        if ($this->getDb()->table('parkwash_park')->where(['name' => $post['name']])->count()) {
+            return error('该停车场名称已存在');
         }
 
         if (!$this->getDb()->insert('parkwash_park', [
@@ -95,6 +103,10 @@ class XicheManageModel extends Crud {
 
         if (!$storeInfo = $this->getInfo('parkwash_store', ['id' => $post['store_id']], 'name')) {
             return error('该店铺不存在');
+        }
+
+        if ($this->getDb()->table('parkwash_employee')->where(['id' => ['<>', $post['id']], 'telephone' => $post['telephone']])->count()) {
+            return error('该手机号已存在');
         }
 
         // 上传图片
@@ -178,6 +190,10 @@ class XicheManageModel extends Crud {
             return error('该店铺不存在');
         }
 
+        if ($this->getDb()->table('parkwash_employee')->where(['telephone' => $post['telephone']])->count()) {
+            return error('该手机号已存在');
+        }
+
         // 上传图片
         if (isset($_FILES['upfile']) && $_FILES['upfile']['error'] == 0) {
             if ($_FILES['upfile']['size'] > 1048576) {
@@ -236,6 +252,10 @@ class XicheManageModel extends Crud {
             return error('请选择车型');
         }
 
+        if ($this->getDb()->table('parkwash_car_series')->where(['id' => ['<>', $post['id']], 'brand_id' => $post['brand_id'], 'name' => $post['name']])->count()) {
+            return error('该车系名称已存在');
+        }
+
         if (false === $this->getDb()->update('parkwash_car_series', [
                 'name'        => $post['name'],
                 'brand_id'    => $post['brand_id'],
@@ -267,6 +287,10 @@ class XicheManageModel extends Crud {
         }
         if (empty($post['car_type_id'])) {
             return error('请选择车型');
+        }
+
+        if ($this->getDb()->table('parkwash_car_series')->where(['brand_id' => $post['brand_id'], 'name' => $post['name']])->count()) {
+            return error('该车系名称已存在');
         }
 
         if (!$this->getDb()->insert('parkwash_car_series', [
