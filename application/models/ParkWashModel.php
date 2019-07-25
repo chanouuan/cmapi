@@ -1067,7 +1067,8 @@ class ParkWashModel extends Crud {
         }
 
         $condition = [
-            'adcode' => $post['adcode'],
+            'adcode'  => $post['adcode'],
+            'status'  => ['in', [0, 1]],
             'geohash' => ['<', $len]
         ];
 
@@ -1289,7 +1290,8 @@ class ParkWashModel extends Crud {
             'list'     => []
         ];
         $condition = [
-            'adcode' => $post['adcode']
+            'adcode' => $post['adcode'],
+            'status' => ['in', [0, 1]]
         ];
 
         $geohash = $this->geoOrder($post['lon'], $post['lat']);

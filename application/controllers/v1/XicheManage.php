@@ -472,10 +472,11 @@ class XicheManage extends ActionPDO {
             $employees = array_column($employees, 'count', 'store_id');
             $parks = $model->getList('parkwash_park', null, null, null);
             $parks = array_column($parks, 'name', 'id');
+            $statusEnum = [1 => '正常营业', 0 => '建设中', -1 => '禁用'];
             foreach ($list as $k => $v) {
                 $list[$k]['logo'] = $v['logo'] ? json_decode($v['logo'], true) : [];
                 $list[$k]['logo'] = $list[$k]['logo'] ? '<a onclick="xadmin.open(\'IMG\',\'' . httpurl($list[$k]['logo'][0]) . '\')" href="javascript:;" target="_blank"><img height="30" src="' . httpurl($list[$k]['logo'][0]) . '"></a>' : '';
-                $list[$k]['str_status'] = $v['status'] ? '正常营业' : '建设中';
+                $list[$k]['str_status'] = $statusEnum[$v['status']];
                 $list[$k]['employee_count'] = isset($employees[$v['id']]) ? $employees[$v['id']] : 0; // 员工数
                 $list[$k]['park_name'] = $parks[$v['park_id']];
                 $list[$k]['money'] = round_dollar($v['money']);

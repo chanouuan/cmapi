@@ -114,6 +114,7 @@
                     <select name="status">
                         <option value="1">正常营业</option>
                         <option <?php if($info['status']==0){ ?>selected<?php } ?> value="0">建设中</option>
+                        <option <?php if($info['status']==-1){ ?>selected<?php } ?> value="-1">禁用</option>
                     </select>
                 </div>
             </div>

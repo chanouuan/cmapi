@@ -867,7 +867,7 @@ class XicheManageModel extends Crud {
         $post['daily_cancel_limit'] = $post['daily_cancel_limit'] < 0 ? 0 : $post['daily_cancel_limit'];
         $post['order_count_ratio']  = intval($post['order_count_ratio']);
         $post['order_count_ratio']  = $post['order_count_ratio'] < 0 ? 0 : $post['order_count_ratio'];
-        $post['status']             = $post['status'] ? 1 : 0;
+        $post['status']             = intval($post['status']);
         $post['time_interval']      = intval($post['time_interval']);
         $post['time_amount']        = intval($post['time_amount']);
         $post['time_day']           = array_filter($post['time_day']);
@@ -977,7 +977,7 @@ class XicheManageModel extends Crud {
         $this->getDb()->insert('parkwash_store_item', $item);
 
         // 正常营业状态
-        if ($post['status']) {
+        if ($post['status'] == 1) {
             // 更新排班
             $this->poolSave($post['id'], $post['business_hours'], $post['time_interval'], $post['time_amount'], $post['time_day']);
         }
@@ -991,7 +991,8 @@ class XicheManageModel extends Crud {
     /**
      * 更新排班表
      */
-    protected function poolSave ($store_id, $business_hours, $time_interval, $time_amount, $time_day) {
+    protected function poolSave ($store_id, $business_hours, $time_interval, $time_amount, $time_day)
+    {
         // 工作日
         $time_day = str_split($time_day);
         // 排班天数
@@ -1105,7 +1106,7 @@ class XicheManageModel extends Crud {
         $post['daily_cancel_limit'] = $post['daily_cancel_limit'] < 0 ? 0 : $post['daily_cancel_limit'];
         $post['order_count_ratio']  = intval($post['order_count_ratio']);
         $post['order_count_ratio']  = $post['order_count_ratio'] < 0 ? 0 : $post['order_count_ratio'];
-        $post['status']             = $post['status'] ? 1 : 0;
+        $post['status']             = intval($post['status']);
         $post['time_interval']      = intval($post['time_interval']);
         $post['time_amount']        = intval($post['time_amount']);
         $post['time_day']           = array_filter($post['time_day']);
@@ -1216,7 +1217,7 @@ class XicheManageModel extends Crud {
         $this->getDb()->insert('parkwash_store_item', $item);
 
         // 正常营业状态
-        if ($post['status']) {
+        if ($post['status'] == 1) {
             // 新增排班
             $this->poolSave($store_id, $post['business_hours'], $post['time_interval'], $post['time_amount'], $post['time_day']);
         }
