@@ -65,7 +65,7 @@
                             <td><?=$v['createtime']?></td>
                             <td><?=$v['paystatus']?></td>
                             <td class="td-manage">
-                                <butotn class="layui-btn layui-btn-xs" title="查看日志" onclick="x_admin_show('日志查看','<?=gurl('xicheManage/log',['orderno'=>$v['ordercode']])?>')">
+                                <butotn class="layui-btn layui-btn-xs" title="查看日志" onclick="xadmin.open('日志查看','<?=gurl('xicheManage/log',['orderno'=>$v['ordercode']])?>')">
                                     <i class="layui-icon">&#xe63c;</i>日志
                                 </butotn>
                             </td>

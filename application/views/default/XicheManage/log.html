@@ -47,6 +47,7 @@
                         </tr>
                         </thead>
                         <tbody>
+                        <?php if($list){ ?>
                         <?php foreach($list as $k=>$v){ ?>
                         <tr>
                             <td><?=$v['id']?></td>
@@ -55,7 +56,7 @@
                             <td><?=$v['uid']?></td>
                             <td><?=$v['orderno']?></td>
                             <td><?=$v['devcode']?></td>
-                            <td onclick="x_admin_show('详情','<?=gurl('xicheManage/logInfo',['id'=>$v['id']])?>')"><a href="#">查看</a></td>
+                            <td onclick="xadmin.open('详情','<?=gurl('xicheManage/logInfo',['id'=>$v['id']])?>')"><a href="#">查看</a></td>
                             <td><?=$v['created_at']?></td>
                             <td><?=$v['updated_at']?></td>
                             <td class="td-manage">
@@ -66,6 +67,9 @@
                                 <?php } ?>
                             </td>
                         </tr>
+                        <?php } ?>
+                        <?php }else{ ?>
+                        <tr><td colspan="10">暂无数据</td></tr>
                         <?php } ?>
                         </tbody>
                     </table>
@@ -96,7 +100,7 @@
 
             $.ajax({
                 type: 'POST',
-                url: '<?=gurl('xicheManage/logDelete')?>',
+                url: '<?=gurl("xicheManage/logDelete")?>',
                 data: {id: id},
                 dataType: 'json',
                 timeout: 5000,
