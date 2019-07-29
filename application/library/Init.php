@@ -71,14 +71,30 @@ class Controller {
         }
     }
 
-    public function raw () {
-        if (isset($_SERVER['CONTENT_TYPE']) && 0 === strpos($_SERVER['CONTENT_TYPE'], 'application/json')) {
+    public function raw ()
+    {
+        if ($this->isCli()) {
+            $options = getopt('c:a:g::p::');
+            $_GET['c'] = $options['c'];
+            $_GET['a'] = $options['a'];
+            if (isset($options['g'])) {
+                $_GET = array_merge($_GET, json_decode($options['g'], true));
+            }
+            if (isset($options['p'])) {
+                $_POST = json_decode($options['p'], true);
+            }
+        } else if (isset($_SERVER['CONTENT_TYPE']) && 0 === strpos($_SERVER['CONTENT_TYPE'], 'application/json')) {
             $data = file_get_contents('php://input');
             if ($data) {
                 $_POST = json_decode($data, true);
             }
             unset($data);
         }
+    }
+
+    public function isCli()
+    {
+        return 'cli' == php_sapi_name() ? true : false;
     }
 
     public function run ()
