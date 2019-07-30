@@ -109,7 +109,11 @@ class XicheManage extends ActionPDO {
             return $model->employeeAdd($_POST);
         }
         $stores = $model->getList('parkwash_store', null, null, null, 'id,name');
-        $items  = $model->getList('parkwash_item', null, null, null, 'id,name');
+        $items  = $model->getList('parkwash_item', null, null, null, 'id,name,car_type_id');
+        $carTypes = ParkWashCache::getCarType();
+        foreach ($items as $k => $v) {
+            $items[$k]['name'] = ($v['car_type_id'] ? $carTypes[$v['car_type_id']] . '·' : '') . $v['name'];
+        }
         return compact('stores', 'items');
     }
 
@@ -123,7 +127,11 @@ class XicheManage extends ActionPDO {
             return $model->employeeUpdate($_POST);
         }
         $stores = $model->getList('parkwash_store', null, null, null, 'id,name');
-        $items  = $model->getList('parkwash_item', null, null, null, 'id,name');
+        $items  = $model->getList('parkwash_item', null, null, null, 'id,name,car_type_id');
+        $carTypes = ParkWashCache::getCarType();
+        foreach ($items as $k => $v) {
+            $items[$k]['name'] = ($v['car_type_id'] ? $carTypes[$v['car_type_id']] . '·' : '') . $v['name'];
+        }
         $info   = $model->getInfo('parkwash_employee', ['id' => getgpc('id')]);
         $info['avatar'] = $info['avatar'] ? '<img height="30" src="' . httpurl($info['avatar']) . '">' : '';
         return compact('stores', 'items', 'info');
@@ -142,7 +150,7 @@ class XicheManage extends ActionPDO {
             $condition['realname'] = ['like', '%' . $_GET['realname'] . '%'];
         }
         if ($_GET['telephone']) {
-            $condition['telephone'] = ['like', '%' . $_GET['telephone'] . '%'];
+            $condition['telephone'] = ['like', $_GET['telephone'] . '%'];
         }
         if (isset($_GET['status']) && $_GET['status'] !== '') {
             $condition['status'] = $_GET['status'];
@@ -152,12 +160,17 @@ class XicheManage extends ActionPDO {
         $count = $model->getCount('parkwash_employee', $condition);
         $pagesize = getPageParams($_GET['page'], $count);
 
+        $carTypes = ParkWashCache::getCarType();
         $items = $model->getList('parkwash_item', null, null, null);
-        $items = array_column($items, 'name', 'id');
+        $items = array_column($items, null, 'id');
+        foreach ($items as $k => $v) {
+            $items[$k] = ($v['car_type_id'] ? $carTypes[$v['car_type_id']] . '·' : '') . $v['name'];
+        }
         $list = $model->getList('parkwash_employee', $condition, $pagesize['limitstr']);
         foreach ($list as $k => $v) {
             $list[$k]['avatar'] = $v['avatar'] ? '<a onclick="xadmin.open(\'IMG\',\'' . httpurl($v['avatar']) . '\')" href="javascript:;" target="_blank"><img height="30" src="' . httpurl($v['avatar']) . '"></a>' : '';
             $list[$k]['item_id'] = strtr(trim($v['item_id'], ','), $items);
+            $list[$k]['item_id'] = '<span title="' . $list[$k]['item_id'] . '">' . msubstr($list[$k]['item_id'], 0, 10, 'utf-8', true) . '</span>';
         }
 
         return compact('pagesize', 'list');
@@ -501,6 +514,10 @@ class XicheManage extends ActionPDO {
 
         $items = $model->getList('parkwash_item', null, null, null);
         $parks = $model->getList('parkwash_park', null, null, null);
+        $carTypes = ParkWashCache::getCarType();
+        foreach ($items as $k => $v) {
+            $items[$k]['name'] = ($v['car_type_id'] ? $carTypes[$v['car_type_id']] . '·' : '') . $v['name'];
+        }
 
         return compact('items', 'parks');
     }
@@ -522,7 +539,9 @@ class XicheManage extends ActionPDO {
         $items = $model->getList('parkwash_item', null, null, null);
         $storeItems = $model->getList('parkwash_store_item', ['store_id' => getgpc('id')]);
         $storeItems = array_column($storeItems, null, 'item_id');
+        $carTypes = ParkWashCache::getCarType();
         foreach ($items as $k => $v) {
+            $items[$k]['name'] = ($v['car_type_id'] ? $carTypes[$v['car_type_id']] . '·' : '') . $v['name'];
             $items[$k]['price'] = isset($storeItems[$v['id']]) ? $storeItems[$v['id']]['price'] : 0;
             $items[$k]['employee_salary'] = isset($storeItems[$v['id']]) ? $storeItems[$v['id']]['employee_salary'] : 0;
         }

@@ -24,6 +24,7 @@
                 <div class="layui-input-inline">
                     <?php foreach($items as $k=>$v){ ?>
                     <input type="checkbox" name="item_id[]" value="<?=$v['id']?>" title="<?=$v['name']?>" <?php if(false!==strpos($info['item_id'],','.$v['id'].',')){ ?>checked<?php } ?>>
+                    <?=($k+1)%4==0?'<br>':''?>
                     <?php } ?>
                 </div>
             </div>
