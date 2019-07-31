@@ -67,13 +67,14 @@ class XicheManageModel extends Crud {
      */
     public function employeeUpdate ($post)
     {
-        $post['store_id'] = intval($post['store_id']);
-        $post['realname'] = trim_space($post['realname']);
-        $post['item_id']  = implode(',', $post['item_id']);
-        $post['gender']   = $post['gender'] == 1 ? 1 : 2;
-        $post['status']   = $post['status'] == 1 ? 1 : 0;
-        $post['password'] = trim_space($post['password']);
-        $post['idcard']   = trim_space($post['idcard']);
+        $post['store_id']   = intval($post['store_id']);
+        $post['realname']   = trim_space($post['realname']);
+        $post['item_id']    = implode(',', $post['item_id']);
+        $post['gender']     = $post['gender'] == 1 ? 1 : 2;
+        $post['status']     = $post['status'] == 1 ? 1 : 0;
+        $post['password']   = trim_space($post['password']);
+        $post['idcard']     = trim_space($post['idcard']);
+        $post['state_work'] = $post['state_work'] ? 1 : 0;
 
         $userModel = new UserModel();
 
@@ -132,6 +133,7 @@ class XicheManageModel extends Crud {
             'idcard'      => $post['idcard'],
             'gender'      => $post['gender'],
             'status'      => $post['status'],
+            'state_work'  => $post['state_work'],
             'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
         ];
         if ($post['avatar']) {
@@ -861,7 +863,7 @@ class XicheManageModel extends Crud {
         $post['name']               = trim_space($post['name']);
         $post['market']             = trim_space($post['market']);
         $post['location']           = trim_space($post['location']);
-        $post['location']           = str_replace('，', ',', $post['location']); // 将中文逗号换成英文
+        $post['location']           = trim(str_replace('，', ',', $post['location']), ','); // 将中文逗号换成英文
         $post['location']           = LocationUtils::checkLocation($post['location']);
         $post['daily_cancel_limit'] = intval($post['daily_cancel_limit']);
         $post['daily_cancel_limit'] = $post['daily_cancel_limit'] < 0 ? 0 : $post['daily_cancel_limit'];
@@ -1100,7 +1102,7 @@ class XicheManageModel extends Crud {
         $post['name']               = trim_space($post['name']);
         $post['market']             = trim_space($post['market']);
         $post['location']           = trim_space($post['location']);
-        $post['location']           = str_replace('，', ',', $post['location']); // 将中文逗号换成英文
+        $post['location']           = trim(str_replace('，', ',', $post['location']), ','); // 将中文逗号换成英文
         $post['location']           = LocationUtils::checkLocation($post['location']);
         $post['daily_cancel_limit'] = intval($post['daily_cancel_limit']);
         $post['daily_cancel_limit'] = $post['daily_cancel_limit'] < 0 ? 0 : $post['daily_cancel_limit'];

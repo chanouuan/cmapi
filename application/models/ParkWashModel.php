@@ -2769,14 +2769,6 @@ class ParkWashModel extends Crud {
             return false;
         }
         $helperList = array_column($helperList, null, 'employee_id');
-        foreach ($employeeList as $k => $v) {
-            $data = $helperList[$v['id']];
-            $this->getDb()->update('parkwash_employee', [
-                'order_count' => intval($data['count']),
-                'money' => intval($data['employee_salary']),
-                'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
-            ], ['id' => $v['id']]);
-        }
 
         // 更新订单计数
         if (!$list = $this->getDb()
@@ -2793,13 +2785,22 @@ class ParkWashModel extends Crud {
             $orderList[$v['employee_id']][$v['status']] = $v['count'];
         }
         unset($list);
+
         foreach ($employeeList as $k => $v) {
-            $data = $orderList[$v['id']];
+            // 更新订单数量
             $this->getDb()->update('parkwash_employee_order_count', [
-                's1' => intval($data[ParkWashOrderStatus::PAY]),
-                's2' => intval($data[ParkWashOrderStatus::COMPLETE]) + intval($data[ParkWashOrderStatus::CONFIRM])
+                's1' => intval($orderList[$v['id']][ParkWashOrderStatus::IN_SERVICE]),
+                's2' => intval($orderList[$v['id']][ParkWashOrderStatus::COMPLETE]) + intval($orderList[$v['id']][ParkWashOrderStatus::CONFIRM])
+            ], ['id' => $v['id']]);
+            // 更新员工属性
+            $this->getDb()->update('parkwash_employee', [
+                'order_count' => intval($helperList[$v['id']]['count']),
+                'money'       => intval($helperList[$v['id']]['employee_salary']),
+                'state_work'  => intval($orderList[$v['id']][ParkWashOrderStatus::IN_SERVICE]) ? 1 : 0,
+                'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
             ], ['id' => $v['id']]);
         }
+        unset($employeeList, $orderList, $helperList);
 
         return true;
     }

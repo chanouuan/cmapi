@@ -2,6 +2,13 @@
 
 date_default_timezone_set('PRC');
 
+if (isset($_SERVER['PATH_INFO'])) {
+    if (strpos($_SERVER['PATH_INFO'], '.')) {
+        http_response_code(404);
+        exit('404');
+    }
+}
+
 define('APPLICATION_PATH', dirname(__DIR__));
 define('APPLICATION_URL', rtrim(implode('', [$_SERVER['REQUEST_SCHEME'], '://', $_SERVER['HTTP_HOST'], str_replace('index.php', '', $_SERVER['SCRIPT_NAME'])]), '/'));
 define('TIMESTAMP', $_SERVER['REQUEST_TIME']);

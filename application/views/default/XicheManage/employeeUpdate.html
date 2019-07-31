@@ -85,6 +85,17 @@
             </div>
             <div class="layui-form-item">
                 <label class="layui-form-label">
+                    <span class="x-red">*</span>工作
+                </label>
+                <div class="layui-input-inline">
+                    <select name="state_work" lay-verify="required">
+                        <option value="0">闲置中</option>
+                        <option value="1" <?php if(1==$info['state_work']){ ?>selected<?php } ?>>工作中</option>
+                    </select>
+                </div>
+            </div>
+            <div class="layui-form-item">
+                <label class="layui-form-label">
                     <span class="x-red">*</span>状态
                 </label>
                 <div class="layui-input-inline">
