@@ -46,10 +46,16 @@
                             </select>
                         </div>
                         <div class="layui-input-inline layui-show-xs-block">
-                            <input value="<?=$_GET['start_time']?>" class="layui-input" id="start_time" name="start_time" placeholder="预约开始日期" readonly>
+                            <input value="<?=$_GET['start_time']?>" class="layui-input" id="start_time" name="start_time" placeholder="取车开始日期" readonly>
                         </div>
                         <div class="layui-input-inline layui-show-xs-block">
-                            <input value="<?=$_GET['end_time']?>" class="layui-input" id="end_time" name="end_time" placeholder="预约截止日期" readonly>
+                            <input value="<?=$_GET['end_time']?>" class="layui-input" id="end_time" name="end_time" placeholder="取车截止日期" readonly>
+                        </div>
+                        <div class="layui-input-inline layui-show-xs-block">
+                            <input value="<?=$_GET['start_time_create']?>" class="layui-input" id="start_time_create" name="start_time_create" placeholder="下单开始日期" readonly>
+                        </div>
+                        <div class="layui-input-inline layui-show-xs-block">
+                            <input value="<?=$_GET['end_time_create']?>" class="layui-input" id="end_time_create" name="end_time_create" placeholder="下单截止日期" readonly>
                         </div>
                         <div class="layui-input-inline layui-show-xs-block">
                             <button class="layui-btn" lay-submit="" lay-filter="sreach"><i class="layui-icon">&#xe615;</i></button>
@@ -172,6 +178,12 @@
         });
         laydate.render({
             elem: '#end_time'
+        });
+        laydate.render({
+            elem: '#start_time_create'
+        });
+        laydate.render({
+            elem: '#end_time_create'
         });
         loadNotice(function(data){
             var content = [];

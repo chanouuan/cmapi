@@ -912,6 +912,9 @@ class XicheManage extends ActionPDO {
         if ($_GET['start_time'] && $_GET['end_time']) {
             $condition['order_time'] = ['between', [$_GET['start_time'] . ' 00:00:00', $_GET['end_time'] . ' 23:59:59']];
         }
+        if ($_GET['start_time_create'] && $_GET['end_time_create']) {
+            $condition['create_time'] = ['between', [$_GET['start_time_create'] . ' 00:00:00', $_GET['end_time_create'] . ' 23:59:59']];
+        }
 
         if (empty($_GET['export'])) {
             $count = $model->getCount('parkwash_order', $condition);
@@ -1026,9 +1029,10 @@ class XicheManage extends ActionPDO {
     /**
      * 自助洗车订单管理
      */
-    public function xicheOrder () {
+    public function xicheOrder ()
+    {
         $condition = [
-            'type = "xc"'
+            'type' => 'xc'
         ];
         $model = new XicheManageModel();
         $userModel = new UserModel();
@@ -1038,27 +1042,39 @@ class XicheManage extends ActionPDO {
                 'member_name' => $_GET['telephone']
             ]);
             if ($userInfo) {
-                $condition[] = 'trade_id = ' . $userInfo['member_id'];
+                $condition['trade_id'] = $userInfo['member_id'];
             }
         }
         if ($_GET['devcode']) {
             $deviceInfo = $model->getDeviceByCode($_GET['devcode']);
             if ($deviceInfo) {
-                $condition[] = 'param_id = ' . $deviceInfo['id'];
+                $condition['param_id'] = $deviceInfo['id'];
             }
         }
         if ($_GET['ordercode']) {
-            $condition[] = 'ordercode like "' . addslashes($_GET['ordercode']) . '%"';
+            $condition['ordercode'] = $_GET['ordercode'];
+        }
+        if ($_GET['payway']) {
+            $condition['payway'] = $_GET['payway'];
+        }
+        if ($_GET['start_time'] && $_GET['end_time']) {
+            $condition['createtime'] = ['between', [$_GET['start_time'] . ' 00:00:00', $_GET['end_time'] . ' 23:59:59']];
         }
 
-        $count = $model->getCount('payments', $condition);
-        $pagesize = getPageParams($_GET['page'], $count);
+        if (empty($_GET['export'])) {
+            $count = $model->getCount('payments', $condition);
+            $pagesize = getPageParams($_GET['page'], $count);
+        }
         $list = $model->getList('payments', $condition, $pagesize['limitstr']);
 
         if ($list) {
             $paystatus = [
                 0 => '未支付',
                 1 => '已付款'
+            ];
+            $orderstatus = [
+                'wxpayjs' => '微信',
+                'cbpay'   => '车币'
             ];
             $devList = $model->getDeviceById(array_column($list, 'param_id'));
             $devList = array_column($devList, 'devcode', 'id');
@@ -1075,7 +1091,17 @@ class XicheManage extends ActionPDO {
                 $list[$k]['param_b'] = $v['param_b'] ? date('Y-m-d H:i:s', $v['param_b']) : '';
                 $list[$k]['money'] = round_dollar($v['money'], false);
                 $list[$k]['refundpay'] = $v['refundpay'] ? round_dollar($v['refundpay'], false) : '';
+                $list[$k]['payway'] = isset($orderstatus[$v['payway']]) ? $orderstatus[$v['payway']] : '';
             }
+        }
+
+        // 导出
+        if ($_GET['export']) {
+            $input = [];
+            foreach ($list as $k => $v) {
+                $input[] = [$v['id'], strval($v['ordercode']), $v['uname'], $v['devcode'], $v['param_a'], $v['param_b'], $v['payway'], $v['money'], $v['refundpay'], $v['createtime'], $v['paystatus']];
+            }
+            $model->exportCsv('自助洗车订单', '编号,订单号,用户,设备编码,开始洗车时间,结束洗车时间,支付方式,支付金额,退款金额,下单时间,状态', $input);
         }
 
         return [

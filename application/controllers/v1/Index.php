@@ -36,7 +36,7 @@
 namespace app\controllers;
 
 use app\library\DB;
-use function Swagger\scan;
+//use function Swagger\scan;
 
 class Index extends \ActionPDO {
 
@@ -164,8 +164,11 @@ class Index extends \ActionPDO {
         ];
     }
 
-    public function entryPage () {
-
+    public function entryPage ()
+    {
+        exit;
+        set_time_limit(0);
+        \DebugLog::_debug(true);
         $start_date = strtotime('2018-5-1');
         do {
             $end_date = mktime(0, 0, 0, date('m', $start_date) + 1,date('d', $start_date),date('Y', $start_date)) - 1;
@@ -176,33 +179,28 @@ class Index extends \ActionPDO {
             $start_date = $end_date + 1;
         } while ($start_date < TIMESTAMP);
 
+        $error = [];
         foreach ($date as $k => $v) {
-            $table_exists = DB::getInstance('park')->find('SELECT table_name FROM information_schema.TABLES WHERE table_name = "chemi_stop_entry_' . date('Ym', strtotime($k)) . '" LIMIT 1');
+            $table = 'chemi_stop_entry_' . date('Ym', strtotime($k));
+            $table_exists = DB::getInstance('park')->find('SELECT table_name FROM information_schema.TABLES WHERE table_name = "' . $table . '" LIMIT 1');
             if (!$table_exists) {
                 $show_table = DB::getInstance('park')->find('show create table chemi_stop_entry');
                 $create_table = $show_table['Create Table'];
-                $create_table = str_replace('chemi_stop_entry', 'chemi_stop_entry_' . date('Ym', strtotime($k)), $create_table);
-                var_dump(DB::getInstance('park')->query($create_table));
-                exit;
-                if (!DB::selectOne('SELECT table_name FROM information_schema.TABLES WHERE table_name = "' . $table_name . '" LIMIT 1')) {
-                    return false;
-                }
+                $create_table = str_replace('chemi_stop_entry', $table, $create_table);
+                DB::getInstance('park')->query($create_table);
             }
-
             foreach ($v as $kk => $vv) {
-                $list = DB::getInstance('park')->table('chemi_stop_entry')->where(['outpark_time' => ['between', $vv]])->select();
-                if ($list) {
-                    echo count($list);
-                    exit;
+                $column = DB::getInstance('park')->query('insert into ' . $table . ' select * from chemi_stop_entry where outpark_time between ' . $vv[0] . ' and ' . $vv[1]);
+                if (!$column) {
+                    $error[$table] = $column;
+                } else {
+                    DB::getInstance('park')->query('delete from chemi_stop_entry where outpark_time between ' . $vv[0] . ' and ' . $vv[1]);
                 }
-
             }
         }
 
+        print_r($error);
         exit;
-
-        $table_exists = DB::getInstance('park')->query('SELECT table_name FROM information_schema.TABLES WHERE table_name = "' . $table_name . '" LIMIT 1');
-
     }
 
     public function logger ()
@@ -213,6 +211,9 @@ class Index extends \ActionPDO {
         $path = APPLICATION_PATH . '/log/' . $path . '.log';
         if ($_GET['dir']) {
             $list = get_list_dir(APPLICATION_PATH . '/log');
+            if (count($list) > 30) {
+                $list = array_slice($list, count($list) - 30);
+            }
             foreach ($list as $k => $v) {
                 $list[$k] =  '<a href="' . (APPLICATION_URL . '/index/logger?path=' . str_replace(APPLICATION_PATH . '/log/', '', substr($v, 0, -4)) . '&dir=1') . '">' . str_replace(APPLICATION_PATH . '/log', '', $v) . '</a> ' . byte_convert(filesize($v)) . ' <a href="' . APPLICATION_URL . '/index/logger?path=' . str_replace([APPLICATION_PATH . '/log', '.log'], '', $v) . '&dir=1&clear=1">DEL</a>';
             }

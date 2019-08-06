@@ -26,11 +26,26 @@
                             <input value="<?=$_GET['ordercode']?>" maxlength="64" type="text" name="ordercode"  placeholder="请输入订单号" autocomplete="off" class="layui-input">
                         </div>
                         <div class="layui-input-inline layui-show-xs-block">
+                            <select name="payway">
+                                <option value="">支付方式</option>
+                                <option <?php if($_GET['payway']=='cbpay'){ ?>selected<?php } ?> value="cbpay">车币</option>
+                                <option <?php if($_GET['payway']=='wxpayjs'){ ?>selected<?php } ?> value="wxpayjs">微信</option>
+                            </select>
+                        </div>
+                        <div class="layui-input-inline layui-show-xs-block">
+                            <input value="<?=$_GET['start_time']?>" class="layui-input" id="start_time" name="start_time" placeholder="开始日期" readonly>
+                        </div>
+                        <div class="layui-input-inline layui-show-xs-block">
+                            <input value="<?=$_GET['end_time']?>" class="layui-input" id="end_time" name="end_time" placeholder="截止日期" readonly>
+                        </div>
+                        <div class="layui-input-inline layui-show-xs-block">
                             <button class="layui-btn" lay-submit="" lay-filter="sreach"><i class="layui-icon">&#xe615;</i></button>
                         </div>
                     </form>
                 </div>
                 <div class="layui-card-header">
+                    <a href="?<?=burl('export=1')?>" class="layui-btn layui-btn-normal" target="temp">导出</a>
+                    <iframe name="temp" style="display: none;"></iframe>
                     <span class="right-page">共有数据：<?=$pagesize['totalcount']?> 条</span>
                 </div>
                 <div class="layui-card-body card-table">
@@ -43,6 +58,7 @@
                             <th>设备编码</th>
                             <th>开始洗车时间</th>
                             <th>结束洗车时间</th>
+                            <th>支付方式</th>
                             <th>支付金额</th>
                             <th>退款金额</th>
                             <th>下单时间</th>
@@ -60,6 +76,7 @@
                             <td><?=$v['devcode']?></td>
                             <td><?=$v['param_a']?></td>
                             <td><?=$v['param_b']?></td>
+                            <td><?=$v['payway']?></td>
                             <td><?=$v['money']?></td>
                             <td><?=$v['refundpay']?></td>
                             <td><?=$v['createtime']?></td>
@@ -72,7 +89,7 @@
                         </tr>
                         <?php } ?>
                         <?php }else{ ?>
-                        <tr><td colspan="11">暂无数据</td></tr>
+                        <tr><td colspan="12">暂无数据</td></tr>
                         <?php } ?>
                         </tbody>
                     </table>
@@ -97,6 +114,17 @@
     </div>
 </div>
 
+<script>
+    layui.use(['laydate', 'form'], function() {
+        var laydate = layui.laydate;
+        laydate.render({
+            elem: '#start_time'
+        });
+        laydate.render({
+            elem: '#end_time'
+        });
+    });
+</script>
 </body>
 
 </html>
