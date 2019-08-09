@@ -36,6 +36,19 @@
                     <input value="<?=$info['realname']?>" placeholder="请填写姓名" type="text" maxlength="20" name="realname" required="" lay-verify="required" autocomplete="off" class="layui-input">
                 </div>
             </div>
+            <?php if (in_array(1, ROLE)) { ?>
+            <div class="layui-form-item">
+                <label class="layui-form-label">
+                    <span class="x-red">*</span>角色
+                </label>
+                <div class="layui-input-inline">
+                    <select name="role_id" lay-verify="required">
+                        <option value="0">员工</option>
+                        <option value="2" <?php if(2==$info['role_id']){ ?>selected<?php } ?>>店长</option>
+                    </select>
+                </div>
+            </div>
+            <?php } ?>
             <div class="layui-form-item">
                 <label class="layui-form-label">
                     头像

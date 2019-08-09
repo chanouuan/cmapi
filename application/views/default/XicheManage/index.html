@@ -3,7 +3,7 @@
 <body class="index">
     <!-- 顶部开始 -->
     <div class="container">
-        <div class="logo"><a href="./index.html">洗车后台管理</a></div>
+        <div class="logo"><a href="./index.html">车秘未来洗车</a></div>
         <div class="left_open">
             <a><i title="展开左侧栏" class="iconfont">&#xe699;</i></a>
         </div>
@@ -23,6 +23,7 @@
     <div class="left-nav">
       <div id="side-nav">
         <ul id="nav">
+            <?php if (array_intersect(['ANY', 'store'], PERMISSION)) { ?>
             <li>
                 <a onclick="xadmin.add_tab('店铺管理','<?=gurl('xicheManage/store')?>')">
                     <i class="iconfont">&#xe722;</i>
@@ -30,6 +31,8 @@
                     <i class="iconfont nav_right">&#xe6a7;</i>
                 </a>
             </li>
+            <?php } ?>
+            <?php if (array_intersect(['ANY', 'park'], PERMISSION)) { ?>
             <li>
                 <a onclick="xadmin.add_tab('停车场管理','<?=gurl('xicheManage/park')?>')">
                     <i class="iconfont">&#xe75c;</i>
@@ -37,6 +40,8 @@
                     <i class="iconfont nav_right">&#xe6a7;</i>
                 </a>
             </li>
+            <?php } ?>
+            <?php if (array_intersect(['ANY', 'parkOrder', 'xicheOrder'], PERMISSION)) { ?>
             <li>
                 <a href="javascript:;">
                     <i class="iconfont">&#xe723;</i>
@@ -44,20 +49,26 @@
                     <i class="iconfont nav_right">&#xe697;</i>
                 </a>
                 <ul class="sub-menu">
+                    <?php if (array_intersect(['ANY', 'parkOrder'], PERMISSION)) { ?>
                     <li>
-                        <a onclick="xadmin.add_tab('停车场洗车','<?=gurl('xicheManage/parkOrder')?>')">
+                        <a onclick="xadmin.add_tab('人工洗车','<?=gurl('xicheManage/parkOrder')?>')">
                             <i class="iconfont">&#xe6a7;</i>
-                            <cite>停车场洗车</cite>
+                            <cite>人工洗车</cite>
                         </a>
                     </li>
+                    <?php } ?>
+                    <?php if (array_intersect(['ANY', 'xicheOrder'], PERMISSION)) { ?>
                     <li>
                         <a onclick="xadmin.add_tab('自助洗车','<?=gurl('xicheManage/xicheOrder')?>')">
                             <i class="iconfont">&#xe6a7;</i>
                             <cite>自助洗车</cite>
                         </a>
                     </li>
+                    <?php } ?>
                 </ul>
             </li>
+            <?php } ?>
+            <?php if (array_intersect(['ANY', 'user'], PERMISSION)) { ?>
             <li>
                 <a onclick="xadmin.add_tab('用户管理','<?=gurl('xicheManage/user')?>')">
                     <i class="iconfont">&#xe6b8;</i>
@@ -65,6 +76,8 @@
                     <i class="iconfont nav_right">&#xe6a7;</i>
                 </a>
             </li>
+            <?php } ?>
+            <?php if (array_intersect(['ANY', 'cardType', 'cardRecord'], PERMISSION)) { ?>
             <li>
                 <a href="javascript:;">
                     <i class="iconfont">&#xe753;</i>
@@ -72,20 +85,26 @@
                     <i class="iconfont nav_right">&#xe697;</i>
                 </a>
                 <ul class="sub-menu">
+                    <?php if (array_intersect(['ANY', 'cardType'], PERMISSION)) { ?>
                     <li>
                         <a onclick="xadmin.add_tab('套餐设置','<?=gurl('xicheManage/cardType')?>')">
                             <i class="iconfont">&#xe6a7;</i>
                             <cite>套餐设置</cite>
                         </a>
                     </li>
+                    <?php } ?>
+                    <?php if (array_intersect(['ANY', 'cardRecord'], PERMISSION)) { ?>
                     <li>
                         <a onclick="xadmin.add_tab('洗车卡','<?=gurl('xicheManage/cardRecord')?>')">
                             <i class="iconfont">&#xe6a7;</i>
                             <cite>洗车卡</cite>
                         </a>
                     </li>
+                    <?php } ?>
                 </ul>
             </li>
+            <?php } ?>
+            <?php if (array_intersect(['ANY', 'rechargeType', 'rechargeRecord'], PERMISSION)) { ?>
             <li>
                 <a href="javascript:;">
                     <i class="iconfont">&#xe753;</i>
@@ -93,20 +112,26 @@
                     <i class="iconfont nav_right">&#xe697;</i>
                 </a>
                 <ul class="sub-menu">
+                    <?php if (array_intersect(['ANY', 'rechargeType'], PERMISSION)) { ?>
                     <li>
                         <a onclick="xadmin.add_tab('套餐设置','<?=gurl('xicheManage/rechargeType')?>')">
                             <i class="iconfont">&#xe6a7;</i>
                             <cite>套餐设置</cite>
                         </a>
                     </li>
+                    <?php } ?>
+                    <?php if (array_intersect(['ANY', 'rechargeRecord'], PERMISSION)) { ?>
                     <li>
                         <a onclick="xadmin.add_tab('充值记录','<?=gurl('xicheManage/rechargeRecord')?>')">
                             <i class="iconfont">&#xe6a7;</i>
                             <cite>充值记录</cite>
                         </a>
                     </li>
+                    <?php } ?>
                 </ul>
             </li>
+            <?php } ?>
+            <?php if (array_intersect(['ANY', 'item'], PERMISSION)) { ?>
             <li>
                 <a onclick="xadmin.add_tab('洗车套餐','<?=gurl('xicheManage/item')?>')">
                     <i class="iconfont">&#xe6f6;</i>
@@ -114,6 +139,8 @@
                     <i class="iconfont nav_right">&#xe6a7;</i>
                 </a>
             </li>
+            <?php } ?>
+            <?php if (array_intersect(['ANY', 'area', 'parking'], PERMISSION)) { ?>
             <li>
                 <a href="javascript:;">
                     <i class="iconfont">&#xe6e3;</i>
@@ -121,20 +148,26 @@
                     <i class="iconfont nav_right">&#xe697;</i>
                 </a>
                 <ul class="sub-menu">
+                    <?php if (array_intersect(['ANY', 'area'], PERMISSION)) { ?>
                     <li>
                         <a onclick="xadmin.add_tab('区域','<?=gurl('xicheManage/area')?>')">
                             <i class="iconfont">&#xe6a7;</i>
                             <cite>区域</cite>
                         </a>
                     </li>
+                    <?php } ?>
+                    <?php if (array_intersect(['ANY', 'parking'], PERMISSION)) { ?>
                     <li>
                         <a onclick="xadmin.add_tab('车位状态','<?=gurl('xicheManage/parking')?>')">
                             <i class="iconfont">&#xe6a7;</i>
                             <cite>车位状态</cite>
                         </a>
                     </li>
+                    <?php } ?>
                 </ul>
             </li>
+            <?php } ?>
+            <?php if (array_intersect(['ANY', 'device', 'log'], PERMISSION)) { ?>
             <li>
                 <a href="javascript:;">
                     <i class="iconfont">&#xe6da;</i>
@@ -142,20 +175,26 @@
                     <i class="iconfont nav_right">&#xe697;</i>
                 </a>
                 <ul class="sub-menu">
+                    <?php if (array_intersect(['ANY', 'device'], PERMISSION)) { ?>
                     <li>
                         <a onclick="xadmin.add_tab('设备列表','<?=gurl('xicheManage/device')?>')">
                             <i class="iconfont">&#xe6a7;</i>
                             <cite>设备列表</cite>
                         </a>
                     </li>
+                    <?php } ?>
+                    <?php if (array_intersect(['ANY', 'log'], PERMISSION)) { ?>
                     <li>
                         <a onclick="xadmin.add_tab('日志查看','<?=gurl('xicheManage/log')?>')">
                             <i class="iconfont">&#xe6a7;</i>
                             <cite>日志查看</cite>
                         </a>
                     </li>
+                    <?php } ?>
                 </ul>
             </li>
+            <?php } ?>
+            <?php if (array_intersect(['ANY', 'carBrand', 'carSeries', 'carType'], PERMISSION)) { ?>
             <li>
                 <a href="javascript:;">
                     <i class="iconfont">&#xe709;</i>
@@ -163,26 +202,34 @@
                     <i class="iconfont nav_right">&#xe697;</i>
                 </a>
                 <ul class="sub-menu">
+                    <?php if (array_intersect(['ANY', 'carBrand'], PERMISSION)) { ?>
                     <li>
                         <a onclick="xadmin.add_tab('品牌列表','<?=gurl('xicheManage/carBrand')?>')">
                             <i class="iconfont">&#xe6a7;</i>
                             <cite>品牌列表</cite>
                         </a>
                     </li>
+                    <?php } ?>
+                    <?php if (array_intersect(['ANY', 'carSeries'], PERMISSION)) { ?>
                     <li>
                         <a onclick="xadmin.add_tab('车系列表','<?=gurl('xicheManage/carSeries')?>')">
                             <i class="iconfont">&#xe6a7;</i>
                             <cite>车系列表</cite>
                         </a>
                     </li>
+                    <?php } ?>
+                    <?php if (array_intersect(['ANY', 'carType'], PERMISSION)) { ?>
                     <li>
                         <a onclick="xadmin.add_tab('车型列表','<?=gurl('xicheManage/carType')?>')">
                             <i class="iconfont">&#xe6a7;</i>
                             <cite>车型列表</cite>
                         </a>
                     </li>
+                    <?php } ?>
                 </ul>
             </li>
+            <?php } ?>
+            <?php if (array_intersect(['ANY', 'employee', 'employeeSalary'], PERMISSION)) { ?>
             <li>
                 <a href="javascript:;">
                     <i class="iconfont">&#xe6c7;</i>
@@ -190,20 +237,26 @@
                     <i class="iconfont nav_right">&#xe697;</i>
                 </a>
                 <ul class="sub-menu">
+                    <?php if (array_intersect(['ANY', 'employee'], PERMISSION)) { ?>
                     <li>
                         <a onclick="xadmin.add_tab('员工列表','<?=gurl('xicheManage/employee')?>')">
                             <i class="iconfont">&#xe6a7;</i>
                             <cite>员工列表</cite>
                         </a>
                     </li>
+                    <?php } ?>
+                    <?php if (array_intersect(['ANY', 'employeeSalary'], PERMISSION)) { ?>
                     <li>
                         <a onclick="xadmin.add_tab('员工收益','<?=gurl('xicheManage/employeeSalary')?>')">
                             <i class="iconfont">&#xe6a7;</i>
                             <cite>员工收益</cite>
                         </a>
                     </li>
+                    <?php } ?>
                 </ul>
             </li>
+            <?php } ?>
+            <?php if (array_intersect(['ANY', 'config'], PERMISSION)) { ?>
             <li>
                 <a onclick="xadmin.add_tab('系统配置','<?=gurl('xicheManage/config')?>')">
                     <i class="iconfont">&#xe6ae;</i>
@@ -211,6 +264,7 @@
                     <i class="iconfont nav_right">&#xe6a7;</i>
                 </a>
             </li>
+            <?php } ?>
         </ul>
       </div>
     </div>
@@ -252,6 +306,7 @@
     <!-- 底部结束 -->
 <script type="text/javascript">
 
+    if (0) {
     layui.use(['layer'], function(){
         drawCircle(audioCanvas, 0);
         audioObj.addEventListener('ended', function(){
@@ -275,6 +330,7 @@
             });
         });
     });
+    }
 
     var audioOn = false;
     var audioList = [];

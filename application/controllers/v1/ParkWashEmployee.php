@@ -28,12 +28,14 @@ class ParkWashEmployee extends ActionPDO {
             'remarkOrder'     => ['interval' => 200],
             'onLine'          => ['interval' => 200],
             'onRemind'        => ['interval' => 200],
-            'statistics'      => ['interval' => 200]
+            'statistics'      => ['interval' => 200],
+            'getPersons'      => ['interval' => 200],
+            'storeStatistics' => ['interval' => 200]
         ];
     }
 
     /**
-     * 登录
+     * 登录 <span style="color:red">有改动</span>
      * @param *telephone 手机号
      * @param *msgcode 短信验证码（短信或密码任选其一）
      * @param *password 密码（短信或密码任选其一）
@@ -52,6 +54,7 @@ class ParkWashEmployee extends ActionPDO {
      *     "store_name":"", //工作店铺
      *     "state_online":0, //在线状态 1在线 0离线
      *     "state_remind":0, //订单提醒状态 1启用 0关闭
+     *     "role_id":0, //角色 0员工 2店长 <span style="color:red">新增</span>
      *     "token":"", //登录凭证
      * }}
      */
@@ -97,7 +100,7 @@ class ParkWashEmployee extends ActionPDO {
     }
 
     /**
-     * 获取员工信息
+     * 获取员工信息 <span style="color:red">有改动</span>
      * @login
      * @return array
      * {
@@ -112,6 +115,7 @@ class ParkWashEmployee extends ActionPDO {
      *     "store_name":"", //工作店铺
      *     "state_online":0, //在线状态 1在线 0离线
      *     "state_remind":0, //订单提醒状态 1启用 0关闭
+     *     "role_id":0, //角色 0员工 2店长 <span style="color:red">新增</span>
      * }}
      */
     public function getEmployeeInfo ()
@@ -135,7 +139,7 @@ class ParkWashEmployee extends ActionPDO {
      *          "id":5, //订单ID
      *          "car_number":"", //车牌号
      *          "place":"A002", //车位号
-     *          "item_name":“”, //洗车套餐
+     *          "item_name":"", //洗车套餐
      *          "order_time":"", //预约时间
      *          "create_time":"", //下单时间
      *          "brand_name":"斯柯达", //汽车品牌名
@@ -329,8 +333,9 @@ class ParkWashEmployee extends ActionPDO {
     }
 
     /**
-     * 统计
+     * 统计 <span style="color:red">有改动</span>
      * @login
+     * @param employee_id string 员工ID <span style="color:red">新增店长查看员工统计</span>
      * @param start_time 开始时间（格式：2019-01-01，默认今日）
      * @param end_time 截止时间（格式：2019-01-01，默认今日）
      * @param lastpage 分页参数
@@ -346,10 +351,10 @@ class ParkWashEmployee extends ActionPDO {
      *     "list":[{
      *          "id":5, //订单ID
      *          "car_number":"", //车牌号
-     *          "item_name":“”, //洗车套餐
+     *          "item_name":"", //洗车套餐
      *          "complete_time":"", //完成时间
-     *          "brand_name":"斯柯达", //汽车品牌名
-     *          "series_name":"昊锐", //汽车款型
+     *          "brand_name":"", //汽车品牌名
+     *          "series_name":"", //汽车款型
      *          "car_type_name":"", //车型
      *          "employee_salary":0, //收益（元）
      *      }]
@@ -357,7 +362,70 @@ class ParkWashEmployee extends ActionPDO {
      */
     public function statistics ()
     {
-        return (new ParkWashEmployeeModel())->statistics($this->_G['user']['uid'], $_POST);
+        $uid   = $this->_G['user']['uid'];
+        $model = new ParkWashEmployeeModel();
+        // 店长查看员工统计
+        if ($_POST['employee_id'] && $uid != $_POST['employee_id']) {
+            if (!$model->checkPerson($uid, $_POST['employee_id'])) {
+                return error('你不能查看该员工信息');
+            }
+            $uid = $_POST['employee_id'];
+        }
+        return $model->statistics($uid, $_POST);
+    }
+
+    /**
+     * 店长获取员工 <span style="color:red">新增</span>
+     * @login
+     * @return array
+     * {
+     * "errNo":0, // 错误码 0成功 -1失败
+     * "message":"", //错误消息
+     * "result":[{
+     *     "id":1, //用户ID
+     *     "avatar":"", //头像地址
+     *     "realname":"", //姓名
+     *     "state_online":0, //在线状态 1在线 0离线
+     *     "state_work":0, //工作状态 1工作中 0闲置中
+     * }]
+     * }
+     */
+    public function getPersons ()
+    {
+        return (new ParkWashEmployeeModel())->getPersons($this->_G['user']['uid']);
+    }
+
+    /**
+     * 店铺统计 <span style="color:red">新增</span>
+     * @login
+     * @param start_time 开始时间（格式：2019-01-01，默认今日）
+     * @param end_time 截止时间（格式：2019-01-01，默认今日）
+     * @param lastpage 分页参数
+     * @return array
+     * {
+     * "errNo":0, //错误码 0成功 -1失败
+     * "message":"",
+     * "result":{
+     *     "limit":10, //每页最大显示数
+     *     "lastpage":"", //分页参数 (下一页携带的参数)
+     *     "total_pay":0, //总收入（元）
+     *     "complete_count":0, //完成单数
+     *     "cancel_count":0, //取消单数
+     *     "list":[{
+     *          "id":5, //订单ID
+     *          "car_number":"", //车牌号
+     *          "item_name":"", //洗车套餐
+     *          "create_time":"", //下单时间
+     *          "employee_name":"", //服务员工
+     *          "car_type_name":"", //车型
+     *          "pay":0, //价格（元）
+     *          "status":-1 //订单状态 (-1已取消 4已完成服务 5顾客已确认完成)
+     *      }]
+     * }}
+     */
+    public function storeStatistics ()
+    {
+        return (new ParkWashEmployeeModel())->storeStatistics($this->_G['user']['uid'], $_POST);
     }
 
     /**

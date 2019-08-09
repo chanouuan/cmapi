@@ -7,121 +7,20 @@ use Crud;
 class AdminModel extends Crud {
 
     /**
-     * 获取业主列表
-     */
-    public function getOwnerList ($post) {
-
-        $condition = [
-            'stop_id' => $post['park_id'],
-            'owner_id' => ['>', 0]
-        ];
-        $ownerCondition = [];
-        if ($post['carpost_id']) {
-            $condition['carpost_id'] = ['like', '%' . intval($post['carpost_id']) . '%'];
-        }
-        if ($post['owner_name']) {
-            $ownerCondition['owner_name'] = ['like', '%' . addslashes($post['owner_name']) . '%'];
-        }
-        if ($post['owner_tell']) {
-            $ownerCondition['owner_tell'] = ['like', '%' . addslashes($post['owner_tell']) . '%'];
-        }
-        if ($ownerCondition) {
-            $ownerCondition['stop_id'] = $post['park_id'];
-            $ownerList = $this->getDb('park')->table('chemi_stop_owner_info')->field('owner_id')->where($ownerCondition)->limit(100)->select();
-            $ownerList = $ownerList ? array_column($ownerList, 'owner_id') : [-1];
-            $condition['owner_id'] = ['in', $ownerList];
-        }
-
-        $result = [
-            'totalpage' => 0,
-            'totalcount' => 0,
-            'page' => $post['page'],
-            'list' => []
-        ];
-
-        if (!$carpostList = $this->getDb('park')->table('chemi_stop_carpost')->field('id,carpost_name')->where(['stop_id' => $post['park_id']])->select()) {
-            return success($result);
-        }
-        $carpostList = array_column($carpostList, 'carpost_name', 'id');
-        if ($post['space_identity']) {
-            $spaceList = $this->getDb('park')->table('chemi_stop_space')->field('space_id')->where(['carpost_id' => ['in', array_keys($carpostList)], 'space_identity' => ['like', '%' . addslashes($post['space_identity']) . '%']])->limit(100)->select();
-            $spaceList = $spaceList ? array_column($spaceList, 'space_id') : [-1];
-            $condition['space_id'] = ['in', $spaceList];
-        }
-
-        if (!$count = $this->getDb('park')->table('chemi_stop_car')->where($condition)->count()) {
-            return success($result);
-        }
-
-        $pagesize = getPageParams($post['page'], $count, $post['pagesize'] < 10 ? 10 : $post['pagesize']);
-
-        if (!$carList = $this->getDb('park')->table('chemi_stop_car')->field('id,stoping_name,space_id,owner_id,license_number,carpost_id')->where($condition)->order('id desc')->limit($pagesize['limitstr'])->select()) {
-            return success($result);
-        }
-
-        $ownerIds = array_filter(array_column($carList, 'owner_id'));
-        if ($ownerIds) {
-            $ownerList = $this->getDb('park')->table('chemi_stop_owner_info')->field('owner_id,owner_name,owner_tell,room_number')->where(['owner_id' => ['in', $ownerIds]])->select();
-            $ownerList = array_column($ownerList, null, 'owner_id');
-        }
-        $spaceIds = array_filter(array_column($carList, 'space_id'));
-        if ($spaceIds) {
-            $spaceList = $this->getDb('park')->table('chemi_stop_space')->field('space_id,space_identity')->where(['space_id' => ['in', $spaceIds]])->select();
-            $spaceList = array_column($spaceList, null, 'space_id');
-        }
-        foreach ($carList as $k => $v) {
-            $carList[$k]['owner_name'] = isset($ownerList[$v['owner_id']]) ? $ownerList[$v['owner_id']]['owner_name'] : '';
-            $carList[$k]['owner_tell'] = isset($ownerList[$v['owner_id']]) ? $ownerList[$v['owner_id']]['owner_tell'] : '';
-            $carList[$k]['room_number'] = isset($ownerList[$v['owner_id']]) ? $ownerList[$v['owner_id']]['room_number'] : '';
-            $carList[$k]['space_identity'] = isset($spaceList[$v['space_id']]) ? $spaceList[$v['space_id']]['space_identity'] : '';
-            if ($v['carpost_id']) {
-                $carList[$k]['carpost_id'] = str_replace(array_keys($carpostList), $carpostList, $v['carpost_id']);
-            } else {
-                $carList[$k]['carpost_id'] = '全部区域';
-            }
-        }
-
-        $result['totalpage'] = $pagesize['totalpage'];
-        $result['totalcount'] = $pagesize['totalcount'];
-        $result['list'] = $carList;
-        unset($carList, $ownerList, $spaceList);
-        return success($result);
-    }
-
-    /**
-     * 获取社区列表
-     */
-    public function getCommunityList ($post) {
-        // 停车场ID
-        $post['parking_id'] = intval($post['parking_id']);
-
-        $userModel = new UserModel();
-        if (!$community2 = $userModel->getCheMiCommunity2Condition(['stop_id' => $post['parking_id']])) {
-            return success([]);
-        }
-        return success($userModel->getCheMiCommunityListCondition([
-            'id' => ['in', array_column($community2, 'community_id')]
-        ]));
-    }
-
-    /**
      * 管理员登录
-     * @param platform 平台代码 4 保险 5 共享
      * @param username 用户名
      * @param password 密码登录
-     * @param _token 授权码登录
-     * @param source 来源 chemiuser 车秘普通用户 chemiadmin 车秘管理员
      * @return array
      */
-    public function login ($post) {
-
+    public function login ($post)
+    {
+        $post['username'] = trim_space($post['username']);
         if (!$post['username']) {
             return error('账号不能为空');
         }
-        if (!$post['password'] && !$post['_token']) {
+        if (!$post['password']) {
             return error('密码不能为空');
         }
-        $post['source'] = get_real_val($post['source'], 'chemiuser');
 
         // 检查错误登录次数
         if (!$this->checkLoginFail($post['username'])) {
@@ -129,223 +28,101 @@ class AdminModel extends Crud {
         }
 
         // 登录不同方式
-        if ($post['source'] == 'chemiuser') {
-            $userInfo = $this->chemiUserLogin($post);
-        } else if ($post['source'] == 'chemiadmin') {
-            $userInfo = $this->chemiServerLogin($post);
-        } else {
-            return error('未知来源');
-        }
+        $userInfo = $this->userLogin($post);
         if ($userInfo['errorcode'] !== 0) {
             return $userInfo;
         }
         $userInfo = $userInfo['result'];
 
-        if ($post['source'] == 'chemiuser') {
-            // 获取管理权限
-            $permission = $this->getUserPermissions($post['platform'], $userInfo['uid']);
-            // login 权限验证
-            if (empty(array_intersect(['ANY', 'login'], $permission))) {
-                return error('权限不足');
-            }
-        } else if ($post['source'] == 'chemiadmin') {
-            // 返回运营商
-            $permission = [];
+        // 获取管理权限
+        $permission = $this->getUserPermissions($userInfo['uid']);
+        // login 权限验证
+        if (empty(array_intersect($post['permission'] ? $post['permission'] : ['ANY', 'login'], $permission['permission']))) {
+            return error('权限不足');
+        }
+        $userInfo['role'] = $permission['role'];
+        $userInfo['permission'] = $permission['permission'];
+
+        $opt = [];
+        if (isset($post['clienttype'])) {
+            $opt['clienttype'] = $post['clienttype'];
+        }
+        if (isset($post['clientapp'])) {
+            $opt['clientapp'] = $post['clientapp'];
         }
 
-        return success([
-            'uid' => $userInfo['uid'],
-            'nickname' => $userInfo['nickname'],
-            'datasource' => isset($userInfo['datasource']) ? $userInfo['datasource'] : '',
-            'parking' => isset($userInfo['parking']) ? $userInfo['parking'] : [],
-            'community' => isset($userInfo['community']) ? $userInfo['community'] : [],
-            'permission' => $permission
-        ]);
-    }
-
-    /**
-     * 获取管理员信息
-     * @param uid 管理员ID
-     * @param source 来源 chemiuser 车秘普通用户 chemiadmin 车秘管理员
-     * @return array
-     */
-    public function info ($post) {
-
-        $post['uid'] = intval($post['uid']);
-        $post['source'] = get_real_val($post['source'], 'chemiuser');
-
-        $userModel = new UserModel();
-        if ($post['source'] == 'chemiuser') {
-            $userInfo = $userModel->getUserInfo($post['uid']);
-            if ($userInfo['errorcode'] !== 0) {
-                return $userInfo;
-            }
-            $userInfo = $userInfo['result'];
-        } else if ($post['source'] == 'chemiadmin') {
-            if (!$userInfo = $userModel->getAdminInfoCondition([
-                'id' => $post['uid'],
-                'user_status' => 1
-            ], 'id as uid,user_login as nickname')) {
-                return error('用户不存在或已禁用！');
-            }
-        } else {
-            return error('未知来源');
+        // 登录状态
+        $result = (new UserModel())->setloginstatus($userInfo['uid'], uniqid(), $opt);
+        if ($result['errorcode'] !== 0) {
+            return $result;
         }
+        $userInfo['token'] = $result['result']['token'];
 
         return success($userInfo);
     }
 
     /**
-     * 车秘用户登录
+     * 停车场用户登录
      * @param $post
      * @return array
      */
-    public function chemiUserLogin ($post) {
-        if (!validate_telephone($post['username'])) {
-            return error('手机号不正确');
+    public function userLogin ($post)
+    {
+        $condition = [
+            'status' => 1
+        ];
+        if (preg_match('/^\d+$/', $post['username'])) {
+            if (!validate_telephone($post['username'])) {
+                return error('手机号不正确');
+            }
+            $condition['telephone'] = $post['username'];
+        } else {
+            $condition['nickname'] = $post['username'];
         }
 
         $userModel = new UserModel();
-        if (!$userInfo = $userModel->getUserInfoCondition([
-            'member_name' => $post['username']
-        ], 'member_id,member_name,member_passwd,nickname')) {
+
+        // 获取用户
+        if (!$userInfo = $this->getDb()->table('admin_user')->field('id,nickname,realname,telephone,password')->where($condition)->limit(1)->find()) {
             return error('用户名或密码错误');
         }
 
-        if ($post['_token']) {
-            // 验证车秘token
-            if (!$userModel->checkCmToken([
-                'member_id'=> $userInfo['member_id'],
-                'token' => $post['_token']
-            ])) {
-                return error('车秘用户效验失败');
-            }
-        } else {
-            if ($userInfo['member_passwd'] != md5(md5($post['password']))) {
-                $count = $this->loginFail($post['username']);
-                return error($count > 0 ? ('用户名或密码错误，您还可以登录 ' . $count . ' 次！') : '密码错误次数过多，15分钟后重新登录！');
-            }
+        // 密码验证
+        if (!$userModel->passwordVerify($post['password'], $userInfo['password'])) {
+            $count = $this->loginFail($post['username']);
+            return error($count > 0 ? ('用户名或密码错误，您还可以登录 ' . $count . ' 次！') : '密码错误次数过多，15分钟后重新登录！');
         }
 
         return success([
-            'uid' => $userInfo['member_id'],
-            'nickname' => get_real_val($userInfo['nickname'], $userInfo['member_name'])
+            'uid'       => $userInfo['id'],
+            'nickname'  => $userInfo['nickname'],
+            'realname'  => $userInfo['realname'],
+            'telephone' => $userInfo['telephone']
         ]);
     }
 
     /**
-     * 车秘管理后台登录
-     * @param $post
+     * 获取管理员信息
+     * @param $adminid
      * @return array
      */
-    public function chemiServerLogin ($post) {
-        $userModel = new UserModel();
-        if (!$userInfo = $userModel->getAdminInfoCondition([
-            'user_login' => $post['username'],
-            'user_status' => 1
-        ])) {
-            // 验证登录社区后台
-            return $this->chemiCommunityLogin($post);
+    public function getAdminInfo ($adminid)
+    {
+        if (!$adminInfo = $this->getDb()->table('admin_user')->field('id,nickname,realname,telephone,status')->where(['id' => $adminid])->limit(1)->find()) {
+            return error('用户不存在');
         }
-
-        if ($post['_token']) {
-            // 验证车秘token
-            if (md5($userInfo['user_pass']) != $post['_token']) {
-                return error('停车场用户效验失败');
-            }
-        } else {
-            // 验证密码
-            if ($userInfo['user_pass'] != $this->spPassword($post['password'])) {
-                $count = $this->loginFail($post['username']);
-                return error($count > 0 ? ('用户名或密码错误，您还可以登录 ' . $count . ' 次！') : '密码错误次数过多，15分钟后重新登录！');
-            }
-        }
-
-        // 获取停车场
-        $parking = $userModel->getCheMiParkingCondition($userInfo['operator_id'] ? ['operator_id' => $userInfo['operator_id']] : null);
-
-        // 获取社区
-        if ($parking) {
-            $community2 = $userModel->getCheMiCommunity2Condition(['stop_id' => ['in', array_column($parking, 'id')]]);
-            if ($community2) {
-                $community = $userModel->getCheMiCommunityListCondition([
-                    'id' => ['in', array_column($community2, 'community_id')]
-                ]);
-                $list = [];
-                foreach ($community2 as $k => $v) {
-                    $list[$v['community_id']][] = $v['stop_id'];
-                }
-                foreach ($community as $k => $v) {
-                    if (isset($list[$v['id']])) {
-                        $community[$k]['parking'] = $list[$v['id']];
-                    }
-                }
-            }
-        }
-
-        return success([
-            'uid' => $userInfo['id'],
-            'datasource' => 'parking',
-            'nickname' => get_real_val($userInfo['user_nicename'], $userInfo['user_login']),
-            'community' => isset($community) ? $community : [],
-            'parking' => $parking
-        ]);
-    }
-
-    /**
-     * 车秘社区后台登录
-     * @param $post
-     * @return array
-     */
-    public function chemiCommunityLogin ($post) {
-        $userModel = new UserModel();
-        if (!$userInfo = $userModel->getCheMiCommunityCondition([
-            'card_id' => $post['username']
-        ])) {
-            return error('用户名或密码错误');
-        }
-
-        // 密码为账号
-        $userInfo['user_pass'] = $userInfo['card_id'];
-
-        if ($post['_token']) {
-            // 验证车秘token
-            if (md5($userInfo['user_pass']) != $post['_token']) {
-                return error('社区用户效验失败');
-            }
-        } else {
-            // 验证密码
-            if ($userInfo['user_pass'] != $post['password']) {
-                $count = $this->loginFail($post['username']);
-                return error($count > 0 ? ('用户名或密码错误，您还可以登录 ' . $count . ' 次！') : '密码错误次数过多，15分钟后重新登录！');
-            }
-        }
-
-        // 获取所属停车场
-        $parking = $userModel->getCheMiCommunity2Condition(['community_id' => $userInfo['id']]);
-        if ($parking) {
-            $parking = array_column($parking, 'stop_id');
-            $parking = $userModel->getCheMiParkingCondition(['id' => ['in', $parking]]);
-        }
-
-        return success([
-            'uid' => $userInfo['id'],
-            'datasource' => 'community',
-            'nickname' => $userInfo['name'],
-            'community' => [$userInfo],
-            'parking' => $parking
-        ]);
+        return success($adminInfo);
     }
 
     /**
      * 获取用户所有权限
-     * @param $platform 平台代码
      * @param $uid 用户ID
      * @return array
      */
-    public function getUserPermissions ($platform, $uid) {
+    public function getUserPermissions ($uid)
+    {
         // 获取用户角色
-        $roles = $this->getDb()->table('admin_role_user')->field('role_id')->where(['platform' => intval($platform), 'user_id' => $uid])->select();
+        $roles = $this->getDb()->table('admin_role_user')->field('role_id')->where(['user_id' => $uid])->select();
         if (empty($roles)) {
             return [];
         }
@@ -361,7 +138,114 @@ class AdminModel extends Crud {
             return [];
         }
 
-        return array_column($permissions, 'name');
+        return [
+            'role' => $roles,
+            'permission' => array_column($permissions, 'name')
+        ];
+    }
+
+    /**
+     * 添加管理员
+     * @param $username 用户名
+     * @param $password 密码
+     * @param $role_id 角色
+     * @param $ext
+     * @return array
+     */
+    public function addAdmin ($username, $password, $role_id, array $ext = [])
+    {
+        $username = trim_space($username);
+        $role_id  = intval($role_id);
+        if (!$username) {
+            return error('账号不能为空');
+        }
+        if (!$password) {
+            return error('密码不能为空');
+        }
+        if (!$role_id) {
+            return error('角色不能为空');
+        }
+
+        $condition = [];
+        if (preg_match('/^\d+$/', $username)) {
+            if (!validate_telephone($username)) {
+                return error('手机号不正确');
+            }
+            $condition['telephone'] = $username;
+        } else {
+            $condition['nickname'] = $username;
+        }
+
+        // 获取用户
+        if (!$userInfo = $this->getDb()->table('admin_user')->field('id')->where($condition)->limit(1)->find()) {
+            // 新增用户
+            $condition['password']    = $password;
+            $condition['create_time'] = date('Y-m-d H:i:s', TIMESTAMP);
+            $condition['update_time'] = date('Y-m-d H:i:s', TIMESTAMP);
+            $condition = array_merge($condition, $ext);
+            if (!$id = $this->getDb()->insert('admin_user', $condition, null, null, true)) {
+                return error('添加用户失败');
+            }
+            $userInfo['id'] = $id;
+        } else {
+            $data = ['password' => $password, 'update_time' => date('Y-m-d H:i:s', TIMESTAMP)];
+            $data = array_merge($data, $ext);
+            if (!$this->getDb()->update('admin_user', $data, $condition)) {
+                return error('更新用户失败');
+            }
+        }
+
+        // 添加权限
+        if (!$this->getDb()->table('admin_role_user')->where(['user_id' => $userInfo['id'], 'role_id' => $role_id])->count()) {
+            $this->getDb()->insert('admin_role_user', [
+                'user_id' => $userInfo['id'],
+                'role_id' => $role_id
+            ]);
+        }
+
+        return success('ok');
+    }
+
+    /**
+     * 删除管理员
+     * @param $username 用户名
+     * @return array
+     */
+    public function delAdmin ($username)
+    {
+        $username = trim_space($username);
+        if (!$username) {
+            return error('账号不能为空');
+        }
+
+        $condition = [];
+        if (preg_match('/^\d+$/', $username)) {
+            if (!validate_telephone($username)) {
+                return error('手机号不正确');
+            }
+            $condition['telephone'] = $username;
+        } else {
+            $condition['nickname'] = $username;
+        }
+
+        // 获取用户
+        if (!$userInfo = $this->getDb()->table('admin_user')->field('id')->where($condition)->limit(1)->find()) {
+            return error('该用户不存在');
+        }
+
+        if (!$this->getDb()->transaction(function ($db) use($userInfo) {
+            if (!$db->delete('admin_user', ['id' => $userInfo['id']])) {
+                return false;
+            }
+            if (!$db->delete('admin_role_user', ['user_id' => $userInfo['id']])) {
+                return false;
+            }
+            return true;
+        })) {
+            return error('删除失败');
+        }
+
+        return success('ok');
     }
 
     /**
@@ -369,7 +253,8 @@ class AdminModel extends Crud {
      * @param $account
      * @return int
      */
-    public function loginFail ($account) {
+    public function loginFail ($account)
+    {
         $faileInfo = $this->getDb()
             ->table('admin_failedlogin')
             ->field('id,login_count,update_time')
@@ -399,23 +284,14 @@ class AdminModel extends Crud {
      * @param $account
      * @return bool
      */
-    public function checkLoginFail ($account) {
+    public function checkLoginFail ($account)
+    {
         return ($account && $this->getDb()
             ->table('admin_failedlogin')
             ->field('id')
             ->where(['account' => $account, 'login_count' => ['>', 9], 'update_time' => ['>', TIMESTAMP - 900]])
             ->limit(1)
             ->count() ? false : true);
-    }
-
-    /**
-     * CMF密码加密方法（车秘管理后台）
-     * @param string $pw 要加密的字符串
-     * @return string
-     */
-    protected function spPassword ($pw, $authcode = '6ZfIuNoNKDeBfii7lM') {
-        $result = '###' . md5(md5($authcode.$pw));
-        return $result;
     }
 
 }

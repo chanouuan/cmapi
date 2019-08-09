@@ -2,6 +2,7 @@
 
 namespace app\models;
 
+use app\common\ParkWashRole;
 use Crud;
 use app\library\Geohash;
 use app\library\LocationUtils;
@@ -75,8 +76,10 @@ class XicheManageModel extends Crud {
         $post['password']   = trim_space($post['password']);
         $post['idcard']     = trim_space($post['idcard']);
         $post['state_work'] = $post['state_work'] ? 1 : 0;
+        $post['role_id']    = $post['role_id'] ? ParkWashRole::OWNER : 0;
 
-        $userModel = new UserModel();
+        $userModel  = new UserModel();
+        $adminModel = new AdminModel();
 
         if (empty($post['store_id'])) {
             return error('店铺不能为空');
@@ -100,6 +103,10 @@ class XicheManageModel extends Crud {
             if (!preg_match('/^[0-9a-zA-Z]{6,20}$/', $post['password'])) {
                 return error('请输入6-20位数字与字母组合的密码');
             }
+        }
+
+        if (!$employeeInfo = $this->getDb()->table('parkwash_employee')->field('id,telephone,password')->where(['id' => $post['id']])->find()) {
+            return error('该员工不存在');
         }
 
         if (!$storeInfo = $this->getInfo('parkwash_store', ['id' => $post['store_id']], 'name')) {
@@ -134,6 +141,7 @@ class XicheManageModel extends Crud {
             'gender'      => $post['gender'],
             'status'      => $post['status'],
             'state_work'  => $post['state_work'],
+            'role_id'     => $post['role_id'],
             'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
         ];
         if ($post['avatar']) {
@@ -144,6 +152,16 @@ class XicheManageModel extends Crud {
         }
         if (!$this->getDb()->update('parkwash_employee', $param, ['id' => $post['id']])) {
             return error('编辑失败');
+        }
+
+        // 权限更新
+        if ($post['role_id']) {
+            if ($employeeInfo['telephone'] != $post['telephone']) {
+                $adminModel->delAdmin($employeeInfo['telephone']);
+            }
+            $adminModel->addAdmin($post['telephone'], $param['password'] ? $param['password'] : $employeeInfo['password'], $post['role_id'], ['realname' => $post['realname']]);
+        } else {
+            $adminModel->delAdmin($employeeInfo['telephone']);
         }
 
         return success('OK');
@@ -161,6 +179,7 @@ class XicheManageModel extends Crud {
         $post['status']   = $post['status'] == 1 ? 1 : 0;
         $post['password'] = trim_space($post['password']);
         $post['idcard']   = trim_space($post['idcard']);
+        $post['role_id']  = $post['role_id'] ? ParkWashRole::OWNER : 0;
 
         $userModel = new UserModel();
 
@@ -181,12 +200,11 @@ class XicheManageModel extends Crud {
                 return error('身份证号不正确');
             }
         }
-        if ($post['password']) {
-            // 密码长度验证
-            if (!preg_match('/^[0-9a-zA-Z]{6,20}$/', $post['password'])) {
-                return error('请输入6-20位数字与字母组合的密码');
-            }
+        // 密码长度验证
+        if (!preg_match('/^[0-9a-zA-Z]{6,20}$/', $post['password'])) {
+            return error('请输入6-20位数字与字母组合的密码');
         }
+        $post['password'] = $userModel->hashPassword(md5($post['password'])); // 先md5密码
 
         if (!$storeInfo = $this->getInfo('parkwash_store', ['id' => $post['store_id']], 'name')) {
             return error('该店铺不存在');
@@ -211,25 +229,29 @@ class XicheManageModel extends Crud {
 
         // 新增员工
         if (!$id = $this->getDb()->insert('parkwash_employee', [
-            'store_id'    => $post['store_id'],
-            'item_id'     => ',' . $post['item_id'] . ',',
-            'store_name'  => $storeInfo['name'],
-            'realname'    => $post['realname'],
-            'avatar'      => $post['avatar'],
-            'telephone'   => $post['telephone'],
-            'idcard'      => $post['idcard'],
-            'password'    => $post['password'] ? $userModel->hashPassword(md5($post['password'])) : '', // 先md5密码
-            'gender'      => $post['gender'],
-            'status'      => $post['status'],
-            'create_time' => date('Y-m-d H:i:s', TIMESTAMP),
-            'update_time' => date('Y-m-d H:i:s', TIMESTAMP),
-            'state_online'=> 0
+            'store_id'     => $post['store_id'],
+            'item_id'      => ',' . $post['item_id'] . ',',
+            'store_name'   => $storeInfo['name'],
+            'realname'     => $post['realname'],
+            'avatar'       => $post['avatar'],
+            'telephone'    => $post['telephone'],
+            'idcard'       => $post['idcard'],
+            'password'     => $post['password'],
+            'gender'       => $post['gender'],
+            'status'       => $post['status'],
+            'role_id'      => $post['role_id'],
+            'create_time'  => date('Y-m-d H:i:s', TIMESTAMP),
+            'update_time'  => date('Y-m-d H:i:s', TIMESTAMP),
+            'state_online' => 0
         ], null, null, true)) {
             return error('添加失败');
         }
 
         // 添加订单计数
         $this->getDb()->insert('parkwash_employee_order_count', ['id' => $id]);
+
+        // 添加权限
+        (new AdminModel())->addAdmin($post['telephone'], $post['password'], $post['role_id'], ['realname' => $post['realname']]);
 
         return success('OK');
     }

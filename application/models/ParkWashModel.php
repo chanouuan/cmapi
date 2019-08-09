@@ -58,13 +58,6 @@ class ParkWashModel extends Crud {
             $userInfo['member_name'] = $post['telephone'];
         }
 
-        // 限制重复绑定微信
-        if ($post['__authcode']) {
-            if ($xicheModel->getWxOpenid($userInfo['member_id'], 'mp')) {
-                return error('该手机号已绑定，请先解绑或填写其他手机号');
-            }
-        }
-
         // 绑定用户
         $post['nopw'] = 1; // 不验证密码
         $post['platform'] = 3; // 固定平台代码
@@ -87,7 +80,7 @@ class ParkWashModel extends Crud {
         $userInfo['token'] = $loginret['result']['token'];
 
         // 绑定微信小程序
-        $xicheModel->bindingLogin($post['__authcode'], $userInfo['uid']);
+        $xicheModel->bindingLogin($post['__authcode'], $userInfo['uid'], 'mp');
 
         // 重置短信验证码
         $userModel->resetSmsCode($post['telephone']);

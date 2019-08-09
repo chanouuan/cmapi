@@ -5,6 +5,9 @@ namespace app\controllers;
 use ActionPDO;
 use app\common\ParkWashCache;
 use app\common\ParkWashPayWay;
+use app\common\ParkWashRole;
+use app\library\Aes;
+use app\models\AdminModel;
 use app\models\XicheManageModel;
 use app\models\UserModel;
 
@@ -16,6 +19,23 @@ class XicheManage extends ActionPDO {
             $this->_G['user'] = $this->loginCheck();
             if (empty($this->_G['user'])) {
                 $this->error('用户校验失败', gurl('xicheManage/login'));
+            }
+        }
+
+        define('ROLE', json_decode(Aes::decrypt($_COOKIE['role']), true)); // 角色
+        define('PERMISSION', json_decode(Aes::decrypt($_COOKIE['permission']), true)); // 权限
+
+        if (!in_array($this->_action, ['login', 'checkImgCode', 'index', 'welcome', 'logout'])) {
+            // 权限验证
+            $combineAuth = [
+                'parkOrderStatusUpdate' => 'parkOrder',
+                'parkOrderView' => 'parkOrder',
+                'entryParkInfo' => 'parkOrder',
+                'employeeAdd' => 'employee',
+                'employeeUpdate' => 'employee'
+            ];
+            if (empty(array_intersect(['ANY', isset($combineAuth[$this->_action]) ? $combineAuth[$this->_action] : $this->_action], PERMISSION))) {
+                $this->error('权限不足');
             }
         }
     }
@@ -30,11 +50,7 @@ class XicheManage extends ActionPDO {
 
     public function index ()
     {
-        $userList = (new UserModel())->getUserByBinding([
-            'platform = 3',
-            'uid = ' . $this->_G['user']['uid']
-        ]);
-        $this->_G['user']['nickname'] = get_real_val($userList[0]['tel'], $this->_G['user']['uid']);
+        $this->_G['user']['nickname'] = $_COOKIE['loginname'];
         return [
             'user_info' => $this->_G['user']
         ];
@@ -45,11 +61,7 @@ class XicheManage extends ActionPDO {
      */
     public function welcome ()
     {
-        $userList = (new UserModel())->getUserByBinding([
-            'platform = 3',
-            'uid = ' . $this->_G['user']['uid']
-        ]);
-        $this->_G['user']['nickname'] = get_real_val($userList[0]['tel'], $this->_G['user']['uid']);
+        $this->_G['user']['nickname'] = $_COOKIE['loginname'];
         return [
             'user_info' => $this->_G['user']
         ];
@@ -106,9 +118,18 @@ class XicheManage extends ActionPDO {
     {
         $model = new XicheManageModel();
         if (submitcheck()) {
+            // 角色权限
+            if (!in_array(ParkWashRole::ADMIN, ROLE)) {
+                $_POST['role_id'] = 0;
+            }
             return $model->employeeAdd($_POST);
         }
-        $stores = $model->getList('parkwash_store', null, null, null, 'id,name');
+        // 角色权限
+        $condition = [];
+        if (in_array(ParkWashRole::OWNER, ROLE)) {
+            $condition['id'] = ParkWashRole::getOwnerStoreId($this->_G['user']['uid']);
+        }
+        $stores = $model->getList('parkwash_store', $condition, null, null, 'id,name');
         $items  = $model->getList('parkwash_item', null, null, null, 'id,name,car_type_id');
         $carTypes = ParkWashCache::getCarType();
         foreach ($items as $k => $v) {
@@ -124,15 +145,28 @@ class XicheManage extends ActionPDO {
     {
         $model = new XicheManageModel();
         if (submitcheck()) {
+            // 角色权限
+            if (!in_array(ParkWashRole::ADMIN, ROLE)) {
+                // 店长不能修改角色
+                if (!$employeeInfo = \app\library\DB::getInstance()->table('parkwash_employee')->field('role_id')->where(['id' => $_POST['id']])->find()) {
+                    return error('该员工不存在');
+                }
+                $_POST['role_id'] = $employeeInfo['role_id'];
+            }
             return $model->employeeUpdate($_POST);
         }
-        $stores = $model->getList('parkwash_store', null, null, null, 'id,name');
+        // 角色权限
+        $condition = [];
+        if (in_array(ParkWashRole::OWNER, ROLE)) {
+            $condition['id'] = ParkWashRole::getOwnerStoreId($this->_G['user']['uid']);
+        }
+        $stores = $model->getList('parkwash_store', $condition, null, null, 'id,name');
         $items  = $model->getList('parkwash_item', null, null, null, 'id,name,car_type_id');
         $carTypes = ParkWashCache::getCarType();
         foreach ($items as $k => $v) {
             $items[$k]['name'] = ($v['car_type_id'] ? $carTypes[$v['car_type_id']] . '·' : '') . $v['name'];
         }
-        $info   = $model->getInfo('parkwash_employee', ['id' => getgpc('id')]);
+        $info = $model->getInfo('parkwash_employee', ['id' => getgpc('id')]);
         $info['avatar'] = $info['avatar'] ? '<img height="30" src="' . httpurl($info['avatar']) . '">' : '';
         return compact('stores', 'items', 'info');
     }
@@ -143,6 +177,10 @@ class XicheManage extends ActionPDO {
     public function employee ()
     {
         $condition = [];
+        // 角色权限
+        if (in_array(ParkWashRole::OWNER, ROLE)) {
+            $condition['store_id'] = ParkWashRole::getOwnerStoreId($this->_G['user']['uid']);
+        }
         if ($_GET['store_name']) {
             $condition['store_name'] = ['like', '%' . $_GET['store_name'] . '%'];
         }
@@ -168,7 +206,7 @@ class XicheManage extends ActionPDO {
         }
         $list = $model->getList('parkwash_employee', $condition, $pagesize['limitstr']);
         foreach ($list as $k => $v) {
-            $list[$k]['avatar'] = $v['avatar'] ? '<a onclick="xadmin.open(\'IMG\',\'' . httpurl($v['avatar']) . '\')" href="javascript:;" target="_blank"><img height="30" src="' . httpurl($v['avatar']) . '"></a>' : '';
+            $list[$k]['avatar']  = $v['avatar'] ? '<a onclick="xadmin.open(\'IMG\',\'' . httpurl($v['avatar']) . '\')" href="javascript:;" target="_blank"><img height="30" src="' . httpurl($v['avatar']) . '"></a>' : '';
             $list[$k]['item_id'] = strtr(trim($v['item_id'], ','), $items);
             $list[$k]['item_id'] = '<span title="' . $list[$k]['item_id'] . '">' . msubstr($list[$k]['item_id'], 0, 10, 'utf-8', true) . '</span>';
         }
@@ -183,6 +221,10 @@ class XicheManage extends ActionPDO {
     {
         $model = new XicheManageModel();
         $condition = [];
+        // 角色权限
+        if (in_array(ParkWashRole::OWNER, ROLE)) {
+            $condition['order_table.store_id'] = ParkWashRole::getOwnerStoreId($this->_G['user']['uid']);
+        }
         if ($_GET['telephone']) {
             $employeeInfo = $model->getInfo('parkwash_employee', ['telephone' => $_GET['telephone']], 'id');
             $condition['helper_table.employee_id'] = $employeeInfo ? $employeeInfo['id'] : 0;
@@ -874,6 +916,10 @@ class XicheManage extends ActionPDO {
         $condition = [
             'xc_trade_id' => 0
         ];
+        // 角色权限
+        if (in_array(ParkWashRole::OWNER, ROLE)) {
+            $condition['store_id'] = ParkWashRole::getOwnerStoreId($this->_G['user']['uid']);
+        }
         if ($_GET['store_name']) {
             $searchStoreInfo = $model->getInfo('parkwash_store', ['name' => ['like', '%' . $_GET['store_name'] . '%']], 'id');
             $condition['store_id'] = intval($searchStoreInfo['id']);
@@ -1410,8 +1456,8 @@ class XicheManage extends ActionPDO {
     /**
      * 系统配置
      */
-    public function config () {
-
+    public function config ()
+    {
         $list = (new XicheManageModel())->getList('config', ['app' => 'xc'], null);
         return compact('list');
     }
@@ -1419,7 +1465,8 @@ class XicheManage extends ActionPDO {
     /**
      * 编辑配置
      */
-    public function configUpdate () {
+    public function configUpdate ()
+    {
         if (submitcheck()) {
             return (new XicheManageModel())->configUpdate($_POST);
         }
@@ -1431,10 +1478,14 @@ class XicheManage extends ActionPDO {
     /**
      * 登录
      */
-    public function login () {
-
+    public function login ()
+    {
         // 提交登录
         if (submitcheck()) {
+
+            if (!$this->checkImgCode(strval($_POST['imgcode']))) {
+                return error('验证码错误');
+            }
 
             // 管理员白名单
             $administrator = [
@@ -1444,27 +1495,38 @@ class XicheManage extends ActionPDO {
             $config = $config ? explode("\n", $config) : [];
             $administrator = array_merge($administrator, $config);
 
-            if (!in_array($_POST['telephone'], $administrator)) {
-                return error('权限不足');
-            }
-
-            if (!$this->checkImgCode(strval($_POST['imgcode']))) {
-                return error('验证码错误');
-            }
-
-            $model =  new UserModel();
-            $userInfo = $model->getUserInfoCondition([
-                    'member_name'=> $_POST['telephone']
+            if (in_array($_POST['telephone'], $administrator)) {
+                // 超管登录
+                $model = new UserModel();
+                $userInfo = $model->getUserInfoCondition([
+                    'member_name' => $_POST['telephone']
                 ], 'member_id,member_passwd');
 
-            if ($userInfo['member_passwd'] != md5(md5($_POST['password']))) {
-                return error('用户名或密码错误！');
-            }
+                if ($userInfo['member_passwd'] != md5(md5($_POST['password']))) {
+                    return error('用户名或密码错误！');
+                }
 
-            // 登录成功
-            $loginret = $model->setloginstatus($userInfo['member_id'], uniqid());
-            if ($loginret['errorcode'] !== 0) {
-                return $loginret;
+                // 登录成功
+                $loginret = $model->setloginstatus($userInfo['member_id'], uniqid());
+                if ($loginret['errorcode'] !== 0) {
+                    return $loginret;
+                }
+                set_cookie('loginname', $_POST['telephone']);
+                set_cookie('role', Aes::encrypt(json_encode([1])));
+                set_cookie('permission', Aes::encrypt(json_encode(['ANY'])));
+            } else {
+                // 店长登录
+                $result = (new AdminModel())->login([
+                    'username' => $_POST['telephone'],
+                    'password' => md5($_POST['password'])
+                ]);
+
+                if ($result['errorcode'] !== 0) {
+                    return $result;
+                }
+                set_cookie('loginname', $result['result']['realname']);
+                set_cookie('role', Aes::encrypt(json_encode($result['result']['role'])));
+                set_cookie('permission', Aes::encrypt(json_encode($result['result']['permission'])));
             }
 
             return success('OK');
@@ -1476,7 +1538,8 @@ class XicheManage extends ActionPDO {
     /**
      * 登出
      */
-    public function logout () {
+    public function logout ()
+    {
         (new UserModel())->logout($this->_G['user']['uid']);
         $this->success('登出成功', gurl('xicheManage/login'), 0);
     }

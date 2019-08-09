@@ -22,25 +22,4 @@ class Admin extends ActionPDO {
         return (new AdminModel())->login(only('platform', 'username', 'password', '_token', 'source'));
     }
 
-    /**
-     * 获取用户信息
-     */
-    public function info () {
-        return (new AdminModel())->info(only('uid', 'source'));
-    }
-
-    /**
-     * 获取社区列表
-     */
-    public function getCommunityList () {
-        return (new AdminModel())->getCommunityList(only('parking_id'));
-    }
-
-    /**
-     * 获取业主列表
-     */
-    public function getOwnerList () {
-        return (new AdminModel())->getOwnerList(only('park_id', 'owner_name', 'owner_tell', 'carpost_id', 'space_identity', 'page', 'pagesize'));
-    }
-
 }

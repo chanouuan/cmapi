@@ -746,13 +746,13 @@ class XicheModel extends Crud {
     /**
      * 绑定登录账号
      */
-    public function bindingLogin ($authcode, $uid) {
+    public function bindingLogin ($authcode, $uid, $type = 'wx') {
         if (!$authcode) {
             return false;
         }
-        return $this->getDb()->update('__tablepre__xiche_login', [
-            'uid' => $uid
-        ], 'authcode = :authcode and uid = 0', ['authcode' => $authcode]);
+        // 绑定前先解绑
+        $this->getDb()->update('__tablepre__xiche_login', ['uid' => 0], ['uid' => $uid, 'type' => $type]);
+        return $this->getDb()->update('__tablepre__xiche_login', ['uid' => $uid], ['authcode' => $authcode, 'uid' => 0]);
     }
 
     /**

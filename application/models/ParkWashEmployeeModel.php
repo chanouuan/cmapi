@@ -6,8 +6,146 @@ use Crud;
 use app\common\ParkWashOrderStatus;
 use app\common\ParkWashPayWay;
 use app\common\ParkWashCache;
+use app\common\ParkWashRole;
 
 class ParkWashEmployeeModel extends Crud {
+
+    /**
+     * 店长获取所属员工
+     */
+    public function getPersons ($uid)
+    {
+        if (!$info = $this->getDb()->table('parkwash_employee')->field('store_id')->where(['id' => $uid, 'role_id' => ParkWashRole::OWNER, 'status' => 1])->find()) {
+            return error('您不是店长');
+        }
+
+        if (!$list = $this->getDb()->table('parkwash_employee')->field('id,realname,avatar,state_online,state_work')->where(['store_id' => $info['store_id'], 'status' => 1])->select()) {
+            return success([]);
+        }
+
+        foreach ($list as $k => $v) {
+            $list[$k]['avatar'] = httpurl($v['avatar']);
+        }
+        return success($list);
+    }
+
+    /**
+     * 检查员工与店长从属关系
+     * @param $owner_id 店长
+     * @param $employee_id 员工
+     * @return bool
+     */
+    public function checkPerson ($owner_id, $employee_id)
+    {
+        $owner_id    = intval($owner_id);
+        $employee_id = intval($employee_id);
+
+        if (!$info = $this->getDb()->table('parkwash_employee')->field('store_id')->where(['id' => $owner_id, 'role_id' => ParkWashRole::OWNER])->find()) {
+            return false;
+        }
+
+        return $this->getDb()->table('parkwash_employee')->where(['id' => $employee_id, 'store_id' => $info['store_id']])->count() ? true : false;
+    }
+
+    /**
+     * 店铺统计
+     */
+    public function storeStatistics ($uid, $post)
+    {
+        // 最后排序字段
+        $post['lastpage']   = intval($post['lastpage']);
+        // 搜索时间
+        $post['start_time'] = strtotime($post['start_time']);
+        $post['end_time']   = strtotime($post['end_time']);
+
+        if ($post['start_time'] > $post['end_time']) {
+            return error('开始时间不能大于截止时间');
+        }
+
+        if (!$post['start_time'] || !$post['end_time']) {
+            $post['start_time'] = strtotime(date('Y-m-d', TIMESTAMP));
+            $post['end_time']   = TIMESTAMP;
+        }
+
+        $post['start_time'] = date('Y-m-d H:i:s', $post['start_time']);
+        $post['end_time']   = date('Y-m-d H:i:s', $post['end_time']);
+
+        if (!$employeeInfo = $this->getDb()->table('parkwash_employee')->field('store_id')->where(['id' => $uid, 'role_id' => ParkWashRole::OWNER, 'status' => 1])->find()) {
+            return error('您不是店长');
+        }
+
+        // 结果返回
+        $result = [
+            'limit'          => 10,
+            'lastpage'       => '',
+            'total_pay'      => 0,
+            'complete_count' => 0,
+            'cancel_count'   => 0,
+            'list'           => []
+        ];
+
+        $condition = [
+            'store_id'    => $employeeInfo['store_id'],
+            'status'      => ['in', [ParkWashOrderStatus::CANCEL, ParkWashOrderStatus::COMPLETE, ParkWashOrderStatus::CONFIRM]],
+            'create_time' => ['between', [$post['start_time'], $post['end_time']]]
+        ];
+
+        // 获取统计
+        $totalList = $this->getDb()
+            ->table('parkwash_order')
+            ->field('status,sum(pay+deduct) as pay,count(*) as count')
+            ->where($condition)->group('status')->select();
+        if ($totalList) {
+            $totalList = array_column($totalList, null, 'status');
+            $result['total_pay']      = round_dollar($totalList[ParkWashOrderStatus::COMPLETE]['pay']) + round_dollar($totalList[ParkWashOrderStatus::CONFIRM]['pay']);
+            $result['complete_count'] = intval($totalList[ParkWashOrderStatus::COMPLETE]['count']) + intval($totalList[ParkWashOrderStatus::CONFIRM]['count']);
+            $result['cancel_count']   = intval($totalList[ParkWashOrderStatus::CANCEL]['count']);
+        }
+
+        if ($post['lastpage'] > 0) {
+            $condition['id'] = ['<', $post['lastpage']];
+        }
+
+        // 获取订单
+        if (!$orderList = $this->getDb()
+            ->table('parkwash_order')
+            ->field('id,pay+deduct as pay,car_number,series_id,item_name,create_time,status')
+            ->where($condition)->order('id desc')->limit($result['limit'])->select()) {
+            return success($result);
+        }
+
+        // 获取服务员工
+        $helperList = $this->getDb()
+            ->table('parkwash_order_helper helper left join parkwash_employee employee on employee.id = helper.employee_id')
+            ->field('helper.orderid,employee.realname')
+            ->where(['helper.orderid' => ['in', array_column($orderList, 'id')]])->select();
+        if ($helperList) {
+            $employeeList = [];
+            foreach ($helperList as $k => $v) {
+                $employeeList[$v['orderid']][] = $v['realname'];
+            }
+            unset($helperList);
+            foreach ($employeeList as $k => $v) {
+                $employeeList[$k] = implode(' ', $v);
+            }
+        }
+
+        $seriesList = $this->getSeriesNameById(array_column($orderList, 'series_id'));
+
+        foreach ($orderList as $k => $v) {
+            $result['lastpage'] = $v['id'];
+            $orderList[$k]['pay']           = round_dollar($v['pay']);
+            $orderList[$k]['car_type_name'] = $seriesList[$v['series_id']]['car_type_name'];
+            $orderList[$k]['employee_name'] = isset($employeeList[$v['id']]) ? $employeeList[$v['id']] : '';
+            unset($orderList[$k]['series_id']);
+        }
+        unset($seriesList, $employeeList);
+
+        $result['list'] = $orderList;
+        unset($orderList);
+
+        return success($result);
+    }
 
     /**
      * 统计
@@ -477,21 +615,24 @@ class ParkWashEmployeeModel extends Crud {
         $orderInfo['service_time']  = strval($orderInfo['service_time']);
         $orderInfo['complete_time'] = strval($orderInfo['complete_time']);
         $orderInfo['cancel_time']   = strval($orderInfo['cancel_time']);
+        $orderInfo['helper']        = '无';
 
         unset($carTypeInfo, $areaList, $orderInfo['brand_id'], $orderInfo['series_id'], $orderInfo['area_id']);
 
         // 帮手
         if (ParkWashOrderStatus::inService($orderInfo['status'])) {
             $helperList = $this->getDb()->table('parkwash_order_helper')->field('employee_id')->where(['orderid' => $orderid])->order('id')->select();
-            $helperList = array_column($helperList, 'employee_id');
-            $employeeList = $this->getDb()->table('parkwash_employee')->field('id,realname')->where(['id' => ['in', $helperList]])->select();
-            $employeeList = array_column($employeeList, 'realname', 'id');
-            $orderInfo['employee'] = $employeeList[$helperList[0]];
-            $orderInfo['helper'] = [];
-            unset($employeeList[$helperList[0]]);
-            $orderInfo['helper'] = $employeeList;
-            $orderInfo['helper'] = implode(',', $orderInfo['helper']);
-            unset($employeeList);
+            if ($helperList) {
+                $helperList = array_column($helperList, 'employee_id');
+                $employeeList = $this->getDb()->table('parkwash_employee')->field('id,realname')->where(['id' => ['in', $helperList]])->select();
+                $employeeList = array_column($employeeList, 'realname', 'id');
+                $orderInfo['employee'] = $employeeList[$helperList[0]];
+                $orderInfo['helper'] = [];
+                unset($employeeList[$helperList[0]]);
+                $orderInfo['helper'] = $employeeList;
+                $orderInfo['helper'] = implode(',', $orderInfo['helper']);
+                unset($employeeList);
+            }
         }
 
         return success($orderInfo);
@@ -645,7 +786,7 @@ class ParkWashEmployeeModel extends Crud {
     public function getEmployeeInfo ($uid)
     {
         $uid = intval($uid);
-        if (!$userInfo = $this->getDb()->table('parkwash_employee')->field('id,realname,avatar,gender,telephone,store_name,state_online,state_remind')->where(['id' => $uid])->limit(1)->find()) {
+        if (!$userInfo = $this->getDb()->table('parkwash_employee')->field('id,realname,avatar,gender,telephone,store_name,state_online,state_remind,role_id')->where(['id' => $uid])->limit(1)->find()) {
             return error('用户不存在！');
         }
         $userInfo['avatar'] = httpurl($userInfo['avatar']);
@@ -712,7 +853,7 @@ class ParkWashEmployeeModel extends Crud {
         // 获取员工
         $userInfo = $this->getDb()
             ->table('parkwash_employee')
-            ->field('id,password,realname,avatar,gender,telephone,store_name,state_online,state_remind,status')
+            ->field('id,password,realname,avatar,gender,telephone,store_name,state_online,state_remind,status,role_id')
             ->where(['telephone' => $post['telephone']])
             ->limit(1)
             ->find();
