@@ -15,15 +15,21 @@ class XicheManage extends ActionPDO {
 
     public function __init ()
     {
+        // cookie
+        $adminid = json_decode(Aes::decrypt($_COOKIE['adminid']), true);
+        define('ROLE', $adminid['role']); // 角色
+        define('PERMISSION', $adminid['permission']); // 权限
+
         if (!in_array($this->_action, ['login', 'checkImgCode', 'orderAlert', 'noticeAlert'])) {
             $this->_G['user'] = $this->loginCheck();
             if (empty($this->_G['user'])) {
                 $this->error('用户校验失败', gurl('xicheManage/login'));
             }
+            if ($this->_G['user']['uid'] != $adminid['uid']) {
+                $this->logout();
+            }
+            $this->_G['user']['nickname'] = $adminid['nickname'];
         }
-
-        define('ROLE', json_decode(Aes::decrypt($_COOKIE['role']), true)); // 角色
-        define('PERMISSION', json_decode(Aes::decrypt($_COOKIE['permission']), true)); // 权限
 
         if (!in_array($this->_action, ['login', 'checkImgCode', 'index', 'welcome', 'logout'])) {
             // 权限验证
@@ -50,7 +56,6 @@ class XicheManage extends ActionPDO {
 
     public function index ()
     {
-        $this->_G['user']['nickname'] = $_COOKIE['loginname'];
         return [
             'user_info' => $this->_G['user']
         ];
@@ -61,7 +66,6 @@ class XicheManage extends ActionPDO {
      */
     public function welcome ()
     {
-        $this->_G['user']['nickname'] = $_COOKIE['loginname'];
         return [
             'user_info' => $this->_G['user']
         ];
@@ -1511,9 +1515,12 @@ class XicheManage extends ActionPDO {
                 if ($loginret['errorcode'] !== 0) {
                     return $loginret;
                 }
-                set_cookie('loginname', $_POST['telephone']);
-                set_cookie('role', Aes::encrypt(json_encode([1])));
-                set_cookie('permission', Aes::encrypt(json_encode(['ANY'])));
+                set_cookie('adminid', Aes::encrypt(json_encode([
+                    'uid' => $userInfo['member_id'],
+                    'nickname' => $_POST['telephone'],
+                    'role' => [1],
+                    'permission' => ['ANY']
+                ])));
             } else {
                 // 店长登录
                 $result = (new AdminModel())->login([
@@ -1524,9 +1531,7 @@ class XicheManage extends ActionPDO {
                 if ($result['errorcode'] !== 0) {
                     return $result;
                 }
-                set_cookie('loginname', $result['result']['realname']);
-                set_cookie('role', Aes::encrypt(json_encode($result['result']['role'])));
-                set_cookie('permission', Aes::encrypt(json_encode($result['result']['permission'])));
+                set_cookie('adminid', Aes::encrypt(json_encode($result['result'])));
             }
 
             return success('OK');
@@ -1541,6 +1546,7 @@ class XicheManage extends ActionPDO {
     public function logout ()
     {
         (new UserModel())->logout($this->_G['user']['uid']);
+        set_cookie('adminid', null);
         $this->success('登出成功', gurl('xicheManage/login'), 0);
     }
 

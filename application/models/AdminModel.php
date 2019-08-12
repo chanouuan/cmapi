@@ -95,8 +95,7 @@ class AdminModel extends Crud {
 
         return success([
             'uid'       => $userInfo['id'],
-            'nickname'  => $userInfo['nickname'],
-            'realname'  => $userInfo['realname'],
+            'nickname'  => get_real_val($userInfo['realname'], $userInfo['nickname']),
             'telephone' => $userInfo['telephone']
         ]);
     }

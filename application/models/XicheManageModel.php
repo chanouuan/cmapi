@@ -105,7 +105,7 @@ class XicheManageModel extends Crud {
             }
         }
 
-        if (!$employeeInfo = $this->getDb()->table('parkwash_employee')->field('id,telephone,password')->where(['id' => $post['id']])->find()) {
+        if (!$employeeInfo = $this->getDb()->table('parkwash_employee')->field('id,telephone,password,role_id')->where(['id' => $post['id']])->find()) {
             return error('该员工不存在');
         }
 
@@ -152,6 +152,16 @@ class XicheManageModel extends Crud {
         }
         if (!$this->getDb()->update('parkwash_employee', $param, ['id' => $post['id']])) {
             return error('编辑失败');
+        }
+
+        // 强制对方下线
+        if ($employeeInfo['role_id'] != $post['role_id']) {
+            $adminInfo = $this->getDb()->table('admin_user')->field('id')->where(['telephone' => $employeeInfo['telephone']])->find();
+            if ($adminInfo) {
+                $this->getDb()->delete('__tablepre__session', [
+                    'userid' => $adminInfo['id'], 'clienttype' => ['in', ['pc', 'mobile']]
+                ]);
+            }
         }
 
         // 权限更新
