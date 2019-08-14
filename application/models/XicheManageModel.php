@@ -602,6 +602,10 @@ class XicheManageModel extends Crud {
             $this->getDb()->insert('parkwash_order_queue', [
                 'type' => 2, 'orderid' => $orderInfo['id'], 'param_var' => $orderInfo['uid'], 'time' => date('Y-m-d H:i:s', TIMESTAMP), 'create_time' => date('Y-m-d H:i:s', TIMESTAMP), 'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
             ]);
+            // 删除订单未开始服务缓存
+            $this->getDb()->delete('parkwash_order_hatch', [
+                'orderid' => $orderInfo['id']
+            ]);
             // 记录订单状态改变
             $parkWashModel->pushSequence([
                 'orderid' => $orderInfo['id'],
