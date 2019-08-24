@@ -137,7 +137,7 @@ class XicheManage extends ActionPDO {
         $items  = $model->getList('parkwash_item', null, null, null, 'id,name,car_type_id');
         $carTypes = ParkWashCache::getCarType();
         foreach ($items as $k => $v) {
-            $items[$k]['name'] = ($v['car_type_id'] ? $carTypes[$v['car_type_id']] . '·' : '') . $v['name'];
+            $items[$k]['name'] = ($v['car_type_id'] ? $carTypes[$v['car_type_id']]['name'] . '·' : '') . $v['name'];
         }
         return compact('stores', 'items');
     }
@@ -168,7 +168,7 @@ class XicheManage extends ActionPDO {
         $items  = $model->getList('parkwash_item', null, null, null, 'id,name,car_type_id');
         $carTypes = ParkWashCache::getCarType();
         foreach ($items as $k => $v) {
-            $items[$k]['name'] = ($v['car_type_id'] ? $carTypes[$v['car_type_id']] . '·' : '') . $v['name'];
+            $items[$k]['name'] = ($v['car_type_id'] ? $carTypes[$v['car_type_id']]['name'] . '·' : '') . $v['name'];
         }
         $info = $model->getInfo('parkwash_employee', ['id' => getgpc('id')]);
         $info['avatar'] = $info['avatar'] ? '<img height="30" src="' . httpurl($info['avatar']) . '">' : '';
@@ -206,7 +206,7 @@ class XicheManage extends ActionPDO {
         $items = $model->getList('parkwash_item', null, null, null);
         $items = array_column($items, null, 'id');
         foreach ($items as $k => $v) {
-            $items[$k] = ($v['car_type_id'] ? $carTypes[$v['car_type_id']] . '·' : '') . $v['name'];
+            $items[$k] = ($v['car_type_id'] ? $carTypes[$v['car_type_id']]['name'] . '·' : '') . $v['name'];
         }
         $list = $model->getList('parkwash_employee', $condition, $pagesize['limitstr']);
         foreach ($list as $k => $v) {
@@ -247,34 +247,31 @@ class XicheManage extends ActionPDO {
             $totalMoney = round_dollar($row['money']);
             $pagesize = getPageParams($_GET['page'], $count);
         }
-        $list = $model->getList('parkwash_order_helper helper_table left join parkwash_order order_table on order_table.id = helper_table.orderid', $condition, $pagesize['limitstr'], 'order_table.id desc', 'order_table.id,helper_table.employee_id,helper_table.employee_salary,helper_table.identity,order_table.car_number,order_table.brand_id,order_table.series_id,order_table.item_name,order_table.complete_time');
+        $list = $model->getList('parkwash_order_helper helper_table left join parkwash_order order_table on order_table.id = helper_table.orderid', $condition, $pagesize['limitstr'], 'order_table.id desc', 'order_table.id,helper_table.employee_id,helper_table.employee_salary,helper_table.identity,order_table.car_number,order_table.brand_id,order_table.car_type_id,order_table.item_name,order_table.complete_time');
 
         if ($list) {
-            $employeeList = $model->getList('parkwash_employee', ['id' => ['in', array_column($list, 'employee_id')]], null, null, 'id,realname,telephone');
-            $employeeList = array_column($employeeList, null, 'id');
-            $brandList    = ParkWashCache::getBrand();
-            $brandList    = array_column($brandList, 'name', 'id');
-            $seriesList   = ParkWashCache::getSeries();
-            $carTypeList  = ParkWashCache::getCarType();
+            $employees = $model->getList('parkwash_employee', ['id' => ['in', array_column($list, 'employee_id')]], null, null, 'id,realname,telephone');
+            $employees = array_column($employees, null, 'id');
+            $brands    = ParkWashCache::getBrand();
+            $carTypes  = ParkWashCache::getCarType();
             foreach ($list as $k => $v) {
                 $list[$k]['identity']        = $v['identity'] ? '' : '帮手';
-                $list[$k]['employee_name']   = $employeeList[$v['employee_id']]['realname'];
-                $list[$k]['employee_tel']    = $employeeList[$v['employee_id']]['telephone'];
-                $list[$k]['brand_name']      = $brandList[$v['brand_id']];
-                $list[$k]['series_name']     = $seriesList[$v['series_id']]['name'];
-                $list[$k]['car_type_name']   = $carTypeList[$seriesList[$v['series_id']]['car_type_id']];
+                $list[$k]['employee_name']   = $employees[$v['employee_id']]['realname'];
+                $list[$k]['employee_tel']    = $employees[$v['employee_id']]['telephone'];
+                $list[$k]['brand_name']      = $brands[$v['brand_id']]['name'];
+                $list[$k]['car_type_name']   = $carTypes[$v['car_type_id']]['name'];
                 $list[$k]['employee_salary'] = round_dollar($v['employee_salary']);
             }
-            unset($employeeList, $brandList, $seriesList, $carTypeList);
+            unset($employees, $brands, $carTypes);
         }
 
         // 导出
         if ($_GET['export']) {
             $input = [];
             foreach ($list as $k => $v) {
-                $input[] = [$v['id'], $v['employee_name'], $v['employee_tel'], $v['identity'], $v['car_number'], $v['brand_name'], $v['series_name'], $v['car_type_name'], $v['item_name'], $v['employee_salary'], $v['complete_time']];
+                $input[] = [$v['id'], $v['employee_name'], $v['employee_tel'], $v['identity'], $v['car_number'], $v['brand_name'], $v['car_type_name'], $v['item_name'], $v['employee_salary'], $v['complete_time']];
             }
-            $model->exportCsv('员工收益', '订单编号,员工姓名,员工手机,是否帮手,车牌号,品牌,车系,车型,服务项目,收益,完成时间', $input);
+            $model->exportCsv('员工收益', '订单编号,员工姓名,员工手机,是否帮手,车牌号,品牌,车型,服务项目,收益,完成时间', $input);
         }
 
         return compact('pagesize', 'list', 'totalMoney');
@@ -365,11 +362,10 @@ class XicheManage extends ActionPDO {
         $list = $model->getList('parkwash_car_series', $condition, $pagesize['limitstr'], $order);
         $carType = $model->getCarTypeItem();
         $brands = ParkWashCache::getBrand();
-        $brands = array_column($brands, 'name', 'id');
 
         foreach ($list as $k => $v) {
-            $list[$k]['car_type_name'] = $carType[$v['car_type_id']];
-            $list[$k]['brand_name'] = $brands[$v['brand_id']];
+            $list[$k]['car_type_name'] = $carType[$v['car_type_id']]['name'];
+            $list[$k]['brand_name'] = $brands[$v['brand_id']]['name'];
         }
 
         // 导出
@@ -562,7 +558,7 @@ class XicheManage extends ActionPDO {
         $parks = $model->getList('parkwash_park', null, null, null);
         $carTypes = ParkWashCache::getCarType();
         foreach ($items as $k => $v) {
-            $items[$k]['name'] = ($v['car_type_id'] ? $carTypes[$v['car_type_id']] . '·' : '') . $v['name'];
+            $items[$k]['name'] = ($v['car_type_id'] ? $carTypes[$v['car_type_id']]['name'] . '·' : '') . $v['name'];
         }
 
         return compact('items', 'parks');
@@ -587,7 +583,7 @@ class XicheManage extends ActionPDO {
         $storeItems = array_column($storeItems, null, 'item_id');
         $carTypes = ParkWashCache::getCarType();
         foreach ($items as $k => $v) {
-            $items[$k]['name'] = ($v['car_type_id'] ? $carTypes[$v['car_type_id']] . '·' : '') . $v['name'];
+            $items[$k]['name'] = ($v['car_type_id'] ? $carTypes[$v['car_type_id']]['name'] . '·' : '') . $v['name'];
             $items[$k]['price'] = isset($storeItems[$v['id']]) ? $storeItems[$v['id']]['price'] : 0;
             $items[$k]['employee_salary'] = isset($storeItems[$v['id']]) ? $storeItems[$v['id']]['employee_salary'] : 0;
         }
@@ -856,14 +852,14 @@ class XicheManage extends ActionPDO {
     public function parkOrderView ()
     {
         $model = new XicheManageModel();
-        $orderInfo  = $model->getInfo('parkwash_order', ['id' => getgpc('id')]);
-        $brandInfo  = $model->getInfo('parkwash_car_brand', ['id' => $orderInfo['brand_id']], 'name');
-        $seriesInfo = $model->getInfo('parkwash_car_series', ['id' => $orderInfo['series_id']], 'name');
-        $areaInfo   = $model->getInfo('parkwash_park_area', ['id' => $orderInfo['area_id']], 'floor,name');
-        $storeInfo  = $model->getInfo('parkwash_store', ['id' => $orderInfo['store_id']], 'name,tel,address,order_count,money');
+        $orderInfo   = $model->getInfo('parkwash_order', ['id' => getgpc('id')]);
+        $brandInfo   = $model->getInfo('parkwash_car_brand', ['id' => $orderInfo['brand_id']], 'name');
+        $carTypeInfo = $model->getInfo('parkwash_car_type', ['id' => $orderInfo['car_type_id']], 'name');
+        $areaInfo    = $model->getInfo('parkwash_park_area', ['id' => $orderInfo['area_id']], 'floor,name');
+        $storeInfo   = $model->getInfo('parkwash_store', ['id' => $orderInfo['store_id']], 'name,tel,address,order_count,money');
         $orderInfo['order_code']        = str_replace(['-', ' ', ':'], '', $orderInfo['create_time']) . $orderInfo['id'];
         $orderInfo['brand_name']        = $brandInfo['name'];
-        $orderInfo['series_name']       = $seriesInfo['name'];
+        $orderInfo['car_type_name']     = $carTypeInfo['name'];
         $orderInfo['area_floor']        = $areaInfo['floor'];
         $orderInfo['area_name']         = $areaInfo['name'];
         $orderInfo['store_name']        = $storeInfo['name'];
@@ -970,25 +966,23 @@ class XicheManage extends ActionPDO {
             $count = $model->getCount('parkwash_order', $condition);
             $pagesize = getPageParams($_GET['page'], $count);
         }
-        $list = $model->getList('parkwash_order', $condition, $pagesize['limitstr'], 'id desc', 'id,entry_park_id,entry_park_time,store_id,create_time,car_number,brand_id,series_id,user_tel,order_time,area_id,place,item_name,pay,deduct,payway,status,fail_reason');
+        $list = $model->getList('parkwash_order', $condition, $pagesize['limitstr'], 'id desc', 'id,entry_park_id,entry_park_time,store_id,create_time,car_number,brand_id,car_type_id,user_tel,order_time,area_id,place,item_name,pay,deduct,payway,status,fail_reason');
 
         if ($list) {
-            $brandList  = ParkWashCache::getBrand();
-            $brandList  = array_column($brandList, 'name', 'id');
-            $seriesList = ParkWashCache::getSeries();
-            $areaList   = ParkWashCache::getParkArea();
-            $storeList  = $model->getList('parkwash_store', ['id' => ['in', array_column($list, 'store_id')]], null, null, 'id,name');
-            $storeList  = array_column($storeList, null, 'id');
+            $brands   = ParkWashCache::getBrand();
+            $carTypes = ParkWashCache::getCarType();
+            $areas    = ParkWashCache::getParkArea();
+            $stores   = ParkWashCache::getStore();
             foreach ($list as $k => $v) {
                 $list[$k]['create_time'] = substr($v['create_time'], 0, -3);
-                $list[$k]['order_time'] = substr($v['order_time'], 0, -3);
-                $list[$k]['car_name'] = $brandList[$v['brand_id']] . ' ' . $seriesList[$v['series_id']]['name'];
-                $list[$k]['area_floor'] = isset($areaList[$v['area_id']]) ? $areaList[$v['area_id']]['floor'] : '';
-                $list[$k]['area_name'] = isset($areaList[$v['area_id']]) ? $areaList[$v['area_id']]['name'] : '';
-                $list[$k]['store_name'] = $storeList[$v['store_id']]['name'];
-                $list[$k]['pay'] = round_dollar($v['pay']);
-                $list[$k]['deduct'] = round_dollar($v['deduct']);
-                $list[$k]['payway'] = ParkWashPayWay::getMessage($v['payway']);
+                $list[$k]['order_time']  = substr($v['order_time'], 0, -3);
+                $list[$k]['car_name']    = $brands[$v['brand_id']]['name'] . ' ' . $carTypes[$v['car_type_id']]['name'];
+                $list[$k]['area_floor']  = strval($areas[$v['area_id']]['floor']);
+                $list[$k]['area_name']   = strval($areas[$v['area_id']]['name']);
+                $list[$k]['store_name']  = $stores[$v['store_id']]['name'];
+                $list[$k]['pay']         = round_dollar($v['pay']);
+                $list[$k]['deduct']      = round_dollar($v['deduct']);
+                $list[$k]['payway']      = ParkWashPayWay::getMessage($v['payway']);
                 // 判断等待服务状态
                 if ($v['status'] == 1 && $v['entry_park_id']) {
                     $list[$k]['status'] = 13; // 等待服务
@@ -998,7 +992,7 @@ class XicheManage extends ActionPDO {
                 }
                 $list[$k]['status_str'] = $model->getParkOrderStatus($list[$k]['status']);
             }
-            unset($brandList, $seriesList, $areaList, $storeList);
+            unset($brands, $carTypes, $areas, $stores);
         }
 
         // 导出
@@ -1007,7 +1001,7 @@ class XicheManage extends ActionPDO {
             foreach ($list as $k => $v) {
                 $input[] = [$v['id'], $v['store_name'], $v['create_time'], $v['order_time'], $v['car_number'], $v['car_name'], $v['user_tel'], $v['area_name'] . $v['area_floor'], $v['place'], $v['item_name'], $v['pay'] + $v['deduct'], $v['pay'], $v['payway'], $v['status_str'], $v['entry_park_time']];
             }
-            $model->exportCsv('停车场洗车', '编号,店铺,下单时间,取车时间,车牌,车系,用户手机,区域,车位号,套餐,价格,已支付,支付方式,状态,入场时间', $input);
+            $model->exportCsv('停车场洗车', '编号,店铺,下单时间,取车时间,车牌,车型,用户手机,区域,车位号,套餐,价格,已支付,支付方式,状态,入场时间', $input);
         }
 
         return [
@@ -1318,6 +1312,21 @@ class XicheManage extends ActionPDO {
         if ($_GET['start_time'] && $_GET['end_time']) {
             $condition['create_time'] = ['between', [$_GET['start_time'] . ' 00:00:00', $_GET['end_time'] . ' 23:59:59']];
         }
+        if ($_GET['store_name']) {
+            $employees = $model->getList('parkwash_employee', ['store_name' => ['like', '%' . $_GET['store_name'] . '%']], null, null, 'id');
+            $employees = $employees ? array_column($employees, 'id') : [0];
+            $condition['promo_id'] = ['in (' . implode(',', $employees) . ')'];
+        }
+        if ($_GET['promo_name']) {
+            $employees = $model->getList('parkwash_employee', ['realname' => ['like', '%' . $_GET['promo_name'] . '%']], null, null, 'id');
+            $employees = $employees ? array_column($employees, 'id') : [0];
+            $condition['promo_id'] = ['in (' . implode(',', $employees) . ')'];
+        }
+        if ($_GET['promo_tel']) {
+            $employees = $model->getList('parkwash_employee', ['telephone' => ['like', $_GET['promo_tel'] . '%']], null, null, 'id');
+            $employees = $employees ? array_column($employees, 'id') : [0];
+            $condition['promo_id'] = ['in (' . implode(',', $employees) . ')'];
+        }
 
         if (empty($_GET['export'])) {
             $row = \app\library\DB::getInstance()
@@ -1334,19 +1343,30 @@ class XicheManage extends ActionPDO {
         $cardType = $model->getList('parkwash_recharge_type', null, null, 'sort desc');
         $cardType = array_column($cardType, 'name', 'id');
 
-        foreach ($list as $k => $v) {
-            $list[$k]['type_name'] = isset($cardType[$v['type_id']]) ? $cardType[$v['type_id']] : $v['type_id'];
-            $list[$k]['money']     = round_dollar($v['money']);
-            $list[$k]['give']      = round_dollar($v['give']);
+        if ($list) {
+            $promoes = array_filter(array_column($list, 'promo_id'));
+            if ($promoes) {
+                $employees = $model->getList('parkwash_employee', ['id' => ['in', $promoes]], null, null, 'id,store_name,realname,telephone');
+                $employees = array_column($employees, null, 'id');
+            }
+            foreach ($list as $k => $v) {
+                $list[$k]['type_name']  = isset($cardType[$v['type_id']]) ? $cardType[$v['type_id']] : $v['type_id'];
+                $list[$k]['money']      = round_dollar($v['money']);
+                $list[$k]['give']       = round_dollar($v['give']);
+                $list[$k]['store_name'] = var_exists($employees[$v['promo_id']], 'store_name', '无');
+                $list[$k]['promo_name'] = var_exists($employees[$v['promo_id']], 'realname', '无');
+                $list[$k]['promo_tel']  = var_exists($employees[$v['promo_id']], 'telephone', '无');
+            }
+            unset($employees);
         }
 
         // 导出
         if ($_GET['export']) {
             $input = [];
             foreach ($list as $k => $v) {
-                $input[] = [$v['id'], $v['user_tel'], $v['type_name'], $v['money'], $v['give'], $v['create_time']];
+                $input[] = [$v['id'], $v['user_tel'], $v['type_name'], $v['money'], $v['give'], $v['create_time'], $v['store_name'], $v['promo_name'], $v['promo_tel']];
             }
-            $model->exportCsv('充值记录', '编号,用户,卡类型,缴费(元),赠送(元),缴费时间', $input);
+            $model->exportCsv('充值记录', '编号,用户,卡类型,缴费(元),赠送(元),缴费时间,推荐店铺,推荐人,推荐人手机', $input);
         }
 
         return [

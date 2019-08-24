@@ -35,7 +35,7 @@ class ParkWashEmployee extends ActionPDO {
     }
 
     /**
-     * 登录 <span style="color:red">有改动</span>
+     * 登录
      * @param *telephone 手机号
      * @param *msgcode 短信验证码（短信或密码任选其一）
      * @param *password 密码（短信或密码任选其一）
@@ -54,7 +54,7 @@ class ParkWashEmployee extends ActionPDO {
      *     "store_name":"", //工作店铺
      *     "state_online":0, //在线状态 1在线 0离线
      *     "state_remind":0, //订单提醒状态 1启用 0关闭
-     *     "role_id":0, //角色 0员工 2店长 <span style="color:red">新增</span>
+     *     "role_id":0, //角色 0员工 2店长
      *     "token":"", //登录凭证
      * }}
      */
@@ -100,7 +100,7 @@ class ParkWashEmployee extends ActionPDO {
     }
 
     /**
-     * 获取员工信息 <span style="color:red">有改动</span>
+     * 获取员工信息
      * @login
      * @return array
      * {
@@ -115,7 +115,7 @@ class ParkWashEmployee extends ActionPDO {
      *     "store_name":"", //工作店铺
      *     "state_online":0, //在线状态 1在线 0离线
      *     "state_remind":0, //订单提醒状态 1启用 0关闭
-     *     "role_id":0, //角色 0员工 2店长 <span style="color:red">新增</span>
+     *     "role_id":0, //角色 0员工 2店长
      * }}
      */
     public function getEmployeeInfo ()
@@ -333,9 +333,9 @@ class ParkWashEmployee extends ActionPDO {
     }
 
     /**
-     * 统计 <span style="color:red">有改动</span>
+     * 统计
      * @login
-     * @param employee_id string 员工ID <span style="color:red">新增店长查看员工统计</span>
+     * @param employee_id 员工ID
      * @param start_time 开始时间（格式：2019-01-01，默认今日）
      * @param end_time 截止时间（格式：2019-01-01，默认今日）
      * @param lastpage 分页参数
@@ -375,7 +375,7 @@ class ParkWashEmployee extends ActionPDO {
     }
 
     /**
-     * 店长获取员工 <span style="color:red">新增</span>
+     * 店长获取员工
      * @login
      * @return array
      * {
@@ -396,7 +396,7 @@ class ParkWashEmployee extends ActionPDO {
     }
 
     /**
-     * 店铺统计 <span style="color:red">新增</span>
+     * 店铺统计
      * @login
      * @param start_time 开始时间（格式：2019-01-01，默认今日）
      * @param end_time 截止时间（格式：2019-01-01，默认今日）

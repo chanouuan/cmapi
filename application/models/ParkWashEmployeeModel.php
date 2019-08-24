@@ -109,7 +109,7 @@ class ParkWashEmployeeModel extends Crud {
         // 获取订单
         if (!$orderList = $this->getDb()
             ->table('parkwash_order')
-            ->field('id,pay+deduct as pay,car_number,series_id,item_name,create_time,status')
+            ->field('id,pay+deduct as pay,car_number,car_type_id,item_name,create_time,status')
             ->where($condition)->order('id desc')->limit($result['limit'])->select()) {
             return success($result);
         }
@@ -130,16 +130,16 @@ class ParkWashEmployeeModel extends Crud {
             }
         }
 
-        $seriesList = $this->getSeriesNameById(array_column($orderList, 'series_id'));
+        $carTypes = ParkWashCache::getCarType();
 
         foreach ($orderList as $k => $v) {
             $result['lastpage'] = $v['id'];
             $orderList[$k]['pay']           = round_dollar($v['pay']);
-            $orderList[$k]['car_type_name'] = $seriesList[$v['series_id']]['car_type_name'];
+            $orderList[$k]['car_type_name'] = $carTypes[$v['car_type_id']]['name'];
             $orderList[$k]['employee_name'] = isset($employeeList[$v['id']]) ? $employeeList[$v['id']] : '';
-            unset($orderList[$k]['series_id']);
+            unset($orderList[$k]['car_type_id']);
         }
-        unset($seriesList, $employeeList);
+        unset($carTypes, $employeeList);
 
         $result['list'] = $orderList;
         unset($orderList);
@@ -202,24 +202,24 @@ class ParkWashEmployeeModel extends Crud {
         if (!$orderList = $this->getDb()
                 ->table('parkwash_order_helper helper_table')
                 ->join('left join parkwash_order order_table on order_table.id = helper_table.orderid')
-                ->field('order_table.id,helper_table.employee_salary,order_table.car_number,order_table.brand_id,order_table.series_id,order_table.item_name,order_table.complete_time')
+                ->field('order_table.id,helper_table.employee_salary,order_table.car_number,order_table.brand_id,order_table.car_type_id,order_table.item_name,order_table.complete_time')
                 ->where($condition)->order('order_table.id desc')->limit($result['limit'])->select()) {
             return success($result);
         }
 
-        $brandList  = $this->getBrandNameById(array_column($orderList, 'brand_id'));
-        $seriesList = $this->getSeriesNameById(array_column($orderList, 'series_id'));
+        $brands   = ParkWashCache::getBrand();
+        $carTypes = ParkWashCache::getCarType();
 
         foreach ($orderList as $k => $v) {
             $result['lastpage'] = $v['id'];
             $orderList[$k]['employee_salary'] = round_dollar($v['employee_salary']);
-            $orderList[$k]['brand_name']      = $brandList[$v['brand_id']];
-            $orderList[$k]['series_name']     = $seriesList[$v['series_id']]['name'];
-            $orderList[$k]['car_type_name']   = $seriesList[$v['series_id']]['car_type_name'];
+            $orderList[$k]['brand_name']      = $brands[$v['brand_id']]['name'];
+            $orderList[$k]['series_name']     = '';
+            $orderList[$k]['car_type_name']   = $carTypes[$v['car_type_id']]['name'];
 
-            unset($orderList[$k]['brand_id'], $orderList[$k]['series_id']);
+            unset($orderList[$k]['brand_id'], $orderList[$k]['car_type_id']);
         }
-        unset($brandList, $seriesList);
+        unset($brands, $carTypes);
 
         $result['list'] = $orderList;
         unset($orderList);
@@ -595,20 +595,21 @@ class ParkWashEmployeeModel extends Crud {
     {
         $orderid = intval($orderid);
 
-        if (!$orderInfo = $this->getDb()->table('parkwash_order')->field('id,car_number,brand_id,series_id,area_id,place,pay+deduct as pay,payway,item_name,order_time,create_time,status,user_tel,remark,service_time,complete_time,cancel_time')->where(['id' => $orderid])->limit(1)->find()) {
+        if (!$orderInfo = $this->getDb()->table('parkwash_order')->field('id,car_number,brand_id,car_type_id,area_id,place,pay+deduct as pay,payway,item_name,order_time,create_time,status,user_tel,remark,service_time,complete_time,cancel_time')->where(['id' => $orderid])->limit(1)->find()) {
             return error('订单不存在或无效');
         }
 
-        $carTypeInfo = $this->getSeriesNameById($orderInfo['series_id']);
-        $areaList    = ParkWashCache::getParkArea();
+        $brands   = ParkWashCache::getBrand();
+        $carTypes = ParkWashCache::getCarType();
+        $areas    = ParkWashCache::getParkArea();
 
         $orderInfo['order_code']    = str_replace(['-', ' ', ':'], '', $orderInfo['create_time']) . $orderInfo['id']; // 组合订单号
         $orderInfo['place']         = strval($orderInfo['place']);
-        $orderInfo['brand_name']    = $this->getBrandNameById($orderInfo['brand_id']);
-        $orderInfo['series_name']   = strval($carTypeInfo['name']);
-        $orderInfo['car_type_name'] = strval($carTypeInfo['car_type_name']);
-        $orderInfo['area_floor']    = isset($areaList[$orderInfo['area_id']]) ? $areaList[$orderInfo['area_id']]['floor'] : '';
-        $orderInfo['area_name']     = isset($areaList[$orderInfo['area_id']]) ? $areaList[$orderInfo['area_id']]['name'] : '';
+        $orderInfo['brand_name']    = $brands[$orderInfo['brand_id']]['name'];
+        $orderInfo['series_name']   = '';
+        $orderInfo['car_type_name'] = strval($carTypes['car_type_id']['name']);
+        $orderInfo['area_floor']    = strval($areas[$orderInfo['area_id']]['floor']);
+        $orderInfo['area_name']     = strval($areas[$orderInfo['area_id']]['name']);
         $orderInfo['payway']        = ParkWashPayWay::getMessage($orderInfo['payway']);
         $orderInfo['remark']        = strval($orderInfo['remark']);
         $orderInfo['pay']           = round_dollar($orderInfo['pay']);
@@ -617,7 +618,7 @@ class ParkWashEmployeeModel extends Crud {
         $orderInfo['cancel_time']   = strval($orderInfo['cancel_time']);
         $orderInfo['helper']        = '无';
 
-        unset($carTypeInfo, $areaList, $orderInfo['brand_id'], $orderInfo['series_id'], $orderInfo['area_id']);
+        unset($brands, $carTypes, $areas, $orderInfo['brand_id'], $orderInfo['car_type_id'], $orderInfo['area_id']);
 
         // 帮手
         if (ParkWashOrderStatus::inService($orderInfo['status'])) {
@@ -678,7 +679,7 @@ class ParkWashEmployeeModel extends Crud {
         ];
 
         // 查询字段
-        $field = ['order_table.id', 'order_table.car_number', 'order_table.brand_id', 'order_table.series_id', 'order_table.area_id', 'order_table.place', 'order_table.item_name', 'order_table.order_time', 'order_table.create_time', 'order_table.status', 'order_table.update_time', 'order_table.complete_time'];
+        $field = ['order_table.id', 'order_table.car_number', 'order_table.brand_id', 'order_table.car_type_id', 'order_table.area_id', 'order_table.place', 'order_table.item_name', 'order_table.order_time', 'order_table.create_time', 'order_table.status', 'order_table.update_time', 'order_table.complete_time'];
 
         // 查询条件
         $condition = [
@@ -745,9 +746,9 @@ class ParkWashEmployeeModel extends Crud {
             }
         }
 
-        $brandList  = $this->getBrandNameById(array_column($orderList, 'brand_id'));
-        $seriesList = $this->getSeriesNameById(array_column($orderList, 'series_id'));
-        $areaList   = ParkWashCache::getParkArea();
+        $brands   = ParkWashCache::getBrand();
+        $carTypes = ParkWashCache::getCarType();
+        $areas    = ParkWashCache::getParkArea();
 
         foreach ($orderList as $k => $v) {
             if ($post['status'] == ParkWashOrderStatus::PAY) {
@@ -758,21 +759,21 @@ class ParkWashEmployeeModel extends Crud {
                 $result['lastpage'] = $v['update_time'];
             }
             $orderList[$k]['place']         = strval($v['place']);
-            $orderList[$k]['brand_name']    = $brandList[$v['brand_id']];
-            $orderList[$k]['series_name']   = $seriesList[$v['series_id']]['name'];
-            $orderList[$k]['car_type_name'] = $seriesList[$v['series_id']]['car_type_name'];
-            $orderList[$k]['area_floor']    = isset($areaList[$v['area_id']]) ? $areaList[$v['area_id']]['floor'] : '';
-            $orderList[$k]['area_name']     = isset($areaList[$v['area_id']]) ? $areaList[$v['area_id']]['name'] : '';
+            $orderList[$k]['brand_name']    = strval($brands[$v['brand_id']]['name']);
+            $orderList[$k]['series_name']   = '';
+            $orderList[$k]['car_type_name'] = $carTypes[$v['car_type_id']]['name'];
+            $orderList[$k]['area_floor']    = strval($areas[$v['area_id']]['floor']);
+            $orderList[$k]['area_name']     = strval($areas[$v['area_id']]['name']);
             unset(
                 $orderList[$k]['brand_id'],
-                $orderList[$k]['series_id'],
+                $orderList[$k]['car_type_id'],
                 $orderList[$k]['area_id'],
                 $orderList[$k]['update_time'],
                 $orderList[$k]['complete_time'],
                 $orderList[$k]['latetime']
             );
         }
-        unset($brandList, $seriesList, $areaList);
+        unset($brands, $carTypes, $areas);
 
         $result['list'] = $orderList;
         unset($orderList);
@@ -930,60 +931,6 @@ class ParkWashEmployeeModel extends Crud {
             'clienttype' => 'yee'
         ]);
         return success('ok');
-    }
-
-    /**
-     * 获取汽车车系名称
-     */
-    public function getSeriesNameById ($id)
-    {
-        if (empty($id)) {
-            return [];
-        }
-
-        $list    = ParkWashCache::getSeries();
-        $carType = ParkWashCache::getCarType();
-
-        if (!is_array($id)) {
-            $data = isset($list[$id]) ? $list[$id] : [];
-            if ($data) {
-                $data['car_type_name'] = isset($carType[$data['car_type_id']]) ? $carType[$data['car_type_id']] : '';
-            }
-            unset($list, $carType);
-            return $data;
-        }
-        $data = [];
-        foreach ($id as $v) {
-            $data[$v] = isset($list[$v]) ? $list[$v] : [];
-            if ($data[$v]) {
-                $data[$v]['car_type_name'] = isset($carType[$data[$v]['car_type_id']]) ? $carType[$data[$v]['car_type_id']] : '';
-            }
-        }
-        unset($list, $carType);
-        return $data;
-    }
-
-    /**
-     * 获取汽车品牌名称
-     */
-    public function getBrandNameById ($id)
-    {
-        if (empty($id)) {
-            return [];
-        }
-
-        $list = ParkWashCache::getBrand();
-        $list = array_column($list, 'name', 'id');
-
-        if (!is_array($id)) {
-            return isset($list[$id]) ? $list[$id] : '';
-        }
-        $data = [];
-        foreach ($id as $v) {
-            $data[$v] = isset($list[$v]) ? $list[$v] : '';
-        }
-        unset($list);
-        return $data;
     }
 
     /**

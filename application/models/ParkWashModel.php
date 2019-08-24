@@ -156,7 +156,7 @@ class ParkWashModel extends Crud {
         }
 
         // 获取订单
-        if (!$orderList = $this->getDb()->table('parkwash_order')->field('id,xc_trade_id,store_id,car_number,brand_id,series_id,area_id,place,pay+deduct as pay,payway,item_name,order_time,create_time,status,update_time')->where($condition)->order('update_time desc')->limit($result['limit'])->select()) {
+        if (!$orderList = $this->getDb()->table('parkwash_order')->field('id,xc_trade_id,store_id,car_number,brand_id,car_type_id,area_id,place,pay+deduct as pay,payway,item_name,order_time,create_time,status,update_time')->where($condition)->order('update_time desc')->limit($result['limit'])->select()) {
             return success($result);
         }
 
@@ -174,9 +174,7 @@ class ParkWashModel extends Crud {
         // 处理洗车订单
         if (isset($orderCategory[0])) {
             $tradeModel = new TradeModel();
-            $tradelist = $tradeModel->select([
-                'id' => ['in', $orderCategory[0]]
-            ], 'id,param_id,payway,refundpay');
+            $tradelist = $tradeModel->select(['id' => ['in', $orderCategory[0]]], 'id,param_id,payway,refundpay');
             $tradelist = array_column($tradelist, null, 'id');
             $xicheModel = new XicheModel();
             // 获取洗车机设备
@@ -190,9 +188,9 @@ class ParkWashModel extends Crud {
                     $orderList[$k]['order_type'] = 'xc';
                     $orderList[$k]['order_code'] = str_replace(['-', ' ', ':'], '', $v['create_time']) . $v['id']; // 组合订单号
                     $orderList[$k]['store_name'] = $tradelist[$v['xc_trade_id']]['areaname'];
-                    $orderList[$k]['refundpay'] = intval($tradelist[$v['xc_trade_id']]['refundpay']);
-                    $orderList[$k]['payway'] = ParkWashPayWay::getMessage($tradelist[$v['xc_trade_id']]['payway']);
-                    unset($orderList[$k]['car_number'], $orderList[$k]['place'], $orderList[$k]['order_time']);
+                    $orderList[$k]['refundpay']  = intval($tradelist[$v['xc_trade_id']]['refundpay']);
+                    $orderList[$k]['payway']     = ParkWashPayWay::getMessage($tradelist[$v['xc_trade_id']]['payway']);
+                    unset($orderList[$k]['xc_trade_id'], $orderList[$k]['car_number'], $orderList[$k]['place'], $orderList[$k]['order_time']);
                 }
             }
             unset($deviceList, $tradelist);
@@ -200,34 +198,29 @@ class ParkWashModel extends Crud {
 
         // 处理停车场订单
         if (isset($orderCategory[1])) {
-            $brandList  = $this->getBrandNameById(array_column($orderCategory[1], 'brand_id'));
-            $seriesList = $this->getSeriesNameById(array_column($orderCategory[1], 'series_id'));
-            $areaList   = ParkWashCache::getParkArea();
-            $storeList = $this->getDb()->table('parkwash_store')->field('id,name')->where(['id' => ['in', array_unique(array_column($orderCategory[1], 'store_id'))]])->select();
-            $storeList = array_column($storeList, 'name', 'id');
+            $brands   = ParkWashCache::getBrand();
+            $carTypes = ParkWashCache::getCarType();
+            $areas    = ParkWashCache::getParkArea();
+            $stores   = ParkWashCache::getStore();
             foreach ($orderList as $k => $v) {
                 if ($v['xc_trade_id'] == 0) {
-                    $orderList[$k]['order_type']  = 'parkwash';
-                    $orderList[$k]['order_code']  = str_replace(['-', ' ', ':'], '', $v['create_time']) . $v['id']; // 组合订单号
-                    $orderList[$k]['brand_name']  = $brandList[$v['brand_id']];
-                    $orderList[$k]['series_name'] = $seriesList[$v['series_id']];
-                    $orderList[$k]['area_floor']  = isset($areaList[$v['area_id']]) ? $areaList[$v['area_id']]['floor'] : '';
-                    $orderList[$k]['area_name']   = isset($areaList[$v['area_id']]) ? $areaList[$v['area_id']]['name'] : '';
-                    $orderList[$k]['store_name']  = strval($storeList[$v['store_id']]);
-                    $orderList[$k]['pay']         = $v['payway'] == ParkWashPayWay::FIRSTPAY ? 0 : $v['pay']; // 首单免费支付金额为0
-                    $orderList[$k]['payway']      = ParkWashPayWay::getMessage($v['payway']);
-                    $orderList[$k]['items']       = [['name' => $v['item_name']]];
-                    $orderList[$k]['place']       = strval($v['place']);
+                    $orderList[$k]['order_type']    = 'parkwash';
+                    $orderList[$k]['order_code']    = str_replace(['-', ' ', ':'], '', $v['create_time']) . $v['id']; // 组合订单号
+                    $orderList[$k]['brand_name']    = strval($brands[$v['brand_id']]['name']);
+                    $orderList[$k]['car_type_name'] = strval($carTypes[$v['car_type_id']]['name']);
+                    $orderList[$k]['area_floor']    = strval($areas[$v['area_id']]['floor']);
+                    $orderList[$k]['area_name']     = strval($areas[$v['area_id']]['name']);
+                    $orderList[$k]['store_name']    = strval($stores[$v['store_id']]['name']);
+                    $orderList[$k]['pay']           = $v['payway'] == ParkWashPayWay::FIRSTPAY ? 0 : $v['pay']; // 首单免费支付金额为0
+                    $orderList[$k]['payway']        = ParkWashPayWay::getMessage($v['payway']);
+                    $orderList[$k]['items']         = [['name' => $v['item_name']]];
+                    $orderList[$k]['place']         = strval($v['place']);
+                    unset($orderList[$k]['xc_trade_id'], $orderList[$k]['store_id'], $orderList[$k]['brand_id'], $orderList[$k]['car_type_id'], $orderList[$k]['area_id']);
                 }
             }
-            unset($brandList, $seriesList, $areaList, $storeList);
+            unset($brands, $carTypes, $areas, $stores);
         }
         unset($orderCategory);
-
-        // 去掉前端显示多余参数
-        $orderList = array_key_clean($orderList, [
-            'store_id', 'brand_id', 'series_id', 'area_id', 'xc_trade_id'
-        ]);
 
         $result['lastpage'] = end($orderList)['update_time'];
         $result['list'] = $orderList;
@@ -242,9 +235,7 @@ class ParkWashModel extends Crud {
     {
         $post['orderid'] = intval($post['orderid']);
 
-        if (!$orderInfo = $this->findOrderInfo([
-            'id' => $post['orderid'], 'uid' => $uid
-        ], 'id,xc_trade_id,store_id,car_number,brand_id,series_id,area_id,place,pay+deduct as pay,payway,item_name,order_time,create_time,status,update_time')) {
+        if (!$orderInfo = $this->findOrderInfo(['id' => $post['orderid'], 'uid' => $uid], 'id,xc_trade_id,store_id,car_number,brand_id,car_type_id,area_id,place,pay+deduct as pay,payway,item_name,order_time,create_time,status,update_time')) {
             return error('订单不存在或无效');
         }
 
@@ -252,7 +243,7 @@ class ParkWashModel extends Crud {
         if ($orderInfo['xc_trade_id'] > 0) {
 
             $tradeModel = new TradeModel();
-            $tradeInfo = $tradeModel->get($orderInfo['xc_trade_id'], null, 'id,param_id,payway,refundpay');
+            $tradeInfo  = $tradeModel->get($orderInfo['xc_trade_id'], null, 'id,param_id,payway,refundpay');
             $xicheModel = new XicheModel();
             $deviceInfo = $xicheModel->getDeviceById($tradeInfo['param_id'], 'id,areaname');
             $orderInfo['order_type'] = 'xc';
@@ -260,25 +251,26 @@ class ParkWashModel extends Crud {
             $orderInfo['store_name'] = $deviceInfo['areaname'];
             $orderInfo['refundpay']  = $tradeInfo['refundpay'];
             $orderInfo['payway']     = ParkWashPayWay::getMessage($tradeInfo['payway']);
-            $orderInfo['sequence']   = [];
 
         } else {
 
-            $areaList  = ParkWashCache::getParkArea();
-            $storeInfo = $this->getDb()->table('parkwash_store')->field('name,location')->where(['id' => $orderInfo['store_id']])->find();
-            $orderInfo['order_type']  = 'parkwash';
-            $orderInfo['order_code']  = str_replace(['-', ' ', ':'], '', $orderInfo['create_time']) . $orderInfo['id']; // 组合订单号
-            $orderInfo['brand_name']  = $this->getBrandNameById($orderInfo['brand_id']);
-            $orderInfo['series_name'] = $this->getSeriesNameById($orderInfo['series_id']);
-            $orderInfo['area_floor']  = isset($areaList[$orderInfo['area_id']]) ? $areaList[$orderInfo['area_id']]['floor'] : '';
-            $orderInfo['area_name']   = isset($areaList[$orderInfo['area_id']]) ? $areaList[$orderInfo['area_id']]['name'] : '';
-            $orderInfo['store_name']  = $storeInfo['name'];
-            $orderInfo['location']    = $storeInfo['location'];
-            $orderInfo['items']       = [['name' => $orderInfo['item_name']]];
-            $orderInfo['pay']         = $orderInfo['payway'] == ParkWashPayWay::FIRSTPAY ? 0 : $orderInfo['pay']; // 首单免费支付金额为0
-            $orderInfo['payway']      = ParkWashPayWay::getMessage($orderInfo['payway']);
-            $orderInfo['place']       = strval($orderInfo['place']);
-            unset($areaList);
+            $brands   = ParkWashCache::getBrand();
+            $areas    = ParkWashCache::getParkArea();
+            $carTypes = ParkWashCache::getCarType();
+            $stores   = ParkWashCache::getStore();
+            $orderInfo['order_type']    = 'parkwash';
+            $orderInfo['order_code']    = str_replace(['-', ' ', ':'], '', $orderInfo['create_time']) . $orderInfo['id']; // 组合订单号
+            $orderInfo['brand_name']    = strval($brands[$orderInfo['brand_id']]['name']);
+            $orderInfo['car_type_name'] = strval($carTypes[$orderInfo['car_type_id']]['name']);
+            $orderInfo['area_floor']    = strval($areas[$orderInfo['area_id']]['floor']);
+            $orderInfo['area_name']     = strval($areas[$orderInfo['area_id']]['name']);
+            $orderInfo['store_name']    = $stores[$orderInfo['store_id']]['name'];
+            $orderInfo['location']      = $stores[$orderInfo['store_id']]['location'];
+            $orderInfo['items']         = [['name' => $orderInfo['item_name']]];
+            $orderInfo['pay']           = $orderInfo['payway'] == ParkWashPayWay::FIRSTPAY ? 0 : $orderInfo['pay']; // 首单免费支付金额为0
+            $orderInfo['payway']        = ParkWashPayWay::getMessage($orderInfo['payway']);
+            $orderInfo['place']         = strval($orderInfo['place']);
+            unset($brands, $areas, $carTypes, $stores);
 
         }
 
@@ -688,11 +680,11 @@ class ParkWashModel extends Crud {
      */
     public function updateCarport ($uid, $post)
     {
-        $post['brand_id']  = intval($post['brand_id']);
-        $post['series_id'] = intval($post['series_id']);
-        $post['area_id']   = trim_space($post['area_id']);
-        $post['place']     = trim_space($post['place']);
-        $post['isdefault'] = $post['isdefault'] == 1 ? 1 : 0;
+        $post['brand_id']    = intval($post['brand_id']);
+        $post['car_type_id'] = intval($post['car_type_id']);
+        $post['area_id']     = trim_space($post['area_id']);
+        $post['place']       = trim_space($post['place']);
+        $post['isdefault']   = $post['isdefault'] == 1 ? 1 : 0;
 
         if (!check_car_license($post['car_number'])) {
             return error('车牌号错误');
@@ -700,11 +692,17 @@ class ParkWashModel extends Crud {
         if ($post['place'] && strlen($post['place']) > 10) {
             return error('车位号最多10个字符');
         }
-        if (!$brandInfo = $this->getDb()->table('parkwash_car_brand')->field('name')->where(['id' => $post['brand_id']])->find()) {
-            return error('品牌为空或不存在');
+        if ($post['brand_id']) {
+            $brandInfo = ParkWashCache::getBrand();
+            if (!$brandInfo = $brandInfo[$post['brand_id']]) {
+                return error('品牌为空或不存在');
+            }
         }
-        if (!$seriesInfo = $this->getDb()->table('parkwash_car_series')->field('name')->where(['id' => $post['series_id'], 'brand_id' => $post['brand_id']])->find()) {
-            return error('车系为空或不存在');
+        if ($post['car_type_id']) {
+            $carTypeInfo = ParkWashCache::getCarType();
+            if (!$carTypeInfo = $carTypeInfo[$post['car_type_id']]) {
+                return error('车型为空或不存在');
+            }
         }
         if ($post['area_id']) {
             if (!$this->getDb()->table('parkwash_park_area')->where(['id' => $post['area_id']])->count()) {
@@ -713,15 +711,11 @@ class ParkWashModel extends Crud {
         }
 
         // 验证车牌号是否已存在
-        if ($this->getDb()->table('parkwash_carport')->where([
-            'id' => ['<>', $post['id']], 'uid' => $uid, 'car_number' => $post['car_number']
-        ])->count()) {
+        if ($this->getDb()->table('parkwash_carport')->where(['id' => ['<>', $post['id']], 'uid' => $uid, 'car_number' => $post['car_number']])->count()) {
             return error('该车牌号已存在');
         }
 
-        if (!$carportInfo = $this->getDb()->table('parkwash_carport')->field('car_number,vip_expire')->where([
-            'id' => $post['id'], 'uid' => $uid
-        ])->find()) {
+        if (!$carportInfo = $this->getDb()->table('parkwash_carport')->field('car_number,vip_expire')->where(['id' => $post['id'], 'uid' => $uid])->find()) {
             return error('该车不存在');
         }
 
@@ -733,15 +727,19 @@ class ParkWashModel extends Crud {
         }
 
         // 判断车辆下是否有订单
-        if ($this->findOrderInfo([
-            'uid' => $uid, 'car_number' => $carportInfo['car_number'], 'status' => ['in', [ParkWashOrderStatus::PAY, ParkWashOrderStatus::IN_SERVICE]]
-        ], 'id')) {
+        if ($this->findOrderInfo(['uid' => $uid, 'car_number' => $carportInfo['car_number'], 'status' => ['in', [ParkWashOrderStatus::PAY, ParkWashOrderStatus::IN_SERVICE]]], 'id')) {
             return error('该车辆有洗车订单，编辑失败');
         }
 
-        // 编辑增车
+        // 编辑车辆
         if (!$this->saveCarport($uid, [
-            'id' => $post['id'], 'car_number' => $post['car_number'], 'brand_id' => $post['brand_id'], 'series_id' => $post['series_id'], 'area_id' => $post['area_id'], 'name' => $brandInfo['name'] . ' ' . $seriesInfo['name'], 'place' => $post['place'], 'isdefault' => $post['isdefault']
+            'id'          => $post['id'],
+            'car_number'  => $post['car_number'],
+            'brand_id'    => $post['brand_id'] ? $post['brand_id'] : null,
+            'car_type_id' => $post['car_type_id'] ? $post['car_type_id'] : null,
+            'area_id'     => $post['area_id'] ? $post['area_id'] : null,
+            'place'       => $post['place'] ? $post['place'] : null,
+            'isdefault'   => $post['isdefault']
         ])) {
             return error('更新车辆失败，请检查该是否存在相同车牌！');
         }
@@ -759,17 +757,18 @@ class ParkWashModel extends Crud {
         }
 
         // 获取车辆全称
-        if ($post['brand_id'] && $post['series_id'] && !$post['name']) {
-            $post['name'] = $this->getBrandNameById($post['brand_id']) . ' ' . $this->getSeriesNameById($post['series_id']);
+        if (($post['brand_id'] || $post['car_type_id']) && !$post['name']) {
+            $brands   = $post['brand_id'] ? ParkWashCache::getBrand() : [];
+            $carTypes = $post['car_type_id'] ? ParkWashCache::getCarType() : [];
+            $post['name'] = implode(' ', [strval($brands[$post['brand_id']]['name']), strval($carTypes[$post['car_type_id']]['name'])]);
+            unset($brands, $carTypes);
         }
 
-        // 车位为 null 就不更新
-        if (!isset($post['place'])) {
-            unset($post['place']);
-        }
-        // 区域为 null 就不更新
-        if (!isset($post['area_id'])) {
-            unset($post['area_id']);
+        // 过滤掉 null
+        foreach ($post as $k => $v) {
+            if (is_null($v)) {
+                unset($post[$k]);
+            }
         }
 
         $post['update_time'] = date('Y-m-d H:i:s', TIMESTAMP);
@@ -845,17 +844,26 @@ class ParkWashModel extends Crud {
      */
     public function addCarport ($uid, $post)
     {
-        $post['brand_id']  = intval($post['brand_id']);
-        $post['series_id'] = intval($post['series_id']);
+        $post['brand_id']    = intval($post['brand_id']);
+        $post['car_type_id'] = intval($post['car_type_id']);
 
         if (!check_car_license($post['car_number'])) {
             return error('车牌号错误');
         }
-        if (!$brandInfo = $this->getDb()->table('parkwash_car_brand')->field('name')->where(['id' => $post['brand_id']])->find()) {
-            return error('品牌为空或不存在');
+        if ($post['brand_id']) {
+            $brandInfo = ParkWashCache::getBrand();
+            if (!$brandInfo = $brandInfo[$post['brand_id']]) {
+                return error('品牌为空或不存在');
+            }
         }
-        if (!$seriesInfo = $this->getDb()->table('parkwash_car_series')->field('name')->where(['id' => $post['series_id'], 'brand_id' => $post['brand_id']])->find()) {
-            return error('车系为空或不存在');
+        $carTypeInfo = ParkWashCache::getCarType();
+        if (!$carTypeInfo = $carTypeInfo[$post['car_type_id']]) {
+            return error('车型为空或不存在');
+        }
+
+        // 验证车牌号唯一
+        if ($this->getDb()->table('parkwash_carport')->where(['uid' => $uid, 'car_number' => $post['car_number']])->count()) {
+            return error('你已添加过该车辆');
         }
 
         // 每个用户最多添加车辆的数量
@@ -868,7 +876,14 @@ class ParkWashModel extends Crud {
 
         // 新增车
         if (!$this->getDb()->insert('parkwash_carport', [
-            'uid' => $uid, 'car_number' => $post['car_number'], 'brand_id' => $post['brand_id'], 'series_id' => $post['series_id'], 'name' => $brandInfo['name'] . ' ' . $seriesInfo['name'], 'isdefault' => 1, 'create_time' => date('Y-m-d H:i:s', TIMESTAMP), 'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
+            'uid'         => $uid,
+            'car_number'  => $post['car_number'],
+            'brand_id'    => $post['brand_id'],
+            'car_type_id' => $post['car_type_id'],
+            'name'        => implode(' ', [strval($brandInfo['name']), strval($carTypeInfo['name'])]),
+            'isdefault'   => 1,
+            'create_time' => date('Y-m-d H:i:s', TIMESTAMP),
+            'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
         ])) {
             return error('添加车辆失败，请检查该是否存在相同车牌！');
         }
@@ -884,26 +899,25 @@ class ParkWashModel extends Crud {
      */
     public function getCarport ($uid)
     {
-        if (!$carportList = $this->getDb()->table('parkwash_carport')
-            ->field('id,car_number,brand_id,series_id,area_id,place,name,isdefault,vip_expire')->where(['uid' => $uid])->order('id desc')->select()) {
+        if (!$carportList = $this->getDb()->table('parkwash_carport')->field('id,car_number,brand_id,car_type_id,area_id,place,name,isdefault,vip_expire')->where(['uid' => $uid])->order('id desc')->select()) {
             return success([]);
         }
 
-        $brandList  = $this->getBrandNameById(array_column($carportList, 'brand_id'));
-        $seriesList = $this->getSeriesNameById(array_column($carportList, 'series_id'));
-        $areaList   = ParkWashCache::getParkArea();
+        $brands   = ParkWashCache::getBrand();
+        $areas    = ParkWashCache::getParkArea();
+        $carTypes = ParkWashCache::getCarType();
 
         foreach ($carportList as $k => $v) {
-            $carportList[$k]['brand_name']  = $brandList[$v['brand_id']];
-            $carportList[$k]['series_name'] = $seriesList[$v['series_id']];
-            $carportList[$k]['area_floor']  = isset($areaList[$v['area_id']]) ? $areaList[$v['area_id']]['floor'] : '';
-            $carportList[$k]['area_name']   = isset($areaList[$v['area_id']]) ? $areaList[$v['area_id']]['name'] : '';
+            $carportList[$k]['brand_name']    = $brands[$v['brand_id']]['name'];
+            $carportList[$k]['car_type_name'] = $carTypes[$v['car_type_id']]['name'];
+            $carportList[$k]['area_floor']    = strval($areas[$v['area_id']]['floor']);
+            $carportList[$k]['area_name']     = strval($areas[$v['area_id']]['name']);
             // vip
             $carportList[$k]['isvip'] = $v['vip_expire'] ? (strtotime($v['vip_expire']) < TIMESTAMP ? 0 : 1) : 0;
             unset($carportList[$k]['vip_expire']);
         }
 
-        unset($brandList, $seriesList, $areaList);
+        unset($brands, $areas, $carTypes);
 
         return success($carportList);
     }
@@ -913,20 +927,15 @@ class ParkWashModel extends Crud {
      */
     public function getStoreItem ($uid, $post)
     {
-        $post['store_id']  = intval($post['store_id']);
-        $post['series_id'] = intval($post['series_id']);
-
-        // 获取车系的车型
-        if (!$seriesInfo = $this->getDb()->table('parkwash_car_series')->field('car_type_id')->where(['id' => $post['series_id']])->limit(1)->find()) {
-            return success([]);
-        }
+        $post['store_id']    = intval($post['store_id']);
+        $post['car_type_id'] = intval($post['car_type_id']);
 
         if (!$itemList = $this->getDb()
             ->table('parkwash_store_item store_item')
             ->join('join parkwash_item item on item.id = store_item.item_id')
             ->field('item.id,item.name,item.firstorder,store_item.price')->where([
                 'store_item.store_id' => $post['store_id'],
-                'item.car_type_id'    => ['in (0, ' . $seriesInfo['car_type_id'] . ')'],
+                'item.car_type_id'    => ['in (0, ' . $post['car_type_id'] . ')'],
             ])->select()) {
             return success([]);
         }
@@ -1006,10 +1015,11 @@ class ParkWashModel extends Crud {
     {
         $post['store_id'] = intval($post['store_id']);
 
-        $storeInfo = $this->getDb()->table('parkwash_store')->field('park_id')->where(['id' => $post['store_id']])->find();
+        $stores = ParkWashCache::getStore();
 
-        $list = $this->getDb()->table('parkwash_park_area')->field('id,floor,name')->where(['park_id' => $storeInfo['park_id'], 'status' => 1])->select();
+        $list = $this->getDb()->table('parkwash_park_area')->field('id,floor,name')->where(['park_id' => intval($stores[$post['store_id']]['park_id']), 'status' => 1])->select();
 
+        unset($stores);
         return success($list);
     }
 
@@ -1267,9 +1277,11 @@ class ParkWashModel extends Crud {
     public function getStoreList ($post)
     {
         // 城市
-        $post['adcode']    = intval($post['adcode']);
+        $post['adcode']   = intval($post['adcode']);
+        // 店铺名称
+        $post['name']     = trim_space($post['name']);
         // 最后排序字段
-        $post['lastpage']  = intval($post['lastpage']);
+        $post['lastpage'] = intval($post['lastpage']);
 
         // 查询字段
         $field = [
@@ -1284,16 +1296,23 @@ class ParkWashModel extends Crud {
         ];
         $condition = [
             'adcode' => $post['adcode'],
-            'status' => ['in', [0, 1]]
+            'status' => ['in (0,1)']
         ];
+
+        if ($post['name']) {
+            $condition['name'] = ['like', '%' . $post['name'] . '%'];
+        }
 
         $geohash = $this->geoOrder($post['lon'], $post['lat']);
 
         if ($geohash) {
             // 获取附近门店
-            if (!$list = $this->getDb()->table('parkwash_store')->field(['id', 'location', 'status', $geohash . ' as geohash'])->where(['adcode' => $post['adcode'], 'geohash' => ['<', 10]])->order('geohash')->limit(1000)->select()) {
+            $where = $condition;
+            $where['geohash'] = ['< 10'];
+            if (!$list = $this->getDb()->table('parkwash_store')->field(['id', 'location', 'status', $geohash . ' as geohash'])->where($where)->order('geohash')->limit(1000)->select()) {
                 return success($result);
             }
+            unset($where);
             foreach ($list as $k => $v) {
                 $list[$k]['distance'] = LocationUtils::getDistance($v['location'], $post);
             }
@@ -1469,8 +1488,9 @@ class ParkWashModel extends Crud {
      */
     public function recharge ($uid, $post)
     {
-        $post['type_id'] = intval($post['type_id']);
-        $post['payway']  = trim($post['payway']);
+        $post['type_id']    = intval($post['type_id']);
+        $post['payway']     = trim($post['payway']);
+        $post['promo_name'] = trim($post['promo_name']);
 
         if (!$post['type_id']) {
             return error('请选择充值卡类型');
@@ -1478,6 +1498,16 @@ class ParkWashModel extends Crud {
         // 在线支付不能用车币支付
         if (!$post['payway'] || $post['payway'] == 'cbpay') {
             return error('请选择支付方式');
+        }
+
+        // 效验推荐人
+        if ($post['promo_name']) {
+            if (!validate_telephone($post['promo_name'])) {
+                return error('推荐人输入不正确');
+            }
+            if (!$promoInfo = $this->getDb()->table('parkwash_employee')->field('id')->where(['telephone' => $post['promo_name']])->find()) {
+                return error('推荐人不存在');
+            }
         }
 
         // 卡类型
@@ -1517,6 +1547,7 @@ class ParkWashModel extends Crud {
             'uses'       => '余额充值',
             'trade_id'   => $uid,
             'param_id'   => $post['type_id'],
+            'param_a'    => intval($promoInfo['id']),
             'pay'        => $typeInfo['price'],
             'money'      => $typeInfo['price'] + $typeInfo['give'],
             'payway'     => $post['payway'],
@@ -1584,7 +1615,7 @@ class ParkWashModel extends Crud {
         }
 
         // 判断车辆状态
-        if (!$carportInfo = $this->getDb()->table('parkwash_carport')->field('car_number,brand_id,series_id,vip_expire')->where(['id' => $post['carport_id'], 'uid' => $uid])->find()) {
+        if (!$carportInfo = $this->getDb()->table('parkwash_carport')->field('car_number,brand_id,car_type_id,vip_expire')->where(['id' => $post['carport_id'], 'uid' => $uid])->find()) {
             return error('该车辆不存在');
         }
 
@@ -1621,10 +1652,8 @@ class ParkWashModel extends Crud {
         }
 
         // 检查套餐与车系
-        if ($itemInfo['car_type_id']) {
-            if (!$this->getDb()->table('parkwash_car_series')->where(['id' => $carportInfo['series_id'], 'car_type_id' => $itemInfo['car_type_id']])->count()) {
-                return error('服务项目与车型不符');
-            }
+        if ($itemInfo['car_type_id'] && $itemInfo['car_type_id'] != $carportInfo['car_type_id']) {
+            return error('服务项目与车型不符');
         }
 
         // 判断套餐
@@ -1709,12 +1738,12 @@ class ParkWashModel extends Crud {
 
         // 订单预生成数据
         $orderParam = [
-            'adcode' => $storeInfo['adcode'], 'pool_id' => $post['pool_id'], 'store_id' => $post['store_id'], 'uid' => $uid, 'user_tel' => $userInfo['telephone'], 'car_number' => $carportInfo['car_number'], 'brand_id' => $carportInfo['brand_id'], 'series_id' => $carportInfo['series_id'], 'area_id' => $post['area_id'], 'place' => $post['place'], 'pay' => $totalPrice, 'deduct' => $deductPrice, 'item_id' => $itemInfo['id'], 'item_name' => $itemInfo['name'], 'order_time' => $post['order_time'], 'abort_time' => $post['abort_time']
+            'adcode' => $storeInfo['adcode'], 'pool_id' => $post['pool_id'], 'store_id' => $post['store_id'], 'uid' => $uid, 'user_tel' => $userInfo['telephone'], 'car_number' => $carportInfo['car_number'], 'brand_id' => $carportInfo['brand_id'], 'car_type_id' => $carportInfo['car_type_id'], 'area_id' => $post['area_id'], 'place' => $post['place'], 'pay' => $totalPrice, 'deduct' => $deductPrice, 'item_id' => $itemInfo['id'], 'item_name' => $itemInfo['name'], 'order_time' => $post['order_time'], 'abort_time' => $post['abort_time']
         ];
 
         // 更新车辆
         $this->saveCarport($uid, [
-            'id' => $post['carport_id'], 'car_number' => $orderParam['car_number'], 'brand_id' => $orderParam['brand_id'], 'series_id' => $orderParam['series_id'], 'area_id' => $orderParam['area_id'] ? $orderParam['area_id'] : null, 'place' => $orderParam['place'] ? $orderParam['place'] : null, 'isdefault' => 1
+            'id' => $post['carport_id'], 'car_number' => $orderParam['car_number'], 'brand_id' => $orderParam['brand_id'], 'car_type_id' => $orderParam['car_type_id'], 'area_id' => $orderParam['area_id'] ? $orderParam['area_id'] : null, 'place' => $orderParam['place'] ? $orderParam['place'] : null, 'isdefault' => 1
         ]);
 
         // 订单号
@@ -2255,8 +2284,11 @@ class ParkWashModel extends Crud {
             return error('更新交易失败');
         }
 
+        // model
+        $userModel = new UserModel();
+
         // 用户充值
-        $result = (new UserModel())->recharge([
+        $result = $userModel->recharge([
             'platform' => 3,
             'authcode' => $tradeInfo['trade_id'],
             'trade_no' => $tradeInfo['ordercode'],
@@ -2284,13 +2316,14 @@ class ParkWashModel extends Crud {
         }
 
         // 记录缴费记录
-        $userInfo = (new UserModel())->getUserInfo($tradeInfo['trade_id']);
+        $userInfo = $userModel->getUserInfo($tradeInfo['trade_id']);
         $this->getDb()->insert('parkwash_recharge_record', [
             'uid'         => $tradeInfo['trade_id'],
             'user_tel'    => strval($userInfo['result']['telephone']),
             'type_id'     => $tradeInfo['param_id'],
             'money'       => $tradeInfo['pay'],
             'give'        => $giveMoney,
+            'promo_id'    => $tradeInfo['param_a'],
             'create_time' => date('Y-m-d H:i:s', TIMESTAMP)
         ]);
         unset($userInfo);
@@ -3098,49 +3131,6 @@ class ParkWashModel extends Crud {
     }
 
     /**
-     * 获取汽车车系名称
-     */
-    public function getSeriesNameById ($id)
-    {
-        if (empty($id)) {
-            return [];
-        }
-
-        $list = ParkWashCache::getSeries();
-
-        if (!is_array($id)) {
-            return isset($list[$id]) ? $list[$id]['name'] : '';
-        }
-        $data = [];
-        foreach ($id as $v) {
-            $data[$v] = isset($list[$v]) ? $list[$v]['name'] : '';
-        }
-        return $data;
-    }
-
-    /**
-     * 获取汽车品牌名称
-     */
-    public function getBrandNameById ($id)
-    {
-        if (empty($id)) {
-            return [];
-        }
-
-        $list = ParkWashCache::getBrand();
-        $list = array_column($list, 'name', 'id');
-
-        if (!is_array($id)) {
-            return isset($list[$id]) ? $list[$id] : '';
-        }
-        $data = [];
-        foreach ($id as $v) {
-            $data[$v] = isset($list[$v]) ? $list[$v] : '';
-        }
-        return $data;
-    }
-
-    /**
      * 获取汽车车系
      */
     public function getSeriesList ($post)
@@ -3158,6 +3148,20 @@ class ParkWashModel extends Crud {
         unset($list);
 
         return success(var_exists($data, $post['brand_id'], []));
+    }
+
+    /**
+     * 获取车型
+     */
+    public function getCarType ()
+    {
+        $list = ParkWashCache::getCarType();
+        foreach ($list as $k => $v) {
+            if (!$v['status']) {
+                unset($list[$k]);
+            }
+        }
+        return success(array_values($list));
     }
 
     /**

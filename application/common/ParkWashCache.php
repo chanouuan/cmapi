@@ -20,6 +20,7 @@ class ParkWashCache
             foreach ($list as $k => $v) {
                 $list[$k]['logo'] = httpurl($v['logo']);
             }
+            $list = array_column($list, null, 'id');
             F('CarBrand', $list);
             return $list;
         }
@@ -83,8 +84,8 @@ class ParkWashCache
     public static function getCarType ()
     {
         if (false === F('CarType')) {
-            $list = DB::getInstance()->table('parkwash_car_type')->field('id,name')->select();
-            $list = array_column($list, 'name', 'id');
+            $list = DB::getInstance()->table('parkwash_car_type')->field('id,name,status')->select();
+            $list = array_column($list, null, 'id');
             F('CarType', $list);
             return $list;
         }
@@ -103,6 +104,20 @@ class ParkWashCache
             return $list;
         }
         return F('ParkArea');
+    }
+
+    /**
+     * 获取店铺缓存
+     */
+    public static function getStore ()
+    {
+        if (false === F('ParkStore')) {
+            $list = DB::getInstance()->table('parkwash_store')->field('id,name,location,park_id')->select();
+            $list = array_column($list, null, 'id');
+            F('ParkStore', $list);
+            return $list;
+        }
+        return F('ParkStore');
     }
 
 }

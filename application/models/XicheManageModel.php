@@ -1023,6 +1023,9 @@ class XicheManageModel extends Crud {
         // 更新员工store_name字段
         $this->getDb()->update('parkwash_employee', ['store_name' => $post['name']], ['store_id' => $post['id']]);
 
+        // 清除缓存
+        F('ParkStore', null);
+
         return success('OK');
     }
 
@@ -1259,6 +1262,9 @@ class XicheManageModel extends Crud {
             // 新增排班
             $this->poolSave($store_id, $post['business_hours'], $post['time_interval'], $post['time_amount'], $post['time_day']);
         }
+
+        // 清除缓存
+        F('ParkStore', null);
 
         return success('OK');
     }
@@ -1840,26 +1846,23 @@ class XicheManageModel extends Crud {
         $fileName = $fileName . '_' . date('Ymd', TIMESTAMP);
         $fileName = preg_match('/(Chrome|Firefox)/i', $_SERVER['HTTP_USER_AGENT']) && !preg_match('/edge/i', $_SERVER['HTTP_USER_AGENT']) ? $fileName : urlencode($fileName);
 
-        header('Content-type: text/html; charset=utf-8');
+        header('Content-type:application/vnd.ms-excel');
         header('cache-control:public');
         header('content-type:application/octet-stream');
         header('content-disposition:attachment; filename=' . $fileName . '.csv');
 
-        echo chr(0xEF) . chr(0xBB) . chr(0xBF); // 输出BOM
-        echo $header;
-        echo "\n";
-
+        $input = [$header];
         foreach ($list as $k => $v) {
             foreach ($v as $kk => $vv) {
                 if (false !== strpos($vv, ',')) {
                     $v[$kk] = '"' . $vv . '"';
                 }
             }
-            echo implode(',', $v);
-            echo "\n";
-            unset($list[$k]);
+            $input[] = implode(',', $v);
         }
+        unset($list);
 
+        echo mb_convert_encoding(implode("\n", $input), 'GB2312', 'UTF-8');
         exit(0);
     }
 

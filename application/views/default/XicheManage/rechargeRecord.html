@@ -34,6 +34,15 @@
                             <input value="<?=$_GET['end_time']?>" class="layui-input" id="end_time" name="end_time" placeholder="缴费结束日期" readonly>
                         </div>
                         <div class="layui-input-inline layui-show-xs-block">
+                            <input value="<?=$_GET['store_name']?>" maxlength="30" type="text" name="store_name" placeholder="推荐店铺" autocomplete="off" class="layui-input">
+                        </div>
+                        <div class="layui-input-inline layui-show-xs-block">
+                            <input value="<?=$_GET['promo_name']?>" maxlength="20" type="text" name="promo_name" placeholder="推荐人" autocomplete="off" class="layui-input">
+                        </div>
+                        <div class="layui-input-inline layui-show-xs-block">
+                            <input value="<?=$_GET['promo_tel']?>" maxlength="11" type="tel" name="promo_tel" placeholder="推荐人手机" autocomplete="off" class="layui-input">
+                        </div>
+                        <div class="layui-input-inline layui-show-xs-block">
                             <button class="layui-btn" lay-submit="" lay-filter="sreach"><i class="layui-icon">&#xe615;</i></button>
                         </div>
                     </form>
@@ -55,6 +64,9 @@
                             <th>缴费(元)</th>
                             <th>赠送(元)</th>
                             <th>缴费时间</th>
+                            <th>推荐店铺</th>
+                            <th>推荐人</th>
+                            <th>推荐人手机</th>
                         </tr>
                         </thead>
                         <tbody>
@@ -67,6 +79,9 @@
                             <td><?=$v['money']?></td>
                             <td><?=$v['give']?></td>
                             <td><?=$v['create_time']?></td>
+                            <td><?=$v['store_name']?></td>
+                            <td><?=$v['promo_name']?></td>
+                            <td><?=$v['promo_tel']?></td>
                         </tr>
                         <?php } ?>
                         <?php }else{ ?>

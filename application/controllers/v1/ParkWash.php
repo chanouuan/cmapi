@@ -167,7 +167,7 @@ class ParkWash extends ActionPDO {
      * "message":"", //错误消息
      * "result":{
      *     "id":5, //订单ID
-     *     "status":1, //最近一个停车场洗车订单状态(-1已取消1已支付3服务中4已完成5确认完成)
+     *     "status":1, //订单状态(-1已取消1已支付3服务中4已完成5确认完成)
      *     "create_time":"" //下单时间
      * }}
      */
@@ -244,10 +244,11 @@ class ParkWash extends ActionPDO {
     }
 
     /**
-     * 获取洗车店列表
+     * 获取洗车店列表 <span style="color:red">改动</span>
      * @param *adcode 城市代码(贵阳520100)
      * @param *lon 经度(精确到6位)
      * @param *lat 维度(精确到6位)
+     * @param name string 店铺名称 <span style="color:red">新增搜索字段</span>
      * @param lastpage 分页参数
      * @return array
      * {
@@ -258,18 +259,18 @@ class ParkWash extends ActionPDO {
      *     "lastpage":"", //分页参数 (下一页携带的参数)
      *     "list":[{
      *         "id":1, //门店ID
-     *         "name":"洗车", //门店名称
+     *         "name":"", //门店名称
      *         "logo":"", //门店图片地址
-     *         "address":"地址", //门店地址
+     *         "address":"", //门店地址
      *         "tel":"", //电话号码
-     *         "market":"洗车半价", //活动描述
-     *         "business_hours":"09:00-21:00", //营业时间
+     *         "market":"半价", //活动描述
+     *         "business_hours":"", //营业时间
      *         "is_business_hour":1, //是否在营业时间 1是 0否
      *         "price":10, //洗车价(分)
-     *         "order_count":1000, //下单数
+     *         "order_count":1, //下单数
      *         "status":1, //门店状态 1正常 0建设中
-     *         "distance":0.81, //距离(公里)
-     *         "location":“106.925389,27.728654”, //经纬度
+     *         "distance":0, //距离(公里)
+     *         "location":“”, //经纬度
      *      }]
      * }}
      */
@@ -407,6 +408,22 @@ class ParkWash extends ActionPDO {
     }
 
     /**
+     * 获取车型 <span style="color:red">新增</span>
+     * @return array
+     * {
+     * "errNo":0, //错误码 0成功 -1失败
+     * "message":"",
+     * "result":[{
+     *      "id":1, //车型ID
+     *      "name":"小型车", //车型名称
+     * }]}
+     */
+    public function getCarType ()
+    {
+        return (new ParkWashModel())->getCarType();
+    }
+
+    /**
      * 获取停车场区域
      * @param *store_id string 店铺ID
      * @return array
@@ -424,7 +441,7 @@ class ParkWash extends ActionPDO {
     }
 
     /**
-     * 获取我的车辆
+     * 获取我的车辆 <span style="color:red">改动</span>
      * @login
      * @return array
      * {
@@ -435,27 +452,28 @@ class ParkWash extends ActionPDO {
      *      area_id:1, //区域ID
      *      area_floor:"负一楼", //楼层
      *      area_name:"A区", //区域名称
-     *      brand_id:15788, //品牌ID
-     *      brand_name:"北汽幻速", //品牌名称
+     *      brand_id:1, //品牌ID
+     *      brand_name:"", //品牌名称
      *      car_number:"", //车牌号
-     *      name:"北汽幻速", //车全称
-     *      place:"A1001", //车位号
-     *      series_id:1, //车系ID
-     *      series_name:"北汽幻速", //车系名称
+     *      name:"", //车全称
+     *      place:"", //车位号
+     *      car_type_id:1, //车型ID <span style="color:red">新增字段</span>
+     *      car_type_name:"", //车型名称 <span style="color:red">新增字段</span>
      *      isdefault:0, //是否默认选择,
      *      isvip:1, //是否vip 1是 0不是vip或已过期
      * }]}
      */
-    public function getCarport () {
+    public function getCarport ()
+    {
         return (new ParkWashModel())->getCarport($this->_G['user']['uid']);
     }
 
     /**
-     * 添加车辆
+     * 添加车辆 <span style="color:red">改动</span>
      * @login
      * @param *car_number 车牌号
-     * @param *brand_id 品牌ID
-     * @param *series_id 车系ID
+     * @param brand_id 品牌ID
+     * @param *car_type_id string 车型ID <span style="color:red">新增字段</span>
      * @return array
      * {
      * "errNo":0, // 错误码 0成功 -1失败
@@ -463,20 +481,21 @@ class ParkWash extends ActionPDO {
      * "result":[]
      * }
      */
-    public function addCarport () {
+    public function addCarport ()
+    {
         return (new ParkWashModel())->addCarport($this->_G['user']['uid'], $_POST);
     }
 
     /**
-     * 编辑车辆
+     * 编辑车辆 <span style="color:red">改动</span>
      * @login
      * @param *id 车辆ID
      * @param *car_number 车牌号
-     * @param *brand_id 品牌ID
-     * @param *series_id 车系ID
-     * @param *area_id 区域ID
-     * @param $place 车位号
-     * @param $isdefault 是否设置默认车
+     * @param brand_id 品牌ID
+     * @param car_type_id string 车型ID <span style="color:red">新增字段</span>
+     * @param area_id 区域ID
+     * @param place 车位号
+     * @param isdefault 是否默认车
      * @return array
      * {
      * "errNo":0, // 错误码 0成功 -1失败
@@ -484,7 +503,8 @@ class ParkWash extends ActionPDO {
      * "result":[]
      * }
      */
-    public function updateCarport () {
+    public function updateCarport ()
+    {
         return (new ParkWashModel())->updateCarport($this->_G['user']['uid'], $_POST);
     }
 
@@ -499,7 +519,8 @@ class ParkWash extends ActionPDO {
      * "result":[]
      * }
      */
-    public function deleteCarport () {
+    public function deleteCarport ()
+    {
         return (new ParkWashModel())->deleteCarport($this->_G['user']['uid'], $_POST);
     }
 
@@ -523,10 +544,10 @@ class ParkWash extends ActionPDO {
     }
 
     /**
-     * 获取洗车店洗车套餐
+     * 获取洗车店洗车套餐 <span style="color:red">改动</span>
      * @login
      * @param *store_id 门店ID
-     * @param *series_id string 车系ID
+     * @param *car_type_id string 车型ID <span style="color:red">新增字段</span>
      * @return array
      * {
      * "errNo":0, //错误码 0成功 -1失败
@@ -656,9 +677,9 @@ class ParkWash extends ActionPDO {
     }
 
     /**
-     * 我的订单
+     * 我的订单 <span style="color:red">改动</span>
      * @login
-     * @param status 订单状态(-1已取消1已支付3服务中4已完成5确认完成)，搜索多个状态用逗号分隔，默认为所有
+     * @param status 订单状态(-1已取消1已支付3服务中4已完成5确认完成)
      * @param lastpage 分页参数
      * @return array
      * {
@@ -672,7 +693,7 @@ class ParkWash extends ActionPDO {
      *          "order_type":"parkwash", //订单类型 (xc自助洗车 parkwash停车场洗车)
      *          "order_code":"", //订单号
      *          "car_number":"", //车牌号
-     *          "place":"A002", //车位号
+     *          "place":"", //车位号
      *          "pay":0, //支付金额 (分)
      *          "refundpay":0, //自助洗车退款金额 (分)
      *          "payway":"车币支付", //支付方式
@@ -680,11 +701,11 @@ class ParkWash extends ActionPDO {
      *          "order_time":"", //预约时间
      *          "create_time":"", //下单时间
      *          "update_time":"", //更新时间
-     *          "brand_name":"斯柯达", //汽车品牌名
-     *          "series_name":"昊锐", //汽车款型
-     *          "area_floor":"负一楼", //楼层
-     *          "area_name":"A区", //区域
-     *          "store_name":"门店0" //服务网点
+     *          "brand_name":"", //汽车品牌名
+     *          "car_type_name":"", //车型 <span style="color:red">新增字段</span>
+     *          "area_floor":"", //楼层
+     *          "area_name":"", //区域
+     *          "store_name":"" //服务网点
      *          "status":1, //订单状态 (-1已取消 1已支付 3服务中 4已完成 5确认完成)
      *      }]
      * }}
@@ -694,7 +715,7 @@ class ParkWash extends ActionPDO {
     }
 
     /**
-     * 获取订单详情
+     * 获取订单详情 <span style="color:red">改动</span>
      * @login
      * @param *orderid 订单ID
      * @return array
@@ -707,7 +728,6 @@ class ParkWash extends ActionPDO {
      *      "order_code":"", //订单号
      *      "store_id":1, //门店ID
      *      "brand_id":1, //品牌ID
-     *      "series_id":1, //车系ID
      *      "area_id":1, //区域ID
      *      "car_number":"", //车牌号
      *      "place":"A002", //车位号
@@ -719,15 +739,17 @@ class ParkWash extends ActionPDO {
      *      "create_time":"", //下单时间
      *      "update_time":"", //更新时间
      *      "brand_name":"斯柯达", //汽车品牌名
-     *      "series_name":"昊锐", //汽车款型
-     *      "area_floor":"负一楼", //楼层
-     *      "area_name":"A区", //区域
-     *      "store_name":"门店0" //服务网点
+     *      "car_type_id":1, //车型ID <span style="color:red">新增字段</span>
+     *      "car_type_name":"", //车型 <span style="color:red">新增字段</span>
+     *      "area_floor":"", //楼层
+     *      "area_name":"", //区域
+     *      "store_name":"" //服务网点
      *      "location":"", //经纬度
      *      "status":1, //订单状态 (-1已取消 1已支付 3服务中 4已完成 5确认完成)
      * }}
      */
-    public function getOrderInfo () {
+    public function getOrderInfo ()
+    {
         return (new ParkWashModel())->getOrderInfo($this->_G['user']['uid'], $_POST);
     }
 
@@ -767,10 +789,11 @@ class ParkWash extends ActionPDO {
     }
 
     /**
-     * 充值
+     * 充值 <span style="color:red">改动</span>
      * @login
      * @param *type_id string 充值卡类型ID
      * @param *payway 支付方式(wxpaywash小程序支付)
+     * @param promo_name string 推荐人 <span style="color:red">新增字段</span>
      * @return array
      * {
      * "errNo":0, //错误码 0成功 -1失败
