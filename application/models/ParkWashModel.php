@@ -1484,13 +1484,31 @@ class ParkWashModel extends Crud {
     }
 
     /**
+     * 检查推荐人
+     */
+    public function checkPromo ($post)
+    {
+        $post['promo_name'] = trim($post['promo_name']);
+
+        if (!validate_telephone($post['promo_name'])) {
+            return success([
+                'status' => 0
+            ]);
+        }
+        $promoInfo = $this->getDb()->table('parkwash_employee')->field('id')->where(['telephone' => $post['promo_name'], 'status' => 1])->find();
+        return success([
+            'status' => $promoInfo ? 1 : 0,
+            'promo_id' => intval($promoInfo['id'])
+        ]);
+    }
+
+    /**
      * 充值
      */
     public function recharge ($uid, $post)
     {
-        $post['type_id']    = intval($post['type_id']);
-        $post['payway']     = trim($post['payway']);
-        $post['promo_name'] = trim($post['promo_name']);
+        $post['type_id'] = intval($post['type_id']);
+        $post['payway']  = trim($post['payway']);
 
         if (!$post['type_id']) {
             return error('请选择充值卡类型');
@@ -1500,15 +1518,9 @@ class ParkWashModel extends Crud {
             return error('请选择支付方式');
         }
 
-        // 效验推荐人
-        if ($post['promo_name']) {
-            if (!validate_telephone($post['promo_name'])) {
-                return error('推荐人输入不正确');
-            }
-            if (!$promoInfo = $this->getDb()->table('parkwash_employee')->field('id')->where(['telephone' => $post['promo_name']])->find()) {
-                return error('推荐人不存在');
-            }
-        }
+        // 获取推荐人
+        $promoInfo = $this->checkPromo($post);
+        $promoId   = intval($promoInfo['result']['promo_id']);
 
         // 卡类型
         $typeInfo = ParkWashCache::getRechargeCardType();
@@ -1547,7 +1559,7 @@ class ParkWashModel extends Crud {
             'uses'       => '余额充值',
             'trade_id'   => $uid,
             'param_id'   => $post['type_id'],
-            'param_a'    => intval($promoInfo['id']),
+            'param_a'    => $promoId,
             'pay'        => $typeInfo['price'],
             'money'      => $typeInfo['price'] + $typeInfo['give'],
             'payway'     => $post['payway'],

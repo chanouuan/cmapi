@@ -789,6 +789,22 @@ class ParkWash extends ActionPDO {
     }
 
     /**
+     * 检查推荐人 <span style="color:red">新增</span>
+     * @param *promo_name 推荐人
+     * @return array
+     * {
+     * "errNo":0, //错误码 0成功 -1失败
+     * "message":"",
+     * "result":{
+     *      "status":1, //推荐人状态 (1存在 0不存在)
+     * }}
+     */
+    public function checkPromo ()
+    {
+        return (new ParkWashModel())->checkPromo($_POST);
+    }
+
+    /**
      * 充值 <span style="color:red">改动</span>
      * @login
      * @param *type_id string 充值卡类型ID
