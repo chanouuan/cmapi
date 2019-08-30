@@ -364,7 +364,7 @@ class XicheManage extends ActionPDO {
         $brands = ParkWashCache::getBrand();
 
         foreach ($list as $k => $v) {
-            $list[$k]['car_type_name'] = $carType[$v['car_type_id']]['name'];
+            $list[$k]['car_type_name'] = $carType[$v['car_type_id']];
             $list[$k]['brand_name'] = $brands[$v['brand_id']]['name'];
         }
 
@@ -1314,17 +1314,17 @@ class XicheManage extends ActionPDO {
         }
         if ($_GET['store_name']) {
             $employees = $model->getList('parkwash_employee', ['store_name' => ['like', '%' . $_GET['store_name'] . '%']], null, null, 'id');
-            $employees = $employees ? array_column($employees, 'id') : [0];
+            $employees = $employees ? array_column($employees, 'id') : [-1];
             $condition['promo_id'] = ['in (' . implode(',', $employees) . ')'];
         }
         if ($_GET['promo_name']) {
             $employees = $model->getList('parkwash_employee', ['realname' => ['like', '%' . $_GET['promo_name'] . '%']], null, null, 'id');
-            $employees = $employees ? array_column($employees, 'id') : [0];
+            $employees = $employees ? array_column($employees, 'id') : [-1];
             $condition['promo_id'] = ['in (' . implode(',', $employees) . ')'];
         }
         if ($_GET['promo_tel']) {
             $employees = $model->getList('parkwash_employee', ['telephone' => ['like', $_GET['promo_tel'] . '%']], null, null, 'id');
-            $employees = $employees ? array_column($employees, 'id') : [0];
+            $employees = $employees ? array_column($employees, 'id') : [-1];
             $condition['promo_id'] = ['in (' . implode(',', $employees) . ')'];
         }
 

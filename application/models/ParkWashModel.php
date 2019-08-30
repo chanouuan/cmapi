@@ -760,7 +760,7 @@ class ParkWashModel extends Crud {
         if (($post['brand_id'] || $post['car_type_id']) && !$post['name']) {
             $brands   = $post['brand_id'] ? ParkWashCache::getBrand() : [];
             $carTypes = $post['car_type_id'] ? ParkWashCache::getCarType() : [];
-            $post['name'] = implode(' ', [strval($brands[$post['brand_id']]['name']), strval($carTypes[$post['car_type_id']]['name'])]);
+            $post['name'] = implode(' ', [get_real_val($brands[$post['brand_id']]['name'], '未知'), strval($carTypes[$post['car_type_id']]['name'])]);
             unset($brands, $carTypes);
         }
 
@@ -880,7 +880,7 @@ class ParkWashModel extends Crud {
             'car_number'  => $post['car_number'],
             'brand_id'    => $post['brand_id'],
             'car_type_id' => $post['car_type_id'],
-            'name'        => implode(' ', [strval($brandInfo['name']), strval($carTypeInfo['name'])]),
+            'name'        => implode(' ', [get_real_val($brandInfo['name'], '未知'), strval($carTypeInfo['name'])]),
             'isdefault'   => 1,
             'create_time' => date('Y-m-d H:i:s', TIMESTAMP),
             'update_time' => date('Y-m-d H:i:s', TIMESTAMP)
@@ -908,7 +908,7 @@ class ParkWashModel extends Crud {
         $carTypes = ParkWashCache::getCarType();
 
         foreach ($carportList as $k => $v) {
-            $carportList[$k]['brand_name']    = $brands[$v['brand_id']]['name'];
+            $carportList[$k]['brand_name']    = get_real_val($brands[$v['brand_id']]['name'], '未知');
             $carportList[$k]['car_type_name'] = $carTypes[$v['car_type_id']]['name'];
             $carportList[$k]['area_floor']    = strval($areas[$v['area_id']]['floor']);
             $carportList[$k]['area_name']     = strval($areas[$v['area_id']]['name']);
