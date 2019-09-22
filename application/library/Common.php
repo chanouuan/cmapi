@@ -1,5 +1,23 @@
 <?php
 
+function get_diff_time ($start_time, $end_time)
+{
+	if (!$start_time || !$end_time) {
+		return '';
+	}
+	$start_time = new \DateTime(date('Y-m-d H:i:s', $start_time));
+	$end_time = new \DateTime(date('Y-m-d H:i:s', $end_time));
+	$interval = $end_time->diff($start_time);
+	$modify = ['y'=>'年','m'=>'月','d'=>'天','h'=>'小时','i'=>'分','s'=>'秒'];
+	$str = [];
+	foreach ($modify as $k => $v) {
+		if (isset($interval->{$k}) && $interval->{$k}) {
+			$str[] = $interval->{$k} . $v;
+		}
+	}
+	return implode('', $str);
+}
+
 function mb_str_split ($str)
 {
     return empty($str) ? [] : preg_split('/(?<!^)(?!$)/u', $str);
