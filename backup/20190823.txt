@@ -1,0 +1,15 @@
+# 添加车辆车型ID字段
+ALTER table parkwash_carport add `car_type_id` mediumint(8) unsigned DEFAULT '0' COMMENT '车型ID';
+
+# 添加订单车型ID字段
+ALTER table parkwash_order add `car_type_id` mediumint(8) unsigned DEFAULT '0' COMMENT '车型ID';
+
+# 添加缴费推广人ID
+ALTER table parkwash_recharge_record add `promo_id` mediumint(8) unsigned DEFAULT '0' COMMENT '推荐人ID';
+
+# 更新车辆车型
+update parkwash_carport a left join parkwash_car_series b on b.id = a.series_id set a.car_type_id = b.car_type_id where a.series_id > 0;
+
+# 更新订单车型
+update parkwash_order a left join parkwash_car_series b on b.id = a.series_id set a.car_type_id = b.car_type_id where a.series_id > 0;
+

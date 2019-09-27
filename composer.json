@@ -1,6 +1,5 @@
 {
   "require": {
-    "monolog/monolog": "^1.24",
-    "zircote/swagger-php": "^2.0"
+    "jpush/jpush": "^3.5"
   }
 }

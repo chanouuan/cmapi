@@ -1,0 +1,139 @@
+ALTER table parkwash_order add `remark` varchar(255) DEFAULT NULL COMMENT '备注';
+ALTER table parkwash_order add `item_id` mediumint(8) unsigned DEFAULT '0' COMMENT '套餐ID';
+ALTER table parkwash_order add `item_name` varchar(30) DEFAULT NULL COMMENT '套餐名称';
+ALTER table parkwash_order add `employee_salary` mediumint(8) unsigned DEFAULT '0' COMMENT '员工收益 (分)';
+ALTER table parkwash_item  add `car_type_id` mediumint(8) unsigned DEFAULT '0' COMMENT '车型ID';
+ALTER table parkwash_item  add `firstorder` tinyint(1) DEFAULT '0' COMMENT '是否首单免费 1是 0否';
+ALTER table parkwash_car_series add `car_type_id` mediumint(8) unsigned DEFAULT '0' COMMENT '车型ID';
+ALTER table parkwash_store_item add `employee_salary` mediumint(8) unsigned DEFAULT '0' COMMENT '员工收益 (分)';
+ALTER table parkwash_car_brand  add `status` tinyint(1) DEFAULT '1' COMMENT '状态 1正常 0禁用';
+ALTER table parkwash_car_series  add `status` tinyint(1) DEFAULT '1' COMMENT '状态 1正常 0禁用';
+ALTER table parkwash_store  add `park_id` mediumint(8) unsigned DEFAULT '1' COMMENT '停车场ID';
+
+update parkwash_order set item_id = SUBSTRING_INDEX(SUBSTRING_INDEX(items,':',-3),',',1), item_name = SUBSTRING_INDEX(SUBSTRING_INDEX(items,'"',-4),'"',1);
+ALTER table parkwash_order drop column `items`;
+
+CREATE TABLE `parkwash_employee` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `store_id` mediumint(8) unsigned DEFAULT NULL COMMENT '店铺ID',
+  `item_id` varchar(255) DEFAULT NULL COMMENT '服务项目ID',
+  `store_name` varchar(50) DEFAULT NULL COMMENT '店铺名',
+  `realname` varchar(20) DEFAULT NULL COMMENT '真实姓名',
+  `avatar` varchar(80) DEFAULT NULL COMMENT '头像',
+  `telephone` varchar(11) DEFAULT NULL COMMENT '手机号码',
+  `idcard` varchar(18) DEFAULT NULL COMMENT '身份证号',
+  `password` varchar(60) DEFAULT NULL COMMENT '密码',
+  `gender` tinyint(1) unsigned DEFAULT NULL COMMENT '性别 1男 2女',
+  `state_online` tinyint(1) DEFAULT '1' COMMENT '在线状态 1在线 0离线',
+  `state_remind` tinyint(1) DEFAULT '1' COMMENT '订单提醒状态 1启用 0关闭',
+  `state_work` tinyint(1) DEFAULT '0' COMMENT '工作状态 1工作中 0闲置中',
+  `order_count` mediumint(8) unsigned DEFAULT '0' COMMENT '接单数',
+  `money` mediumint(8) unsigned DEFAULT '0' COMMENT '收益(分)',
+  `status` tinyint(1) DEFAULT '1' COMMENT '状态 0禁用 1正常',
+  `update_time` datetime DEFAULT NULL COMMENT '更新时间',
+  `create_time` datetime DEFAULT NULL COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `telephone` (`telephone`),
+  KEY `store_id` (`store_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='员工表';
+
+CREATE TABLE `parkwash_order_hatch` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `orderid` int(10) unsigned DEFAULT NULL COMMENT '订单ID',
+  `store_id` int(10) unsigned DEFAULT NULL COMMENT '门店ID',
+  `item_id` int(10) unsigned DEFAULT NULL COMMENT '项目ID',
+  `create_time` datetime DEFAULT NULL COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `store_id` (`store_id`),
+  KEY `item_id` (`item_id`),
+  KEY `orderid` (`orderid`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COMMENT='订单未开始服务记录表';
+
+CREATE TABLE `parkwash_order_helper` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `orderid` int(10) unsigned DEFAULT NULL COMMENT '订单ID',
+  `employee_id` int(10) unsigned DEFAULT NULL COMMENT '员工ID',
+  `employee_salary` mediumint(8) unsigned DEFAULT '0' COMMENT '收入 (分)',
+  `identity` tinyint(1) DEFAULT '0' COMMENT '身份标识 1接单人 0帮手',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `index` (`orderid`,`employee_id`),
+  KEY `orderid` (`orderid`),
+  KEY `employee_id` (`employee_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='帮手';
+
+CREATE TABLE `parkwash_recharge_type` (
+  `id` mediumint(8) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(50) DEFAULT NULL COMMENT '卡名称',
+  `price` mediumint(8) unsigned DEFAULT NULL COMMENT '价格 (分)',
+  `give` mediumint(8) unsigned DEFAULT '0' COMMENT '赠送金额 (分)',
+  `update_time` datetime DEFAULT NULL COMMENT '更新时间',
+  `create_time` datetime DEFAULT NULL COMMENT '创建时间',
+  `sort` mediumint(9) DEFAULT '0' COMMENT '排序 由大到小',
+  `status` tinyint(1) DEFAULT NULL COMMENT '状态 1启用 0禁用',
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COMMENT='充值卡类型';
+
+CREATE TABLE `parkwash_car_type` (
+  `id` mediumint(8) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) DEFAULT NULL COMMENT '车型名称',
+  `status` tinyint(1) DEFAULT '1' COMMENT '状态 1启用 0禁用',
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COMMENT='车型';
+
+CREATE TABLE `parkwash_item_firstorder` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `uid` int(10) unsigned DEFAULT NULL COMMENT '用户ID',
+  `item_id` int(10) unsigned DEFAULT NULL COMMENT '套餐ID',
+  `create_time` datetime DEFAULT NULL COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `index` (`uid`,`item_id`) USING BTREE,
+  KEY `uid` (`uid`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COMMENT='首单用户使用记录';
+
+CREATE TABLE `parkwash_employee_order_count` (
+  `id` int(10) unsigned NOT NULL,
+  `s1` mediumint(8) unsigned DEFAULT '0' COMMENT '服务中状态',
+  `s2` mediumint(8) unsigned DEFAULT '0' COMMENT '完成状态',
+  `s3` mediumint(8) unsigned DEFAULT '0',
+  `s4` mediumint(8) unsigned DEFAULT '0',
+  `s5` mediumint(8) unsigned DEFAULT '0',
+  `s6` mediumint(8) unsigned DEFAULT '0',
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COMMENT='订单计数';
+
+CREATE TABLE `parkwash_recharge_record` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `uid` int(10) unsigned DEFAULT NULL COMMENT '用户ID',
+  `user_tel` varchar(11) DEFAULT NULL COMMENT '用户手机号',
+  `type_id` mediumint(8) unsigned DEFAULT NULL COMMENT '卡类型ID',
+  `money` mediumint(8) unsigned DEFAULT NULL COMMENT '缴费金额(分)',
+  `give` mediumint(8) unsigned DEFAULT NULL COMMENT '赠送金额(分)',
+  `create_time` datetime DEFAULT NULL COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  KEY `uid` (`uid`),
+  KEY `create_time` (`create_time`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COMMENT='卡包缴费记录';
+
+CREATE TABLE `parkwash_park` (
+  `id` mediumint(8) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(30) DEFAULT NULL COMMENT '停车场名称',
+  `update_time` datetime DEFAULT NULL COMMENT '更新时间',
+  `create_time` datetime DEFAULT NULL COMMENT '创建时间',
+  `status` tinyint(1) DEFAULT '1' COMMENT '状态 1正常 0禁用',
+  PRIMARY KEY (`id`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8mb4 COMMENT='停车场';
+
+insert into parkwash_item_firstorder (item_id,uid,create_time) select '1',uid,now() from parkwash_usercount where parkwash_firstorder = 1;
+ALTER table parkwash_usercount drop column `parkwash_firstorder`;
+
+INSERT INTO `pro_config`(`id`, `app`, `name`, `type`, `value`, `min`, `max`, `description`) VALUES (NULL, 'xc', 'employee_order_limit', 'number', '1', 1, 10, '员工最大接单数');
+delete from pro_config where `name` = 'wash_order_first_free';
+
+INSERT INTO `parkwash_park`(`id`, `name`) VALUES (1, '腾达广场');
+INSERT INTO parkwash_car_type(`name`) values('轿车');
+INSERT INTO parkwash_car_type(`name`) values('越野车');
+INSERT INTO parkwash_car_type(`name`) values('商务车');
+
+# 更新重复车系
+update parkwash_car_series set name = concat(name,' PLUS') where id in(835,910,1053,1108,1117,1118,110,117,20,22,34,27,28,33,217,222,220,299,302,321,323,304,345,346,375,406,407,410,411,436,449,442,445,451,452,549,79,61,83,82,588,587,584,585,586,666);
+

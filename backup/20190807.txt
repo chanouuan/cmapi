@@ -1,0 +1,41 @@
+﻿# 添加员工表角色字段
+ALTER table parkwash_employee add role_id int(10) unsigned DEFAULT 0 COMMENT '角色ID';
+
+# 添加店长角色
+INSERT INTO `admin_roles`(`id`, `name`, `description`) VALUES (2, '店长', '店长角色');
+
+# 创建管理员表
+CREATE TABLE `admin_user` (
+  `id` mediumint(8) unsigned NOT NULL AUTO_INCREMENT,
+  `nickname` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '昵称',
+  `telephone` varchar(11) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '手机号',
+  `password` varchar(60) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '密码',
+  `realname` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '真实姓名',
+  `idcard` varchar(18) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '身份证号',
+  `address` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '住址',
+  `gender` tinyint(1) DEFAULT '0' COMMENT '性别',
+  `email` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '邮箱',
+  `description` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '个人说明',
+  `birthday` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL COMMENT '生日',
+  `status` tinyint(1) DEFAULT '1' COMMENT '状态 0禁用 1正常',
+  `update_time` datetime DEFAULT NULL COMMENT '更新时间',
+  `create_time` datetime DEFAULT NULL COMMENT '创建时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `telephone` (`telephone`),
+  UNIQUE KEY `nickname` (`nickname`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='管理员表';
+
+# 清空admin_role_user表
+delete from admin_role_user;
+
+# 添加权限操作
+INSERT INTO `admin_permissions`(`id`, `name`, `description`) VALUES (3, 'employee', '员工列表');
+INSERT INTO `admin_permissions`(`id`, `name`, `description`) VALUES (4, 'employeeSalary', '员工收益');
+INSERT INTO `admin_permissions`(`id`, `name`, `description`) VALUES (5, 'parkOrder', '人工洗车');
+
+# 添加角色权限
+INSERT INTO `admin_permission_role`(`id`, `role_id`, `permission_id`) VALUES (2, 2, 2);
+INSERT INTO `admin_permission_role`(`id`, `role_id`, `permission_id`) VALUES (3, 2, 3);
+INSERT INTO `admin_permission_role`(`id`, `role_id`, `permission_id`) VALUES (4, 2, 4);
+INSERT INTO `admin_permission_role`(`id`, `role_id`, `permission_id`) VALUES (5, 2, 5);
+
